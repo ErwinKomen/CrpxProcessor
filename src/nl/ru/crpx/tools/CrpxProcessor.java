@@ -9,6 +9,7 @@ import java.io.*;
 import javax.xml.parsers.*;
 import org.w3c.dom.*;
 import nl.ru.crpx.project.CorpusResearchProject;
+import nl.ru.crpx.project.Execute;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
 
@@ -26,7 +27,8 @@ public class CrpxProcessor {
   public static File flProject = null;    // The project we are working with
   public static File dirInput = null;     // Main directory where the psdx files are located
   // =================== instance variables ==================================
-   public static  CorpusResearchProject prjThis = new CorpusResearchProject();
+  public static General objGen = new General();
+  public static CorpusResearchProject prjThis = new CorpusResearchProject(objGen);
   // =================== main code start =====================================
 /* ---------------------------------------------------------------------------
    Name:    main
@@ -91,7 +93,10 @@ public class CrpxProcessor {
         return;
       }
       
-      // Process the project
+      // Execute queries
+      if (!prjThis.Execute()) {
+        
+      }
       
       // Return positively
       logger.debug("Successfully loaded project " + 

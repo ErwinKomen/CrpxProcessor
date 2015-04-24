@@ -8,32 +8,40 @@ package nl.ru.crpx.project;
 // The external libraries that I need
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-// import java.util.logging.Level;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.parsers.*;
 import javax.xml.xpath.*;
+import nl.ru.crpx.tools.General;
+import nl.ru.util.Json;
 import nl.ru.util.json.JSONObject;
+import static nl.ru.xmltools.XmlIO.WriteXml;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+// import  nl.ru.crpx.project.Execute;
 
 /* ---------------------------------------------------------------------------
-   Name:    CorpusResearchProject
-   Goal:    Contains one corpus research project
+   Class:   CorpusResearchProject
+   Goal:    Definition of and functions on a corpus research project (crp)
    History:
    17/10/2014   ERK Created
    --------------------------------------------------------------------------- */
 public class CorpusResearchProject {
   // This class uses a logger
   private static final Logger logger = Logger.getLogger(CorpusResearchProject.class);
+  protected General objGen;
+
   // ================== instance fields for the research project =============
+  private PrjTypeManager prjTypeManager;
   // =================== private variables ====================================
   private String Location = "";     // Full filename and location of this project
   private String Name = "";         // Name of this project (w.o. extension)
@@ -50,6 +58,8 @@ public class CorpusResearchProject {
   private boolean ShowPsd = true;   // Show syntax of each result in PSD
   private boolean Locked = true;    // Lock project against synchronisation
   private boolean Stream = true;    // Execute line-by-line
+  private boolean bXmlData = true;  // This project deals with XML data
+  private boolean bShowPsd = true;  // The PSD syntax needs to be shown in the results
   private int PrecNum = 2;          // Number of preceding lines
   private int FollNum = 1;          // Number of following lines
   private XMLGregorianCalendar dtCreated; // Creation date of this project
@@ -67,7 +77,7 @@ public class CorpusResearchProject {
   static List<JSONObject> lPeriodInfo = new ArrayList<>();
 
   // ==================== Class initialisations ================================
-  public CorpusResearchProject() {
+  public CorpusResearchProject(General oGen) {
     this.docProject = null;
     this.parser = null;
     this.factory = DocumentBuilderFactory.newInstance();
@@ -78,6 +88,7 @@ public class CorpusResearchProject {
     }
     this.dirInput = null;
     this.flProject = null;
+    this.objGen = oGen;
   }
 
   // =================== instance methods ======================================
@@ -107,17 +118,17 @@ public class CorpusResearchProject {
       // Read the CRPX project xml file
       this.docProject = this.parser.parse(this.flProject);
     } catch (SAXException ex) {
-      logger.error("Load crpx: SAX problem", ex);
+      logger.error("Load crpx file: SAX problem", ex);
       return false;
     } catch (IOException ex) {
-      logger.error("Load crpx: IO problem", ex);
+      logger.error("Load crpx file: IO problem", ex);
       return false;
     }
     // Debugging
     logger.debug("Root node=" + this.docProject.getDocumentElement().getTagName());
     try {
       NodeList ndxList = (NodeList) xpath.compile("./descendant::Setting").evaluate( this.docProject, XPathConstants.NODESET);
-      logger.debug("Size = " + ndxList.getLength());
+      logger.debug("Settings of this crpx: " + ndxList.getLength());
     } catch (XPathExpressionException ex) {
       logger.error("debug", ex);
     }
@@ -129,6 +140,13 @@ public class CorpusResearchProject {
     this.Comments = getSetting("Comments");
     this.Author = getSetting("Author");
     this.ProjectType = getSetting("ProjectType");
+    // Calculate bXmlData
+    switch(this.ProjectType.toLowerCase()) {
+      case "xquery-psdx":
+        this.bXmlData = true; break;
+      default:
+        this.bXmlData = true;
+    }
     // Load the settings: directories
     this.QueryDir = new File(getSetting("QueryDir"));
     this.DstDir = new File(getSetting("DstDir"));
@@ -158,7 +176,36 @@ public class CorpusResearchProject {
         return(DoError("Sorry, cannot process projects of type [" + this.ProjectType + "]"));
     }
     
+    // Perform initialisations related to this project-type using the config file
+    // Read it from the class path
+    String configFileName = "crpp-settings.json";
+    InputStream is = getClass().getClassLoader().getResourceAsStream(configFileName);
+    if (is == null) {
+      configFileName = "crpp-settings-default.json.txt";  // Internal default
+      is = getClass().getClassLoader().getResourceAsStream(configFileName);
+      if (is == null) {
+        // We cannot continue...
+        return(DoError("Could not find " + configFileName + "!"));
+      }
+    }
+    // Create configuration object
+    JSONObject config;
+    // Process input stream with configuration
+    try {
+      try {
+        config = Json.read(is);
+      } finally {
+        is.close();
+      }
+    } catch (Exception e) {
+      return(DoError("Error reading JSON config file: " +  e.getMessage()));
+    }
+    // Create a new project-type manager on the basis of the configuration settings
+    prjTypeManager = new PrjTypeManager(config);
+    
     // Load the definitions
+    
+    // Close the project file
     
     // Return positively
     
@@ -167,6 +214,48 @@ public class CorpusResearchProject {
   public boolean Load(String loc) throws Exception {
     this.Location = loc;
     return(Load());
+  }
+  
+  /* ---------------------------------------------------------------------------
+   Name:    Save
+   Goal:    Save a project as xml. 
+            Use the project's location/name in this.Location
+   History:
+   20/04/2015   ERK Created
+   --------------------------------------------------------------------------- */
+  public boolean Save() {
+    // Validate
+    if (this.Location.isEmpty()) return false;
+    if (this.docProject == null) return false;
+    // Write as XML to the correct location
+    boolean bFlag = WriteXml(this.docProject, this.Location);
+    // Return the result of writing
+    return bFlag;
+  }
+  
+  public boolean Execute() {
+    boolean bFlag = true;
+    // Create an execution object instance
+    Execute objEx = new Execute(this, this.objGen);
+    // Perform query execution on that object instance
+    bFlag = objEx.ExecuteQueries();
+    // Check if we have been interrupted
+    if (!bFlag || objGen.getInterrupt()) return false;
+    // Is this a corpussearch project?
+    /*
+      ' Is this a corpussearch project?
+      bXmlData = (InStr(strQengine, "xquery", CompareMethod.Text) > 0)
+      ' Determine whether the syntax of the result should be shown or not
+      bShowPsd = Me.chbShowPsd.Checked
+      ' Show the results in the Results tab
+      ShowResults(bXmlData, bShowPsd)
+      ' Possibly show output file
+      RuOutMessage()
+      ' Possibly show lexicon file message
+      RuLexMessage()
+    */
+    // Return positively
+    return true;
   }
   
   // ===================== Get and Set methods =================================
@@ -200,10 +289,13 @@ public class CorpusResearchProject {
   public boolean getShowPsd() { return this.ShowPsd;}
   public boolean getLocked() { return this.Locked;}
   public boolean getStream() { return this.Stream;}
+  public boolean getIsXmlData() { return this.bXmlData;}
   // Set booleans
   public void setShowPsd(boolean bSet) { if (setSetting("ShowPsd", bSet ? "True" : "False")) {this.ShowPsd = bSet;}}
   public void setLocked(boolean bSet) { if (setSetting("Locked", bSet ? "True" : "False")) {this.Locked = bSet;}}
   public void setStream(boolean bSet) { if (setSetting("Stream", bSet ? "True" : "False")) {this.Stream = bSet;}}
+  // Do NOT set [bXmlData]; it has to be calculated from the project type
+  public void setIsXmlData(boolean bSet) { this.bXmlData = bSet;}
   // ================ Integers
   public int getPrecNum() {return this.PrecNum;}
   public int getFollNum() {return this.FollNum;}
@@ -214,6 +306,36 @@ public class CorpusResearchProject {
   public XMLGregorianCalendar getDateCreated() {return this.dtCreated;}
   public void setPrecNum(XMLGregorianCalendar dValue) {if (setSetting("DateChanged", String.valueOf(dValue))) {this.dtChanged = dValue;}}
   public void setFollNum(XMLGregorianCalendar dValue) {if (setSetting("DateCreated", String.valueOf(dValue))) {this.dtCreated = dValue;}}
+  // ================ Query Constructor elements
+  public int getListQCsize() { return lQueryConstructor.size(); }
+  public List<JSONObject> getListQC() { return lQueryConstructor;}
+  public JSONObject getListQCitem(int iValue) {return lQueryConstructor.get(iValue); }
+  // ================ Query list elements
+  public int getListQuerySize() { return lQueryList.size(); }
+  public List<JSONObject> getListQuery() { return lQueryList;}
+  public JSONObject getListQueryItem(int iValue) {return lQueryList.get(iValue); }
+  // ================ Definition list elements
+  public int getListDefSize() { return lDefList.size(); }
+  public List<JSONObject> getListDef() { return lDefList;}
+  public JSONObject getListDefItem(int iValue) {return lDefList.get(iValue); }
+  // ================ Database Feature list elements
+  public int getListDbFeatSize() { return lDbFeatList.size(); }
+  public JSONObject getListDbFeatItem(int iValue) {return lDbFeatList.get(iValue); }
+  // =================== Compatibility with .NET: get 'table' ==================
+  public List<JSONObject> getTable(String sName) {
+    switch(sName) {
+      case "Query":
+        return lQueryList;
+      case "Definition":
+        return lDefList;
+      case "DbFeat":
+        return lDbFeatList;
+      case "QC":
+        return lQueryConstructor;
+      default:
+        return null;
+    }
+  }
   // =================== private methods for internal use ======================
   private String getSetting(String sName) {
     String strValue = ""; // Default value
@@ -243,6 +365,12 @@ public class CorpusResearchProject {
     // Return positively
     return true;
   }
+
+  // Make the project-type manager for this project available to others
+  public PrjTypeManager getPrjTypeManager() {
+    return prjTypeManager;
+  }
+
   /* ---------------------------------------------------------------------------
    Name:    ReadCrpList
    Goal:    Read a list of objects into a JSON list
@@ -364,4 +492,79 @@ public class CorpusResearchProject {
     return(true);
   }
 
+  /* ---------------------------------------------------------------------------
+   Name:    doSort
+   Goal:    Sort the JSONObject ArrayList @sList on @sField
+   History:
+   21/apr/2015   ERK Created
+   --------------------------------------------------------------------------- */
+  public boolean doSort(String sList, String sField) { 
+    // Check on the list
+    switch(sList) {
+      case "QClist":
+        if (sField.equals("QCid")) {
+          // Sort the QueryConstructor list on [QCid]
+          Collections.sort(this.lQueryConstructor, new QCidComparator() {});
+        } else return false;
+        break;
+      case "QueryList":
+        if (sField.equals("QueryId")) {
+          // Sort the QueryConstructor list on [QueryId]
+          Collections.sort(this.lQueryList, new IntIdComparator("QueryId") {});
+        } else return false;
+        break;
+      case "DefList":
+        if (sField.equals("DefId")) {
+          Collections.sort(this.lDefList, new IntIdComparator("DefId") {});
+        }
+        break;
+      default:
+        return false;
+    }
+    // Return positively
+    return true;
+  }
+
+}
+
+/* ---------------------------------------------------------------------------
+ Class:   QCidComparator
+ Goal:    Sort the QC list on @QCid
+ History:
+ 21/apr/2015   ERK Created
+ --------------------------------------------------------------------------- */
+class QCidComparator implements Comparator {
+  public int compare(JSONObject c1, JSONObject c2) {
+    int iId1 = c1.getInt("QCid"); int iId2 = c2.getInt("QCid");
+    if (iId1 == iId2) return 0; 
+    else return (iId1 < iId2) ? -1 : 1;
+  }
+
+  @Override
+  public int compare(Object t, Object t1) {
+    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+  } 
+}
+
+/* ---------------------------------------------------------------------------
+ Class:   IntIdComparator
+ Goal:    Sort a JSONObject list on an integer element
+ History:
+ 22/apr/2015   ERK Created
+ --------------------------------------------------------------------------- */
+class IntIdComparator implements Comparator {
+  private String sIntId;
+  public IntIdComparator(String sField) {
+    sIntId = sField;
+  }
+  public int compare(JSONObject c1, JSONObject c2) {
+    int iId1 = c1.getInt(sIntId); int iId2 = c2.getInt(sIntId);
+    if (iId1 == iId2) return 0; 
+    else return (iId1 < iId2) ? -1 : 1;
+  }
+
+  @Override
+  public int compare(Object t, Object t1) {
+    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+  } 
 }

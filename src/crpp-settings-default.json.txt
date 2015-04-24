@@ -1,0 +1,102 @@
+{
+    // Corpus Research Project Processor config file
+    // ===============================================================
+    // NOTE: this file is in JSON format, with end-of-line comments (//) allowed.
+
+    // A list of possible Engines, with the default engine identified
+    "pinfo": {
+        "ProjectType": "Xquery-psdx",
+        "Xquery-psdx": {
+            // Description
+            "Descr": "Xquery with XML output",
+            // Extension of query files
+            "Qext": ".xq",
+            // Extension of definition files
+            "Dext": ".xq",
+            // Extension of source files
+            "SrcExt": ".psdx",
+            // Start and end of comments
+            "ComBeg": "(:", "ComEnd": ":)",
+            // The 'engine' that is being used
+            "Engine": "Xquery",
+            // Default definition and period file locations
+            "DefaultDefFile": "",
+            "DefaultPerFile": "",
+            // Text of default query
+            "DefaultQuery": [
+                "<TEI>",
+                "{",
+                " for $search in //eTree[ru:matches(@Label, $_matrixIP)]",
+                "",
+                "  (: Use your own 'let' definitions here :)",
+                "  let $sbj := tb:SomeChildNo($search, $_subject, $_nosubject)",
+                "",
+                "  (: Define your 'where' definition here :)",
+                "  where ( exists($sbj)",
+                "        )",
+                " return ru:back($search)",
+                "}",
+                "</TEI>"]
+        },
+        "FoLiA-xml": {
+            // Description
+            "Descr": "Xquery with XML output",
+            // Extension of query files
+            "Qext": ".xq",
+            // Extension of definition files
+            "Dext": ".xq",
+            // Extension of source files
+            "SrcExt": ".folia.xml",
+            // Start and end of comments
+            "ComBeg": "(:", "ComEnd": ":)",
+            // The 'engine' that is being used
+            "Engine": "Xquery",
+            // Default definition and period file locations
+            "DefaultDefFile": "",
+            "DefaultPerFile": "",
+            // Text of default query
+            "DefaultQuery":  [
+                "<FoLiA>",
+                "{",
+                "  (: Look for all main clauses within this sentence :)",
+                "  for $search in //node[ru:matches(@cat, 'smain')]",
+                "",
+                "  (: Get the subject of this particular main clause :)",
+                "  let $sbj := $search/child::node[@rel='su']",
+                "",
+                "  (: Do not allow empty (elided) subjects :)",
+                "  where ( ",
+                "           exists($sbj) and (count($sbj/child::node)>0)",
+                "        )",
+                "  (: Return the main clause :) ",
+                "  return ru:back($search)",
+                "}",
+                "</FoLiA>"]
+        },
+        "Alpino-xml": {
+        },
+        "Negra-tig": {
+        },
+        "Penn-psd": {
+            "Xquery-psdx": {
+                // Description
+                "Descr": "Penn-Treebank PSD",
+                // Extension of query files
+                "Qext": ".q",
+                // Extension of definition files
+                "Dext": ".def",
+                // Extension of source files
+                "SrcExt": ".psd",
+                // Start and end of comments
+                "ComBeg": "/*", "ComEnd": "*/",
+                // The 'engine' that is being used
+                "Engine": "Csearch2",
+                // Default definition and period file locations
+                "DefaultDefFile": "",
+                "DefaultPerFile": "",
+                // Text of default query
+                "DefaultQuery": ""
+            }
+        }
+    }
+}
