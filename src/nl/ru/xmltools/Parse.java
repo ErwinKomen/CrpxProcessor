@@ -4,12 +4,11 @@
  * and open the template in the editor.
  */
 
-package nl.ru.crpx.tools;
+package nl.ru.xmltools;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.xpath.XPathExpressionException;
-import nl.ru.crpx.project.CorpusResearchProject;
 import static nl.ru.crpx.project.CrpGlobal.DoError;
 import nl.ru.xmltools.XmlNode;
 import org.w3c.dom.DOMException;
@@ -32,16 +31,14 @@ public class Parse {
   // 20-02-2010   ERK Created for .NET
   // 23/apr/2015  ERK Adapted for Java
   // ----------------------------------------------------------------------------------------------------------
-  public static String GetSeg(XmlNode ndThis, CorpusResearchProject crpThis) {
+  public static String GetSeg(XmlNode ndThis, String strProjType) {
     XmlNode ndxOrg;   // The div/seg node we are looking for
     NodeList ndxTrm;  // List of terminal nodes
-    String strProjType; // The project type we are dealing with
     
     try {
       // Validate: Does the node exist?
       if (ndThis == null) return "";
       // Action depends on project type
-      strProjType = crpThis.getProjectType();
       switch(strProjType.toLowerCase()) {
         case "xquery-psdx":
           // Try find the 'org' segment

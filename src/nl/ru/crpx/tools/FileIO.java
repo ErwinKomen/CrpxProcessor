@@ -7,8 +7,12 @@
 package nl.ru.crpx.tools;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 
 /**
  *
@@ -35,9 +39,45 @@ public class FileIO {
       stringBuilder.append( line );
       stringBuilder.append( ls );
     }
+    // Close the reader
+    reader.close();
     // Return what we have been building up
     return stringBuilder.toString();
   }
   // ================== Access to the number of lines that have been read
   public int getLinesRead() { return iLinesRead;}
+  // Write the text in @sText into the file name @file
+  public boolean writeFileUtf8(String file, String sText) throws IOException {
+    BufferedWriter writer = new BufferedWriter( new OutputStreamWriter( new FileOutputStream(file), "UTF-8"));
+    String         ls = System.getProperty("line.separator");
+    String[]       lines = sText.split(ls);
+    
+    // Keep track of the number of lines that have been written
+    iLinesRead = 0;
+    // Loop through all the lines
+    for (String line : lines) {
+      // Add the lines to the file
+      writer.write(line);
+      writer.newLine();
+      // Increment the lines that have been written
+      iLinesRead++;
+    }
+    // close the writer
+    writer.close();
+    // Return success
+    return true;
+  }
+  // ================== Transform string filename to bare one w/o extension
+  public static String getFileNameWithoutExtension(String sFile) {
+
+    String separator = System.getProperty("file.separator");
+
+    int indexOfLastSeparator = sFile.lastIndexOf(separator);
+    String filename = sFile.substring(indexOfLastSeparator + 1);
+
+    int extensionIndex = filename.lastIndexOf(".");
+    String fileExtension = filename.substring(0, extensionIndex);
+
+    return fileExtension;
+  }
 }

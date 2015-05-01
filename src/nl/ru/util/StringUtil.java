@@ -350,16 +350,16 @@ public class StringUtil {
 	 * @return the joined string
 	 */
 	public static <T> String join(Iterable<T> parts, String delimiter) {
-		StringBuilder builder = new StringBuilder();
-		Iterator<T> iter = parts.iterator();
-		while (iter.hasNext()) {
-			builder.append(iter.next().toString());
-			if (!iter.hasNext()) {
-				break;
-			}
-			builder.append(delimiter);
-		}
-		return builder.toString();
+          StringBuilder builder = new StringBuilder();
+          Iterator<T> iter = parts.iterator();
+          while (iter.hasNext()) {
+            builder.append(iter.next().toString());
+            if (!iter.hasNext()) {
+              break;
+            }
+            builder.append(delimiter);
+          }
+          return builder.toString();
 	}
 
 	/**
@@ -374,13 +374,13 @@ public class StringUtil {
 	 * @return the joined string
 	 */
 	public static <T> String join(T[] parts, String delimiter) {
-		StringBuilder builder = new StringBuilder();
-		for (T t: parts) {
-			if (builder.length() > 0)
-				builder.append(delimiter);
-			builder.append(t.toString());
-		}
-		return builder.toString();
+          StringBuilder builder = new StringBuilder();
+          for (T t: parts) {
+            if (builder.length() > 0)
+              builder.append(delimiter);
+            builder.append(t.toString());
+          }
+          return builder.toString();
 	}
 
 	/**

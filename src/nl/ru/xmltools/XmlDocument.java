@@ -15,7 +15,7 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
-import static nl.ru.crpx.tools.General.DoError;
+import static nl.ru.crpx.project.CrpGlobal.DoError;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
 // import org.w3c.dom.Node;
@@ -34,6 +34,9 @@ public class XmlDocument {
   private DocumentBuilder parser;
   private Document doc;
   private XPath xpath = XPathFactory.newInstance().newXPath();
+  public enum XmlNodeType {
+    Attribute, Comment, Document, Element, EndElement
+  }
   // Instantiation of the class
   public XmlDocument() {
     this.parser = null;
@@ -59,5 +62,8 @@ public class XmlDocument {
   public XmlNode SelectSingleNode(String sXpath) throws XPathExpressionException {
     XmlNode ndThis = (XmlNode) xpath.compile(sXpath).evaluate(this.doc, XPathConstants.NODE);
     return ndThis;
+  }
+  public XmlNode CreateNode(XmlNodeType ndType, String sName, String sNameSpaceURI) {
+    return null;
   }
 }

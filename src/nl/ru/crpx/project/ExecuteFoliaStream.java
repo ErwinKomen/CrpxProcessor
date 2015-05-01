@@ -5,7 +5,6 @@
  */
 package nl.ru.crpx.project;
 
-import nl.ru.crpx.tools.General;
 
 /**
  *
@@ -18,7 +17,6 @@ import nl.ru.crpx.tools.General;
    20/apr/2015   ERK Created
    --------------------------------------------------------------------------- */
 public class ExecuteFoliaStream extends Execute {
-  protected General objGen;
 
   /* ---------------------------------------------------------------------------
      Name:    ExecutePsdxStream
@@ -26,10 +24,9 @@ public class ExecuteFoliaStream extends Execute {
      History:
      20/apr/2015   ERK Created
      --------------------------------------------------------------------------- */
-  public ExecuteFoliaStream(CorpusResearchProject crpThis, General oGen) {
+  public ExecuteFoliaStream() {
     // Do the initialisations for all Execute() classes
-    super(crpThis, oGen);
-    this.objGen = oGen;
+    super();
   }
 
   /* ---------------------------------------------------------------------------
@@ -38,10 +35,20 @@ public class ExecuteFoliaStream extends Execute {
      History:
      20/apr/2015   ERK Created
      --------------------------------------------------------------------------- */
-  public static boolean ExecuteQueriesFoliaStream() {
+  @Override
+  public boolean ExecuteQueries() {
+    try {
+      // Perform general setup
+      if (!super.ExecuteQueriesSetUp()) return false;
     
-    // Return positively
-    return true;
+      // Return positively
+      return true;
+    } catch (RuntimeException ex) {
+      // Warn user
+      DoError("ExecuteFoliaStream/ExecuteQueries error: " + ex.getMessage() + "\r\n");
+      // Return failure
+      return false;
+    }
   }
   
 

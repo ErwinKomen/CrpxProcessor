@@ -4,7 +4,6 @@
  * and open the template in the editor.
  */
 package nl.ru.crpx.project;
-import nl.ru.crpx.tools.General;
 
 /**
  *
@@ -17,16 +16,24 @@ import nl.ru.crpx.tools.General;
    20/apr/2015   ERK Created
    --------------------------------------------------------------------------- */
 public class ExecutePsdxFast  extends Execute {
-  protected General objGen;
-  public ExecutePsdxFast(CorpusResearchProject crpThis, General oGen) {
+  public ExecutePsdxFast() {
     // Do the initialisations for all Execute() classes
-    super(crpThis, oGen);
-    this.objGen = oGen;
+    super();
   }
-  public static boolean ExecuteQueriesPsdxFast() {
+  @Override
+  public boolean ExecuteQueries() {
+    try {
+      // Perform general setup
+      if (!super.ExecuteQueriesSetUp()) return false;
     
-    // Return positively
-    return true;
+      // Return positively
+      return true;
+    } catch (RuntimeException ex) {
+      // Warn user
+      DoError("ExecutePsdxFast/ExecuteQueries error: " + ex.getMessage() + "\r\n");
+      // Return failure
+      return false;
+    }
   }
   
 

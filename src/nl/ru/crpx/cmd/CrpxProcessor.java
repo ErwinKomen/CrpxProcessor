@@ -3,16 +3,16 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
+// This package is specifically for the command-line implementation of CRPP
+package nl.ru.crpx.cmd;
 
-package nl.ru.crpx.tools;
+// <editor-fold defaultstate="collapsed" desc="Import">
 import java.io.*;
-import javax.xml.parsers.*;
-import org.w3c.dom.*;
 import nl.ru.crpx.project.CorpusResearchProject;
-import nl.ru.crpx.project.Execute;
+import nl.ru.crpx.project.CrpGlobal;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
-
+// </editor-fold>
 /* ---------------------------------------------------------------------------
    Name:    CrpxProcessor
    Goal:    Process "crpx" files that contain a corpus research project (xml)
@@ -27,8 +27,8 @@ public class CrpxProcessor {
   public static File flProject = null;    // The project we are working with
   public static File dirInput = null;     // Main directory where the psdx files are located
   // =================== instance variables ==================================
-  public static General objGen = new General();
-  public static CorpusResearchProject prjThis = new CorpusResearchProject(objGen);
+  private static CrpGlobal objGen = new CrpGlobal();         // This is a local copy
+  private CorpusResearchProject prjThis = objGen.getCrpx();
   // =================== main code start =====================================
 /* ---------------------------------------------------------------------------
    Name:    main
@@ -37,7 +37,7 @@ public class CrpxProcessor {
    History:
    17/10/2014   ERK Created
    --------------------------------------------------------------------------- */
-    public static void main(String[] args) throws Exception {
+    public void main(String[] args) throws Exception {
       try {
         BasicConfigurator.configure();
       } catch (Exception e) {
@@ -89,18 +89,19 @@ public class CrpxProcessor {
       }
       // Try to load the project
       if (!prjThis.Load(strProject)) {
-        System.err.println("Could not load project " + strProject);
+        objGen.DoError("Could not load project " + strProject);
         return;
       }
       
-      // Execute queries
-      if (!prjThis.Execute()) {
-        
-      }
-      
-      // Return positively
+      // Show the project has been loaded
       logger.debug("Successfully loaded project " + 
               prjThis.getName() + " (type=" + prjThis.getProjectType() + ")");
+
+      // Execute queries
+      if (!prjThis.Execute()) {
+        objGen.DoError("The queries could not be executed");
+      }
+      
     }
 
 /* ---------------------------------------------------------------------------

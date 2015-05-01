@@ -74,6 +74,7 @@ public class XmlReader {
       // Get the start element
       StartElement startElement = event.asStartElement();
       sTag = startElement.getName().getLocalPart();
+      
       // Read until we reach this same tag as end element
       while (reader.hasNext()) {
         event = (XMLEvent)reader.next();
@@ -85,7 +86,7 @@ public class XmlReader {
           // Are we there?
           if (iNesting <= 0) {
             // Yes, we are there: return the string we found
-            
+            // TODO: how do we get the STRING representation??
           }
         } else if (event.isStartElement() && event.asStartElement().getName().getLocalPart().equals(sTag)) {
           // Keep track of the nesting level

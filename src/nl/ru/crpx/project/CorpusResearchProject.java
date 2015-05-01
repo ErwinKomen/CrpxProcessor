@@ -18,12 +18,12 @@ import java.util.Map;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.parsers.*;
 import javax.xml.xpath.*;
-import nl.ru.crpx.tools.General;
 import nl.ru.util.Json;
 import nl.ru.util.json.JSONObject;
 import static nl.ru.xmltools.XmlIO.WriteXml;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -35,11 +35,32 @@ import org.xml.sax.SAXException;
    History:
    17/10/2014   ERK Created
    --------------------------------------------------------------------------- */
-public class CorpusResearchProject {
+public class CorpusResearchProject extends CrpGlobal {
   // This class uses a logger
   private static final Logger logger = Logger.getLogger(CorpusResearchProject.class);
-  protected General objGen;
-
+  // protected CrpGlobal objGen;
+  // ================== Enumerations in use ==================================
+  public enum ProjType {
+    ProjPsd, ProjPsdx, ProjNegra, ProjAlp, ProjFolia, None;
+    public static ProjType getType(String sName) {
+      switch (sName.toLowerCase()) {
+        case "xquery-psdx": return ProjType.ProjPsdx;
+        case "negra-tig": return ProjType.ProjNegra;
+        case "penn-psd": return ProjType.ProjPsd;
+        case "folia-xml": return ProjType.ProjFolia;
+        case "alpino-xml": return ProjType.ProjAlp;
+      }
+      // Unidentified project
+      return ProjType.None;
+    }
+  }
+  public enum ProjOut {ProjBasic, ProjDbase, ProjStat, ProjTimbl}
+  // ================== Publically available fields ==========================
+  public ProjType intProjType;
+  public String sNodeNameSnt;       // Name of the "sentence-level" node
+  public String sNodeNameCns;       // Name of the "constituent-level" node
+  public String sNodeNamePrg;       // Name of "paragraph-level" node
+  public String sNodeNameWrd;       // Name of "word-level" node
   // ================== instance fields for the research project =============
   private PrjTypeManager prjTypeManager;
   // =================== private variables ====================================
@@ -77,7 +98,8 @@ public class CorpusResearchProject {
   static List<JSONObject> lPeriodInfo = new ArrayList<>();
 
   // ==================== Class initialisations ================================
-  public CorpusResearchProject(General oGen) {
+  //  OLD: public CorpusResearchProject(CrpGlobal oGen) {
+  public CorpusResearchProject() {
     this.docProject = null;
     this.parser = null;
     this.factory = DocumentBuilderFactory.newInstance();
@@ -88,9 +110,11 @@ public class CorpusResearchProject {
     }
     this.dirInput = null;
     this.flProject = null;
-    this.objGen = oGen;
+    // this.objGen = oGen;
+    // Set default project type
+    this.intProjType = ProjType.ProjPsdx;
   }
-
+  
   // =================== instance methods ======================================
   /* ---------------------------------------------------------------------------
    Name:    Load
@@ -140,6 +164,22 @@ public class CorpusResearchProject {
     this.Comments = getSetting("Comments");
     this.Author = getSetting("Author");
     this.ProjectType = getSetting("ProjectType");
+    this.intProjType = ProjType.getType(this.ProjectType);
+    // Determine the names of nodes available globally
+    switch (this.intProjType) {
+      case ProjPsdx:
+        sNodeNameSnt = "forest"; sNodeNamePrg=""; sNodeNameWrd="eLeaf"; sNodeNameCns = "eTree"; break;
+      case ProjFolia:
+        sNodeNameSnt = "s"; sNodeNamePrg="p"; sNodeNameWrd="w"; sNodeNameCns = "su"; break;
+      case ProjNegra:
+        sNodeNameSnt = "s"; sNodeNamePrg=""; sNodeNameWrd="t"; sNodeNameCns = ""; break;
+      case ProjAlp:
+        sNodeNameSnt = "node"; sNodeNamePrg=""; sNodeNameWrd="node"; sNodeNameCns = "node"; break;
+      case ProjPsd:
+        sNodeNameSnt = ""; sNodeNamePrg=""; sNodeNameWrd=""; sNodeNameCns = ""; break;
+      default:
+    }
+
     // Calculate bXmlData
     switch(this.ProjectType.toLowerCase()) {
       case "xquery-psdx":
@@ -234,13 +274,42 @@ public class CorpusResearchProject {
   }
   
   public boolean Execute() {
+    Execute objEx = null;
     boolean bFlag = true;
     // Create an execution object instance
-    Execute objEx = new Execute(this, this.objGen);
-    // Perform query execution on that object instance
+        // Check what kind of project this is
+    switch (this.intProjType) {
+      case ProjPsdx: // Okay, we are able to process this kind of project
+        // Do we need to do streaming or not?
+        if (this.getStream()) {
+          // objEx = new ExecutePsdxStream(this, objGen);
+          objEx = new ExecutePsdxStream();
+        } else {
+          // objEx = new ExecutePsdxFast(this, objGen);
+          objEx = new ExecutePsdxFast();
+        }
+        break;
+      case ProjFolia:
+        // Do we need to do streaming or not?
+        if (this.getStream()) {
+          // objEx  = new ExecuteFoliaStream(this, objGen);
+          objEx  = new ExecuteFoliaStream();
+        } else {
+          // objEx  = new ExecuteFoliaFast(this, objGen);
+          objEx  = new ExecuteFoliaFast();
+        }
+        break;
+      case ProjAlp:
+      case ProjPsd:
+      case ProjNegra:
+      default: 
+       DoError("Sorry, cannot execute projects of type [" + this.getProjectType() + "]");
+    }
+    if (objEx == null) return false;
+    // Execute the queries using the chosen method
     bFlag = objEx.ExecuteQueries();
     // Check if we have been interrupted
-    if (!bFlag || objGen.getInterrupt()) return false;
+    if (!bFlag || bInterrupt) return false;
     // Is this a corpussearch project?
     /*
       ' Is this a corpussearch project?
@@ -379,10 +448,14 @@ public class CorpusResearchProject {
    --------------------------------------------------------------------------- */
   private boolean ReadCrpList(List<JSONObject> lThis, String sPath, String sAttribs, String sChildren) {
     NodeList ndxList = null;  // List of all the nodes on the specified path
+    Node ndAttr;              // The attribute we are accessing
+    String sVal;
+
     try {
       ndxList = (NodeList) xpath.evaluate(sPath, this.docProject, XPathConstants.NODESET);
     } catch (XPathExpressionException ex) {
       logger.error("ReadCrpList problem with [" + sPath + "]",ex);
+      return false;
     }
     // Double check
     if (ndxList == null) return false;
@@ -393,8 +466,23 @@ public class CorpusResearchProject {
     for (int i = 0; i < ndxList.getLength(); i++) {
       // Create a new object for the stack
       JSONObject oThis = new JSONObject();
-      // Copy the attributes
-      for (String sName : arAttribs) { oThis.put(sName, ndxList.item(i).getAttributes().getNamedItem(sName).getNodeValue()); }
+      try {
+        // Copy the attributes
+        for (String sName : arAttribs) { 
+          ndAttr = ndxList.item(i).getAttributes().getNamedItem(sName);
+          if (ndAttr == null) {
+            // This attribute does not exist, so we either have to leave it open or supply a null value
+            oThis.put(sName, "");
+          } else {
+            sVal = ndAttr.getNodeValue();
+            // oThis.put(sName, ndxList.item(i).getAttributes().getNamedItem(sName).getNodeValue()); 
+            oThis.put(sName, sVal);
+          }
+        }
+      } catch (RuntimeException ex) {
+        logger.error("ReadCrpList problem: " + ex.getMessage());
+        return false;
+      }
       // Copy the children
       for (int j=0; j< arChildren.length; j++) { 
         String sName = arChildren[j];
@@ -406,7 +494,8 @@ public class CorpusResearchProject {
               oThis.put(sName, ndxChild.getTextContent());
             }
           } catch (XPathExpressionException ex) {
-            logger.error("Cannot access child", ex);
+            logger.error("ReadCrpList: Cannot access child", ex);
+            return false;
           }
         }
       }
@@ -463,16 +552,6 @@ public class CorpusResearchProject {
 
   // =================== Private methods ======================================
   /* ---------------------------------------------------------------------------
-   Name:    DoError
-   Goal:    Show an error and return false
-   History:
-   17/10/2014   ERK Created
-   --------------------------------------------------------------------------- */
-  private boolean DoError(String msg) {
-    System.err.println("CorpusResearchProject error:\n" + msg);
-    return(false);
-  }
-  /* ---------------------------------------------------------------------------
    Name:    DoInit
    Goal:    Any initialisations
    History:
@@ -504,7 +583,7 @@ public class CorpusResearchProject {
       case "QClist":
         if (sField.equals("QCid")) {
           // Sort the QueryConstructor list on [QCid]
-          Collections.sort(this.lQueryConstructor, new QCidComparator() {});
+          Collections.sort(this.lQueryConstructor, new IntIdComparator("QCid") {});
         } else return false;
         break;
       case "QueryList":
@@ -523,6 +602,29 @@ public class CorpusResearchProject {
     }
     // Return positively
     return true;
+  }
+
+  /* ---------------------------------------------------------------------------
+     Name:     GetForTagName
+     Goal:     Get the name of the <forest> equivalent tag for the current project
+     History:
+     21-09-2011  ERK Created for .NET CorpusStudio
+     25/apr/2015 ERK transformed to Java CRPP
+     --------------------------------------------------------------------------- */
+  public String GetForTagName() {
+    if (this.intProjType == ProjType.None) return "";
+    switch(this.intProjType) {
+      case ProjPsdx:
+        return "<forest";
+      case ProjNegra:
+        return "<s";
+      case ProjAlp:
+        return "<node";
+      case ProjFolia:
+        return "<s";
+      default:
+        return "";
+    }
   }
 
 }
@@ -565,6 +667,8 @@ class IntIdComparator implements Comparator {
 
   @Override
   public int compare(Object t, Object t1) {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    JSONObject c1 = (JSONObject) t;
+    JSONObject c2 = (JSONObject) t1;
+    return compare(c1,c2);
   } 
 }

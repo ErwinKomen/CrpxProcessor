@@ -4,11 +4,8 @@
  * and open the template in the editor.
  */
 
-package nl.ru.crpx.tools;
+package nl.ru.crpx.project;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -18,18 +15,30 @@ import org.w3c.dom.Node;
 
 /**
  *
- * @author Erwin
+ * @author Erwin R. Komen
  */
-public class General {
+public class CrpGlobal {
   // === Variables that need to be available globally, and which are kept here
-  public boolean ru_bFileSaveAsk = false;   // Needed for ru:setattrib()
-  public int intPrecNum = 2;                // Number of preceding context lines
-  public int intFollNum = 1;                // Number of following context lines
-  public Node ndxCurrentHeader;             // XML header of the current XML file
+  /* 
+  public static boolean ru_bFileSaveAsk = false;   // Needed for ru:setattrib()
+  public static int intPrecNum = 2;                // Number of preceding context lines
+  public static int intFollNum = 1;                // Number of following context lines
+  public static Node ndxCurrentHeader = null;      // XML header of the current XML file
+  public static int intCurrentQCline = 0;          // The current QC line we are working on
+  public static boolean bTraceXq = false;         // Trace on XQ processing
+  */
+  protected int intPrecNum = 2;                // Number of preceding context lines
+  protected int intFollNum = 1;                // Number of following context lines
+  protected int intCurrentQCline = 0;          // The current QC line we are working on
+  protected Node ndxCurrentHeader = null;      // XML header of the current XML file
+  protected CorpusResearchProject crpThis;     // Global pointer to the corpus research project we are working on
+  protected boolean ru_bFileSaveAsk = false;   // Needed for ru:setattrib()
+  protected boolean bInterrupt = false;       // Global interrupt flag
+  protected boolean bTraceXq = false;         // Trace on XQ processing
   // public String strOutputDir = "";       // Where to put output files
-  // === Local variables that can be accessed through get/set functions
-  private boolean bInterrupt = false;       // Global interrupt flag
-  private String strCurrentPsdx = "";       // Full path of the currently processed PSDX file
+  // =================== Global variables, but only available through interfaces =============
+  // private static boolean bInterrupt = false;       // Global interrupt flag
+  private static String strCurrentPsdx = "";       // Full path of the currently processed PSDX file
   // ================== Internal usage ===============================
   private static List<String> arDelim = new ArrayList<>();
   // ================== Interrupt access ==============================
@@ -38,11 +47,17 @@ public class General {
   // ================== Current file ==================================
   public String getCurrentPsdx() { return strCurrentPsdx;}
   public void setCurrentPsdx(String sName) { strCurrentPsdx = sName;}
+  // ================== Provide outside access to the crp =============
+  public CorpusResearchProject getCrpx() { return crpThis; }
   
-  // ================== Initialisation of the General class
-  public General() {
+  // ================== Initialisation of the CrpGlobal class
+  public CrpGlobal() {
     // Populate the arDelim list
     arDelim.add("\n\r"); arDelim.add("\r\n"); arDelim.add("\r"); arDelim.add("\n");
+    // Other initialisations
+    // TODO
+    // Create a new instantiation of a corpus research project under me and everything
+    crpThis = new CorpusResearchProject();
   }
   /* ---------------------------------------------------------------------------
    Name:    DoError
@@ -50,12 +65,26 @@ public class General {
    History:
    17/10/2014   ERK Created
    --------------------------------------------------------------------------- */
-  public static boolean DoError(String msg) {
+  public boolean DoError(String msg) {
+    // Issue a message
     System.err.println("CorpusResearchProject error:\n" + msg);
+    // Set the interrupt flag
+    // setInterrupt(true);
+    // Return failure
     return(false);
   }
   public static void Status(String msg) {
     System.err.println(msg);
+  }
+  public static void Status(String msg, int intPtc) {
+    System.err.println(intPtc + "%: " + msg);
+  }
+  public static void LogOutput(String msg) {
+    System.err.println(msg);
+  }
+  public static void LogOutput(String msg, boolean bShowStatus) {
+    if (bShowStatus) Status(msg);
+    // TODO: log the output somewhere
   }
   /* ---------------------------------------------------------------------------
     Name :  GetDelim

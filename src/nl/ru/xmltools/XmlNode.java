@@ -13,7 +13,7 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
-import static nl.ru.crpx.tools.General.DoError;
+import static nl.ru.crpx.project.CrpGlobal.DoError;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;

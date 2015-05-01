@@ -5,32 +5,18 @@
  */
 package nl.ru.crpx.project;
 // Which methods need to be imported
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
-import static nl.ru.crpx.project.ExecuteFoliaFast.ExecuteQueriesFoliaFast;
-import static nl.ru.crpx.project.ExecuteFoliaStream.ExecuteQueriesFoliaStream;
-import static nl.ru.crpx.project.ExecutePsdxFast.ExecuteQueriesPsdxFast;
-import static nl.ru.crpx.project.ExecutePsdxStream.ExecuteQueriesPsdxStream;
-import nl.ru.crpx.tools.FileIO;
-import nl.ru.crpx.tools.General;
-import static nl.ru.crpx.tools.General.DoError;
-import static nl.ru.crpx.tools.General.Status;
-import static nl.ru.crpx.tools.General.getCurrentTimeStamp;
-import static nl.ru.crpx.tools.General.getJsonString;
+// import static nl.ru.crpx.project.CrpGlobal.DoError;
+import static nl.ru.crpx.project.CrpGlobal.Status;
+import static nl.ru.crpx.project.CrpGlobal.getCurrentTimeStamp;
+import static nl.ru.crpx.project.CrpGlobal.getJsonString;
+import nl.ru.util.ByRef;
+import nl.ru.util.FileUtil;
 import nl.ru.util.json.JSONObject;
+import nl.ru.xmltools.XmlForest;
 import org.apache.log4j.Logger;
+import nl.ru.util.StringUtil;
 
 /**
  *
@@ -42,36 +28,62 @@ import org.apache.log4j.Logger;
    History:
    20/apr/2015   ERK Created
    --------------------------------------------------------------------------- */
-public class Execute {
+public class Execute extends CrpGlobal {
   protected static final Logger logger = Logger.getLogger(Execute.class);
   protected CorpusResearchProject crpThis;
-  protected General objGen;
+  protected CrpGlobal objGen;
   // ===================== The elements of an execution object =================
-  protected Query[] arQuery;      // Array of queries to be executed (so this is the constructor) 
-  protected Qinfo[] arQinfo;      // Information for each *query* (not query-line)
-  protected Result objRes;        // Make room for results
-  protected String[] arInput;     // Array of input files
-  protected boolean bKeepGarbage; // Retain the in-between files for inspection
-  protected String strQext;       // Extension of queries
-  protected String strDext;       // Extension of definitions
+  protected Query[] arQuery;        // Array of queries to be executed (so this is the constructor) 
+  protected Qinfo[] arQinfo;        // Information for each *query* (not query-line)
+  protected Result objRes;          // Make room for results
+  protected String[] arInput;       // Array of input files
+  protected String strQext;         // Extension of queries
+  protected String strDext;         // Extension of definitions
+  protected String strName;         // Name of the corpus research project
+  protected String strHtmlFile;     // Name of the HTML file containing the results of this project
+  protected String strJsonFile;     // Name of the JSON file containing the results of this project
+  protected int intWait;            // Amount of milliseconds to wait before continuing
+  protected boolean bKeepGarbage;   // Retain the in-between files for inspection
+  protected boolean bIsXquery;      // Whether the engine is an Xquery type
+  protected boolean bDoStream;      // Whether execution should take place stream-wise
+  protected boolean bErrors;        // Did we encounter any errors?
+  protected boolean bSrcBuilt;      // Whether a Source.xml has been built or not yet
+  protected boolean bXmlData;       // Whether this is XML data (from Xquery) or Treebank
+  protected boolean bShowPsd;       // Whether PSD should be shown or not
+  // ============== elements that are usable for all classes extending "Execute"
+  protected boolean[] arOutExists;  // Array signalling that output on step i exists
+  protected boolean[] arCmpExists;  // Array signalling that output on step i exists
+  protected String[] arSource;      // Array of source files for a query using "source" as input with *.psdx
+  protected List<String> lSource;   // List of source files for a query using "source" as input with e.g. *.psdx
+  protected String strQtemp;        // Prefix to query file to indicate it is temporary
+  protected String strOtemp;        // Name of temporary output file
+  protected String strCtemp;        // Name of temporary complement file
+  protected XmlForest objProcType;  // Provides functions, depending on processing type in [XmlForest]
+  // =============== local constants ===========================================
+  // in .NET: String strRuDef = "declare namespace ru = 'clitype:CorpusStudio.RuXqExt.RU?asm=CorpusStudio';\r\n";
+  private final String strRuDef = "declare namespace ru = 'java:nl.ru.crpx.xq.Extensions';\r\n";
+  private final String strTbDef = "declare namespace tb = 'http://erwinkomen.ruhosting.nl/software/tb';\r\n";
+  private final String strFunctxDef = "declare namespace functx = 'http://www.functx.com';\r\n";
   // ===================== Local stuff =========================================
   private String TEMP_FILE = "CrpTemp";
   
   // Initialisation of the Execute class
-  public Execute(CorpusResearchProject prjThis, General oGen) {
+  public Execute() {
     String strInput = "";           // Source files
-    boolean bXmlData = false;       // Whether this is XML data (from Xquery) or Treebank
-    boolean bShowPsd = false;       // Whether PSD should be shown or not
 
     // Perform class initialisations that are valid for all extended classes
-    this.crpThis = prjThis;       // Keep a local copy of the project
-    this.objGen = oGen;           // Keep a local copy of the GENERAL object
+    // this.crpThis = prjThis;       // Keep a local copy of the project
+    // this.objGen = oGen;           // Keep a local copy of the GENERAL object
     this.bKeepGarbage = false;    // Do NOT normally retain temporary files
+    bIsXquery = false; bDoStream = false;
+    bErrors = false; bSrcBuilt = false;
+    bXmlData = false; bShowPsd = false;
+    intWait = 0;
     // Validate: are there any query lines in here?
-    int arSize = prjThis.getListQCsize();
+    int arSize = crpThis.getListQCsize();
     if (arSize == 0) {
       // Check if there are any queries at all
-      if (prjThis.getListQuerySize() ==0) {
+      if (crpThis.getListQuerySize() ==0) {
         // TODO: Go to the [Query] tab page
         // Me.TabControl1.SelectedTab = Me.tpQuery
         // Show warning
@@ -100,10 +112,10 @@ public class Execute {
     // TODO: Me.tbOutput.Text = ""
     
     // Gather the source files and validate the result
-    strInput = prjThis.getSource();   // Usually this is [*.psdx] or something like that
+    strInput = crpThis.getSource();   // Usually this is [*.psdx] or something like that
     if (strInput.isEmpty()) {DoError("First choose input files"); objGen.setInterrupt(true); return;}
     // Make an array of input files, as defined in [strInput]
-    arInput = strInput.split(objGen.GetDelim(strInput));
+    arInput = strInput.split(CrpGlobal.GetDelim(strInput));
     
     // Which tab is selected?
     // TODO: automatically switch to the correct tab
@@ -112,40 +124,38 @@ public class Execute {
     // TODO: clear monitor log (or do that on the client-side in JS??)
     
     // Make a new results object
-    this.objRes = new Result(oGen);
+    this.objRes = new Result();
     
     // Get Qext and Dext
     strQext = crpThis.getPrjTypeManager().getQext();
     strDext = crpThis.getPrjTypeManager().getDext();
     
+    // Get the name of this project
+    strName = crpThis.getName();
+  }
+
+  @SuppressWarnings("unused")
+  public boolean ExecuteQueries() {
+    // This is an overridable method
+    return true;
   }
           
   /* ---------------------------------------------------------------------------
-     Name:    ExecuteQueries
+     Name:    ExecuteQueriesSetUp
      Goal:    Execute the queries defined in @prjThis
               Make a query list (in [arQuery]), and execute the queries in the given order
               An array with the source files [arInput] should have been defined
                 at the creation of an instance of this class
      History:
-     29-07-2009  ERK Created for .NET
-     20/apr/2015   ERK Start transfer to Java
+     29-07-2009   ERK Created for .NET
+     20/apr/2015  ERK Start transfer to Java
      --------------------------------------------------------------------------- */
-  public boolean ExecuteQueries() {
-    // DataTable tblQc = null;       // Points to the [QueryConstructor]
-    // DataRow[] dtrQc = null;       // Sorted query constructor
+  public boolean ExecuteQueriesSetUp() {
     String strInput = null;       // Temporary storage of input files
-    String strQtemp = null;       // Prefix to query file to indicate it is temporary
     String strSrcName = "";       // Name of the combined Source input file
     List<String> lSources = null; // All source files together in a List
-    String[] arInput = null;      // Array of the input information
-    int intI = 0;                 // Counter
     int intOviewLine = 0;         // The line number in the overview
-    int intWait = 0;              // Amount of milliseconds to wait before continuing
     int iSize = 0;                // Size of a table
-    boolean bIsXquery = false;    // Whether the engine is an Xquery type
-    boolean bDoStream = false;    // Whether execution should take place stream-wise
-    boolean bErrors = false;      // Did we encounter any errors?
-    boolean bSrcBuilt = false;    // Whether a Source.xml has been built or not yet
     boolean bResult = true;       // The result of execution
     
     // Validate
@@ -163,11 +173,11 @@ public class Execute {
     
     // Combine all source files into one List
     lSources = new ArrayList<>();
-    for (int i=0;i<this.arInput.length;i++) {
+    for (String strInp : this.arInput) {
       // Check if this is not empty
-      if ( ! this.arInput[i].trim().equals("")) {
+      if (!strInp.trim().equals("")) {
         // Add this to the list of sources
-        lSources.add(this.arInput[i].trim());
+        lSources.add(strInp.trim());
       }
     }
     
@@ -189,8 +199,8 @@ public class Execute {
       // Note the name of the query
       oQuery.Name = getJsonString(oThis, "Query");
       // Set the error log file
-      oQuery.ErrorFile = this.crpThis.getDstDir().getAbsolutePath() + 
-              "/ErrorLogStep" + (i + 1) + ".txt";
+      oQuery.ErrorFile = FileUtil.nameNormalize(this.crpThis.getDstDir().getAbsolutePath() + 
+              "/ErrorLogStep" + (i + 1) + ".txt");
       // Note the line of this query
       oQuery.Line = Integer.parseInt(getJsonString(oThis, "QCid"));
       // Derive the output file
@@ -240,6 +250,8 @@ public class Execute {
             // Exit 
             return false;
           }
+          // Take the original source names into a semi-list
+          strInput = StringUtil.join(lSources, ";");
           break;
         default:
           // Set the input line
@@ -252,10 +264,10 @@ public class Execute {
           break;
       }
       // Set the input file(s)
-      oQuery.InputFile = strInput;
+      oQuery.InputFile = strInput;  // These are bare names; do not normalize them
       // Set the name of the query file
-      oQuery.QueryFile = this.crpThis.getDstDir().getAbsolutePath() + 
-              "/" + strQtemp + getJsonString(oThis, "Query") + strQext;
+      oQuery.QueryFile = FileUtil.nameNormalize(this.crpThis.getDstDir().getAbsolutePath() + 
+              "/" + strQtemp + getJsonString(oThis, "Query") + strQext);
       // Store the query object into arQuery
       arQuery[i] = oQuery;
     }
@@ -272,30 +284,21 @@ public class Execute {
     
     // Set the working directory to the OUTPUT directory
     
+    // Initialisations on variables for all classes that extend "Execute"
+    strOtemp = FileUtil.nameNormalize(crpThis.getDstDir() + "/XqOut.xml");
+    strCtemp = FileUtil.nameNormalize(crpThis.getDstDir() + "/XqCmp.xml");
+    // Initialise the Out and Cmp arrays
+    arOutExists = new boolean[arQuery.length + 2];
+    arCmpExists = new boolean[arQuery.length + 2];
+    arSource = new String[1]; // TODO: can be taken away when [lSource] is fully operational
+    lSource = new ArrayList<>();
+    
+    // Determine the correct names of the corpus result files
+    strHtmlFile = FileUtil.nameNormalize(crpThis.getDstDir() + "/" + strName + "-results.html");
+    strJsonFile = FileUtil.nameNormalize(crpThis.getDstDir() + "/" + strName + "-results.json");
+    
     // Indicate that we are starting execution of a CRP query series
     Status("Starting execution of queries at: " + getCurrentTimeStamp());
-    
-    // Check what kind of project this is
-    switch (this.crpThis.getProjectType()) {
-      case "Xquery-psdx": // Okay, we are able to process this kind of project
-        // Do we need to do streaming or not?
-        if (bDoStream) {
-          bResult = ExecuteQueriesPsdxStream();
-        } else {
-          bResult = ExecuteQueriesPsdxFast();
-        }
-        break;
-      case "FoLiA-xml":
-        // Do we need to do streaming or not?
-        if (bDoStream) {
-          bResult = ExecuteQueriesFoliaStream();
-        } else {
-          bResult = ExecuteQueriesFoliaFast();
-        }
-        break;
-      default: 
-        bResult = DoError("Sorry, cannot execute projects of type [" + this.crpThis.getProjectType() + "]");
-    }
     
     // Return the result of this operation
     return bResult;
@@ -309,7 +312,7 @@ public class Execute {
      21/apr/2015 ERK transformed to Java CRPP
      --------------------------------------------------------------------------- */
   public boolean VerifyQC() {
-    List objTag = new ArrayList<String>();  // Keep track of Result objects
+    List objTag = new ArrayList<>();  // Keep track of Result objects
     // Validation
     if (crpThis == null || crpThis.getListQCsize() == 0) return false;
     // Sort the QC list on QCid
@@ -402,15 +405,17 @@ public class Execute {
     // Visit all elements of the table (query or definition)
     for (JSONObject elThis : lTable) {
       // Make the correct file name
-      String sFile = crpThis.getDstDir().getAbsolutePath() + "/" + strPrefix +
-        elThis.getString("Name") + strExt;
+      String sFile = FileUtil.nameNormalize(crpThis.getDstDir().getAbsolutePath() + "/" + strPrefix +
+        elThis.getString("Name") + strExt);
       // Store the contents of this element as an appropriately called file
+      FileUtil.writeFile(sFile, elThis.getString("Text"), "utf-8");
+      /* 
       try(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(sFile, true)))) {
         out.println(elThis.getString("Text"));
       } catch (IOException e) {
         // Transfer the exception
         logger.error("ExtractFiles: cannot write. " + e.getMessage());
-      }
+      } */
     }
     
     // Return positively
@@ -435,49 +440,119 @@ public class Execute {
     String strQtext = "";     // Text of a query
     String strQone = "";      // One query
     String strFile = "";      // A file name
-    String strRuDef = "declare namespace ru = 'clitype:CorpusStudio.RuXqExt.RU?asm=CorpusStudio';\r\n";
-    String strTbDef = "declare namespace tb = 'http://erwinkomen.ruhosting.nl/software/tb';\r\n";
-    String strFunctxDef = "declare namespace functx = 'http://www.functx.com';\r\n";
     
-    // Validate
-    if (strDtable.isEmpty() ||strQtable.isEmpty()) return false;
-    // There are no definitions
-    bAddFunctx = false; bAddTbDef = false;
-    // Order the definitions in increasing [DefId]
-    if (!crpThis.doSort("DefList", "DefId")) return false;
-    lDef = crpThis.getListDef();
-    // Make room for definition query elements
-    arDef = new Qel[lDef.size()];
-    // Visit all definitions
-    for (JSONObject oDef: lDef) {
-      // Get the correct file name
-      strFile = crpThis.getDstDir().getAbsolutePath()+ "/" + strDpfx + oDef.getString("Name") +
-              strDext;
-      FileIO fThis = new FileIO();
-      try {
+    try {
+      // Validate
+      if (strDtable.isEmpty() ||strQtable.isEmpty()) return false;
+      // There are no definitions
+      bAddFunctx = false; bAddTbDef = false;
+      // Order the definitions in increasing [DefId]
+      if (!crpThis.doSort("DefList", "DefId")) return false;
+      lDef = crpThis.getListDef();
+      // Make room for definition query elements
+      arDef = new Qel[lDef.size()];
+      // Visit all definitions
+      for (int i=0;i< arDef.length;i++) {
+        FileUtil fThis = new FileUtil();
+        JSONObject oDef = lDef.get(i);
+        // Get the correct file name
+        strFile = fThis.nameNormalize(crpThis.getDstDir().getAbsolutePath()+ "/" + 
+                strDpfx + oDef.getString("Name") + strDext);
         // Add the content to the text of the combined definitions
-        strDtext += fThis.readFile(strFile);
-      } catch (IOException ex) {
-        logger.error("Could not read definition file " + strFile,ex);
-        return false;
+        strDtext += fThis.readFile(strFile) + "\n";
+          
+        // Create a Qel element
+        Qel qElThis = new Qel();
+        qElThis.Type = "def";
+        qElThis.Lines = fThis.getLinesRead();
+        qElThis.Name = oDef.getString("Name");
+        // Add this element to the array of definitions
+        arDef[i] = qElThis;
+        // fThis.writeFile("d:\\temp.txt", strDtext, "utf-8");
       }
-      // Create a Qel element
-      Qel qElThis = new Qel();
-      qElThis.Type = "def";
-      qElThis.Lines = fThis.getLinesRead();
-      qElThis.Name = oDef.getString("Name");
+      // Check presence of tb and functx definition
+      bAddFunctx = !strDtext.contains("declare namespace functx");
+      bAddTbDef = !strDtext.contains("declare namespace tb");
+      // Calculate the size for each array of Qel's
+      intSize = 1 + ((bAddFunctx) ? 1 :  0) + ((bAddTbDef) ? 1 : 0) + lDef.size() + 1;
+      // Make room for the query information
+      lQuery = crpThis.getTable(strQtable);
+      arQinfo = new Qinfo[lQuery.size()];
+      // Process the query files: visit all queries
+      for (int i=0; i < lQuery.size(); i++) {
+        FileUtil fThis = new FileUtil();
+        // Create a new Qinfo element
+        Qinfo oThis = new Qinfo();
+        // Access the JSON object in the Query table
+        JSONObject oQuery = lQuery.get(i);
+        // Make room for all the query-elements in this query
+        oThis.arQel = new Qel[intSize]; 
+        ByRef<Integer> intJ = new ByRef(0); 
+        strQtext = "";
+        oThis.Name = oQuery.getString("Name");
+        // Make the pre-amble for the definition/query
+        strQtext = strRuDef; AddQel(oThis.arQel, intJ, 1, "ru", "-");
+        if (bAddFunctx) {strQtext += strFunctxDef; AddQel(oThis.arQel, intJ, 1, "functx", "-");}
+        if (bAddTbDef) {strQtext += strFunctxDef; AddQel(oThis.arQel, intJ, 1, "tb", "-");}
+        // Add the definitions
+        strQtext += strDtext;
+        for (Qel arDefThis : arDef) {
+          AddQel(oThis.arQel, intJ, arDefThis.Lines, arDefThis.Type, arDefThis.Name);
+        }
+        // Get the correct Query file name
+        // strFile = crpThis.getDstDir() + "/" + strQpfx + oThis.Name + strQext;
+        strFile = fThis.nameNormalize(crpThis.getDstDir() + "/" + strQpfx + oThis.Name + strQext);
+        // Read and combine the query from file
+        strQtext += fThis.readFile(strFile) + "\n";
+        // Add the information for this query
+        int iLineCount = fThis.getLinesRead();
+        AddQel(oThis.arQel, intJ, iLineCount, "query", oThis.Name);
+        // Write the query back to file
+        FileUtil.writeFile(strFile, strQtext, "utf-8");
+
+        // Add the Qinfo to the array
+        arQinfo[i] = oThis;
+      }
+
+      // Return positively
+      return true;
+
+    } catch (RuntimeException ex) {
+      // Warn user
+      DoError("Execute/IncludeDefInQueries error: " + ex.getMessage() + "\r\n");
+      // Return failure
+      return false;
     }
-    // Check presence of tb and functx definition
-    bAddFunctx = !strDtext.contains("declare namespace functx");
-    bAddTbDef = !strDtext.contains("declare namespace tb");
-    // Calculate the size for each array of Qel's
-    intSize = 1 + ((bAddFunctx) ? 1 :  0) + ((bAddTbDef) ? 1 : 0) + lDef.size() + 1;
-    // Make room for the query information
-    lQuery = crpThis.getTable("Query");
-    arQinfo = new Qinfo[lQuery.size()];
-    
-    // Return positively
-    return true;
   }
+
+  // ----------------------------------------------------------------------------------------------------------
+  // Name :  AddQel
+  // Goal :  Process one query element [objQel]
+  // History:
+  // 19-08-2014  ERK Created
+  // ----------------------------------------------------------------------------------------------------------
+  private boolean AddQel(Qel objQel[], ByRef<Integer> intIdx , int intLines , String strType , 
+                            String strName ) {
+    try {
+      // Validate
+      if (objQel == null || intIdx.argValue < 0 || intIdx.argValue >= objQel.length) return false;
+      // Process
+      Qel oNew = new Qel();
+      oNew.Lines = intLines;
+      oNew.Name = strName;
+      oNew.Type = strType;
+      objQel[intIdx.argValue] = oNew;
+      // Keep track of index
+      intIdx.argValue++;
+      // Return positively
+      return true;
+    } catch (RuntimeException ex) {
+      // Warn user
+      DoError("Execute/AddQel error: " + ex.getMessage() + "\r\n");
+      // Return failure
+      return false;
+    }
+  }
+    
 }
 

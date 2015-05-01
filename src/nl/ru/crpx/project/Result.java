@@ -6,8 +6,6 @@
 package nl.ru.crpx.project;
 import java.util.ArrayList;
 import java.util.List;
-import static nl.ru.crpx.project.CorpusResearchProject.lQueryConstructor;
-import nl.ru.crpx.tools.General;
 import nl.ru.util.json.JSONObject;
 import org.apache.log4j.Logger;
 
@@ -21,17 +19,17 @@ import org.apache.log4j.Logger;
    History:
    21/apr/2015   ERK Created
    --------------------------------------------------------------------------- */
-public class Result {
+public class Result extends CrpGlobal {
   // This class uses a logger
   private static final Logger logger = Logger.getLogger(Result.class);
-  protected General objGen;
+  protected CrpGlobal objGen;
 
   // Each result contains a number of lists
   static List<JSONObject> lCat = new ArrayList<>();
   static List<JSONObject> lOview = new ArrayList<>();
   // ==================== Class initialisations ================================
-  public Result(General oGen) {
-    this.objGen = oGen;
+  public Result() {
+    // this.objGen = oGen;
   }
   // ================ Cat elements =============================================
   public int getListCatSize() { return lCat.size(); }

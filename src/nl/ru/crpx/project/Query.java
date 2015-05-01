@@ -4,6 +4,7 @@
  * and open the template in the editor.
  */
 package nl.ru.crpx.project;
+import java.util.List;
 import net.sf.saxon.s9api.XQueryEvaluator;
 import net.sf.saxon.s9api.XQueryExecutable;
 
@@ -30,7 +31,7 @@ public class Query {
   String Descr;           // The description to appear in the HTML table's row header
   String Args;            // Arguments for the JAVA CS process => EXTINCT??
   String HtmlFile;        // Name of temporary html file containing output for this query
-  String[] Examp;         // Collection of examples belonging to this QC step
+  List<String> Examp;         // Collection of examples belonging to this QC step
   String[][] CatExamp;    // Collection of subcategories in this QC step
   XQueryExecutable Exe;   // The executable query
   XQueryEvaluator Qeval;  // Query evaluator
