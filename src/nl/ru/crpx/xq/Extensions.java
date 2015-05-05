@@ -7,8 +7,6 @@
 package nl.ru.crpx.xq;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Pattern;
 import javax.xml.xpath.XPathExpressionException;
 import net.sf.saxon.s9api.Axis;
@@ -19,10 +17,9 @@ import net.sf.saxon.s9api.XdmSequenceIterator;
 import net.sf.saxon.s9api.XdmValue;
 import net.sf.saxon.value.AtomicValue;
 import nl.ru.crpx.project.CorpusResearchProject;
-import nl.ru.crpx.tools.ErrHandle;
+import nl.ru.crpx.project.CorpusResearchProject.ProjType;
 import nl.ru.crpx.tools.FileIO;
 import nl.ru.util.ByRef;
-import nl.ru.util.json.JSONObject;
 import nl.ru.xmltools.XmlDocument;
 import nl.ru.xmltools.XmlNode;
 import org.xml.sax.SAXException;
@@ -37,9 +34,6 @@ public class Extensions extends RuBase {
   // ============== Variables associated with the *class* "Extensions" =========
   private static PatternStore objStore;
   private static RuBase objBase;
-  private static List<JSONObject> lErrStack;
-  // ============== The error handler can be accessed globally =================
-  public static ErrHandle errHandle;
   // ============== Variables local to me ======================================
   // private static CorpusResearchProject prjThis;
   private static ProjType loc_intProjType;
@@ -51,17 +45,13 @@ public class Extensions extends RuBase {
   private static final QName loc_qnF = new QName("", "", "f");
 
   // ============== CLASS initialization =======================================
-  public Extensions() {
-    // initialize my own error handler
-    errHandle = new ErrHandle(Extensions.class );
+  public Extensions(CorpusResearchProject objPrj) {
+    // Make sure the class I extend is initialized
+    super(objPrj);
     // Initialize a list of string arrays to help ru:matches()
-    objStore = new PatternStore();
-    objBase = new RuBase();    
-    // objGen = new CrpGlobal();
-    // prjThis = crpThis;
-    lErrStack = new ArrayList<>();
-    loc_intProjType = this.intProjType;
-    loc_sNodeNameSnt = this.sNodeNameSnt;
+    objStore = new PatternStore(errHandle);
+    loc_intProjType = crpThis.intProjType;
+    loc_sNodeNameSnt = crpThis.sNodeNameSnt;
   }
 // <editor-fold defaultstate="collapsed" desc="ru:back">
   // ------------------------------------------------------------------------------------
@@ -590,34 +580,5 @@ public class Extensions extends RuBase {
     
   }
 // </editor-fold>
-  /*
-  private static boolean errHandle.DoError(String msg, Exception ex, Class cls) {
-    JSONObject oThis = new JSONObject();  // Where we store all the info
-    
-    // Fill the object
-    oThis.put("msg", msg);
-    if (ex==null) oThis.put("ex", ""); else oThis.put("ex", ex.getMessage());
-    oThis.put("cls", cls.getName());
-    // Add the object to the static stack
-    lErrStack.add(oThis);
-    // Return failure
-    return false;
-  }
-  private static boolean errHandle.DoError(String msg, Class cls) {
-    JSONObject oThis = new JSONObject();  // Where we store all the info
-    return errHandle.DoError(msg, null, cls);
-  }
-  // ========== Allow others to see that there are errors ===========
-  public boolean hasXqErr() {
-    return (lErrStack.size() > 0);
-  }
-  // ========== Allow retrieval of the complete stack ===============
-  public List<JSONObject> getXqErrList() {
-    return lErrStack;
-  }
-  // ========== Allow others to reset the error stack ===============
-  public void clearXqErr() {
-    lErrStack.clear();
-  }
-  */
+
 }

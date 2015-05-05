@@ -14,6 +14,8 @@ import java.util.List;
 import javax.xml.xpath.XPathExpressionException;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.project.CrpGlobal;
+import nl.ru.crpx.search.JobXq;
+import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.util.ByRef;
 import org.xml.sax.SAXException;
 // </editor-fold>
@@ -21,7 +23,7 @@ import org.xml.sax.SAXException;
  *
  * @author Erwin R. Komen
  */
-public class XmlForest extends CrpGlobal {
+public class XmlForest {
   // This class uses a logger
   private final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(XmlForest.class);
 // <editor-fold defaultstate="collapsed" desc="Header">
@@ -80,19 +82,20 @@ public class XmlForest extends CrpGlobal {
   private Context loc_cntThis;          // Current context
   private XmlChunkReader loc_xrdFile;   // Local copy of XML chunk reader
   private ForType loc_Type;             // The type of treatment expected
-  private CrpGlobal objGen;               // Local access to the general object with global variables
+  private ErrHandle objErr;               // Local access to the general object with global variables
+  private JobXq objJob;                   // Access to the job that is being executed
   private CorpusResearchProject crpThis;  // The corpus research project for which I am created
   private Parse objParse;                 // Object to use my own version of the "GetSeg()" function
   // private XmlReaderSettings loc_xrdSet; // Special arrangements for the reader --> already done in XmlDocument()
   // ==========================================================================================================
   // Class instantiation
-  public XmlForest(CorpusResearchProject oCrp, CrpGlobal oGen) {
+  public XmlForest(CorpusResearchProject oCrp, JobXq oJob, ErrHandle oErr) {
     loc_pdxThis = new XmlDocument();
     // loc_xrdSet = new XmlReaderSettings(); // This is already done in XmlDocument()
     loc_colStack = new ArrayList<>();
     loc_cntThis  = new Context();
     loc_Type  = ForType.PsdxWholeFile;
-    objGen = oGen;
+    objErr = oErr;
     crpThis = oCrp;
     objParse = new Parse();
   }
@@ -139,7 +142,7 @@ public class XmlForest extends CrpGlobal {
       return true;
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("XmlForest/FirstForest error: " + ex.getMessage() + "\r\n");
+      objErr.DoError("XmlForest/FirstForest error: " + ex.getMessage() + "\r\n");
       // Return failure
       return false;
     }
@@ -174,7 +177,7 @@ public class XmlForest extends CrpGlobal {
       return true;
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("XmlForest/NextForest error: " + ex.getMessage() + "\r\n");
+      objErr.DoError("XmlForest/NextForest error: " + ex.getMessage() + "\r\n");
       // Return failure
       return false;
     }
@@ -207,7 +210,7 @@ public class XmlForest extends CrpGlobal {
       }
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("XmlForest/IsEnd error: " + ex.getMessage() + "\r\n");
+      objErr.DoError("XmlForest/IsEnd error: " + ex.getMessage() + "\r\n");
       // Return failure
       return false;
     }
@@ -241,7 +244,7 @@ public class XmlForest extends CrpGlobal {
       }
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("XmlForest/Percentage error: " + ex.getMessage() + "\r\n");
+      objErr.DoError("XmlForest/Percentage error: " + ex.getMessage() + "\r\n");
       // Return failure
       return false;
     }
@@ -275,7 +278,7 @@ public class XmlForest extends CrpGlobal {
       }
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("XmlForest/GetContext error: " + ex.getMessage()  + "\r\n");
+      objErr.DoError("XmlForest/GetContext error: " + ex.getMessage()  + "\r\n");
       // Return failure
       return "";
     }
@@ -300,12 +303,12 @@ public class XmlForest extends CrpGlobal {
       if (!fThis.exists()) return false;
       // Initialisations
       ndxForest.argValue = null;
-      ndxCurrentHeader = null;
+      objJob.ndxCurrentHeader = null;
       // Fill the arrays
-      loc_arPrec = new XmlDocument[intPrecNum];
-      loc_arPrecCnt = new Context[intPrecNum];
-      loc_arFoll = new XmlDocument[intFollNum];
-      loc_arFollCnt = new Context[intFollNum];
+      loc_arPrec = new XmlDocument[objJob.intPrecNum];
+      loc_arPrecCnt = new Context[objJob.intPrecNum];
+      loc_arFoll = new XmlDocument[objJob.intFollNum];
+      loc_arFollCnt = new Context[objJob.intFollNum];
       for (intI = 0; intI < loc_arPrec.length; intI++) {
         loc_arPrec[intI] = new XmlDocument();
         loc_arPrecCnt[intI] = new Context();
@@ -318,18 +321,18 @@ public class XmlForest extends CrpGlobal {
       loc_xrdFile = new XmlChunkReader(fThis);
       // First read the (obligatory) teiHeader
       if (! (loc_xrdFile.ReadToFollowing("teiHeader"))) {
-        DoError("PsdxPerForest_FirstForest error: cannot find <teiHeader> in file [" + strFile + "]");
+        objErr.DoError("PsdxPerForest_FirstForest error: cannot find <teiHeader> in file [" + strFile + "]");
         return false;
       }
       // Load this header 
       loc_pdxThis.LoadXml(loc_xrdFile.ReadOuterXml());
       // Set the global parameter
-      ndxCurrentHeader = loc_pdxThis.SelectSingleNode("./descendant-or-self::teiHeader[1]");
+      objJob.ndxCurrentHeader = loc_pdxThis.SelectSingleNode("./descendant-or-self::teiHeader[1]");
       // Read the current node + following context
-      for (intI = 0; intI <= intFollNum; intI++) {
+      for (intI = 0; intI <= objJob.intFollNum; intI++) {
         // Move to the first forest
         if (! (loc_xrdFile.ReadToFollowing("forest"))) {
-          DoError("PsdxPerForest_FirstForest error: cannot find <forest> in file [" + strFile + "]");
+          objErr.DoError("PsdxPerForest_FirstForest error: cannot find <forest> in file [" + strFile + "]");
           return false;
         }
         // Store it
@@ -357,16 +360,16 @@ public class XmlForest extends CrpGlobal {
       return true;
     } catch (XPathExpressionException ex) {
       // Warn user
-      DoError("XmlForest/PsdxPerForest_FirstForest Xpath error: " + ex.getMessage() + "\r\n");
+      objErr.DoError("XmlForest/PsdxPerForest_FirstForest Xpath error: " + ex.getMessage() + "\r\n");
       // Return failure
       return false;
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("XmlForest/PsdxPerForest_FirstForest Runtime error: " + ex.getMessage() + "\r\n");
+      objErr.DoError("XmlForest/PsdxPerForest_FirstForest Runtime error: " + ex.getMessage() + "\r\n");
       // Return failure
       return false;
     } catch (IOException | SAXException ex) {
-      DoError("XmlForest/PsdxPerForest_FirstForest IO/SAX error: " + ex.getMessage() + "\r\n");
+      objErr.DoError("XmlForest/PsdxPerForest_FirstForest IO/SAX error: " + ex.getMessage() + "\r\n");
       return false;
     }
   }
@@ -379,10 +382,10 @@ public class XmlForest extends CrpGlobal {
   // ----------------------------------------------------------------------------------------------------------
   private boolean PsdxPerForest_IsEnd() {
     try {
-      return (loc_xrdFile.EOF) && (intFollNum == 0 || (loc_arFoll[0] == null));
+      return (loc_xrdFile.EOF) && (objJob.intFollNum == 0 || (loc_arFoll[0] == null));
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("XmlForest/PsdxPerForest_IsEnd error: " + ex.getMessage() + "\r\n");
+      objErr.DoError("XmlForest/PsdxPerForest_IsEnd error: " + ex.getMessage() + "\r\n");
       // Return failure
       return false;
     }
@@ -429,9 +432,9 @@ public class XmlForest extends CrpGlobal {
         return true;
       }
       // Do we have any preceding context to take care of?
-      if (intPrecNum > 0) {
+      if (objJob.intPrecNum > 0) {
         // Copy preceding context
-        for (intI = 1; intI < intPrecNum; intI++) {
+        for (intI = 1; intI < objJob.intPrecNum; intI++) {
           // Copy context, so that loc_arPrec(0) contains the furthest-away-being context
           loc_arPrec[intI - 1] = loc_arPrec[intI];
           // loc_arPrecCnt(intI - 1) = loc_arPrecCnt(intI)
@@ -440,14 +443,14 @@ public class XmlForest extends CrpGlobal {
           loc_arPrecCnt[intI - 1].TxtId = loc_arPrecCnt[intI].TxtId;
         }
         // Copy current into preceding context
-        loc_arPrec[intPrecNum - 1] = loc_pdxThis;
-        // loc_arPrecCnt(intPrecNum - 1) = loc_cntThis
-        loc_arPrecCnt[intPrecNum - 1].Loc = loc_cntThis.Loc;
-        loc_arPrecCnt[intPrecNum - 1].Seg = loc_cntThis.Seg;
-        loc_arPrecCnt[intPrecNum - 1].TxtId = loc_cntThis.TxtId;
+        loc_arPrec[objJob.intPrecNum - 1] = loc_pdxThis;
+        // loc_arPrecCnt(objJob.intPrecNum - 1) = loc_cntThis
+        loc_arPrecCnt[objJob.intPrecNum - 1].Loc = loc_cntThis.Loc;
+        loc_arPrecCnt[objJob.intPrecNum - 1].Seg = loc_cntThis.Seg;
+        loc_arPrecCnt[objJob.intPrecNum - 1].TxtId = loc_cntThis.TxtId;
       }
       // Do we have any following context to take care of?
-      if (intFollNum > 0) {
+      if (objJob.intFollNum > 0) {
         // Copy the first-following into the current
         loc_pdxThis = loc_arFoll[0];
         loc_cntThis.Loc = loc_arFollCnt[0].Loc;
@@ -460,7 +463,7 @@ public class XmlForest extends CrpGlobal {
         //If (loc_pdxThis.SelectSingleNode("./descendant::forest[1]").Attributes("forestId").Value = 2) Then Stop
         //' ====================================
         // Shift all the other elements
-        for (intI = 1; intI < intFollNum; intI++) {
+        for (intI = 1; intI < objJob.intFollNum; intI++) {
           // Shift XmlDocument
           loc_arFoll[intI - 1] = loc_arFoll[intI];
           // Shift Context element
@@ -469,14 +472,14 @@ public class XmlForest extends CrpGlobal {
           loc_arFollCnt[intI - 1].TxtId = loc_arFollCnt[intI].TxtId;
         }
         // The last element becomes what we have physically read
-        loc_arFoll[intFollNum - 1] = new XmlDocument();
-        loc_arFoll[intFollNum - 1].LoadXml(strNext);
+        loc_arFoll[objJob.intFollNum - 1] = new XmlDocument();
+        loc_arFoll[objJob.intFollNum - 1].LoadXml(strNext);
         // Get working node <forest>
-        ndxWork = loc_arFoll[intFollNum - 1].SelectSingleNode("./descendant::forest[1]");
+        ndxWork = loc_arFoll[objJob.intFollNum - 1].SelectSingleNode("./descendant::forest[1]");
         // Calculate the correct context
-        loc_arFollCnt[intFollNum - 1].Seg = objParse.GetSeg(ndxWork, crpThis.getProjectType());
-        loc_arFollCnt[intFollNum - 1].Loc = ndxWork.Attributes("Location").Value;
-        loc_arFollCnt[intFollNum - 1].TxtId = ndxWork.Attributes("TextId").Value;
+        loc_arFollCnt[objJob.intFollNum - 1].Seg = objParse.GetSeg(ndxWork, crpThis.getProjectType());
+        loc_arFollCnt[objJob.intFollNum - 1].Loc = ndxWork.Attributes("Location").Value;
+        loc_arFollCnt[objJob.intFollNum - 1].TxtId = ndxWork.Attributes("TextId").Value;
       } else {
         // No following context...
         loc_pdxThis.LoadXml(strNext);
@@ -505,11 +508,11 @@ public class XmlForest extends CrpGlobal {
       return true;
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("XmlForest/PsdxPerForest_NextForest runtime error: " + ex.getMessage() + "\r\n");
+      objErr.DoError("XmlForest/PsdxPerForest_NextForest runtime error: " + ex.getMessage() + "\r\n");
       // Return failure
       return false;
     } catch (IOException | SAXException | XPathExpressionException ex) {
-      DoError("XmlForest/PsdxPerForest_NextForest IO/Sax/Xpath error: " + ex.getMessage() + ""
+      objErr.DoError("XmlForest/PsdxPerForest_NextForest IO/Sax/Xpath error: " + ex.getMessage() + ""
               + "\r\n");
       // Return failure
       return false;
@@ -538,7 +541,7 @@ public class XmlForest extends CrpGlobal {
       return true;
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("XmlForest/PsdxPerForest_NextForest error: " + ex.getMessage() + "\r\n");
+      objErr.DoError("XmlForest/PsdxPerForest_NextForest error: " + ex.getMessage() + "\r\n");
       // Return failure
       return false;
     }
@@ -560,9 +563,9 @@ public class XmlForest extends CrpGlobal {
       // Prepend the textid (name of the text)
       strPrec = "[<b>" + loc_cntThis.TxtId + "</b>]";
       // Add the preceding context
-      if (intPrecNum > 0) {
+      if (objJob.intPrecNum > 0) {
         // Attempt to get the preceding context
-        for (intI = 0; intI < intPrecNum; intI++) {
+        for (intI = 0; intI < objJob.intPrecNum; intI++) {
           // Only load existing context
           if (loc_arPrecCnt[intI].Seg != null && loc_arPrecCnt[intI].Seg.length() > 0) {
             strPrec += "[" + loc_arPrecCnt[intI].Loc + "]" + loc_arPrecCnt[intI].Seg;
@@ -570,9 +573,9 @@ public class XmlForest extends CrpGlobal {
         }
       }
       // Add the following context
-      if (intFollNum > 0) {
+      if (objJob.intFollNum > 0) {
         // Attempt to get the preceding context
-        for (intI = 0; intI < intFollNum; intI++) {
+        for (intI = 0; intI < objJob.intFollNum; intI++) {
           if (loc_arFollCnt[intI].Seg != null && loc_arFollCnt[intI].Seg.length() > 0) {
             strFoll += "[" + loc_arFollCnt[intI].Loc + "]" + loc_arFollCnt[intI].Seg;
           }
@@ -594,7 +597,7 @@ public class XmlForest extends CrpGlobal {
       return strBack;
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("XmlForest/PsdxPerForest_GetContext error: " + ex.getMessage() + "\r\n");
+      objErr.DoError("XmlForest/PsdxPerForest_GetContext error: " + ex.getMessage() + "\r\n");
       // Return failure
       return "";
     }
@@ -622,10 +625,10 @@ public class XmlForest extends CrpGlobal {
       // Initialisations
       ndxForest.argValue = null;
       // Fill the arrays
-      loc_arPrec = new XmlDocument[intPrecNum];
-      loc_arPrecCnt = new Context[intPrecNum];
-      loc_arFoll = new XmlDocument[intFollNum];
-      loc_arFollCnt = new Context[intFollNum];
+      loc_arPrec = new XmlDocument[objJob.intPrecNum];
+      loc_arPrecCnt = new Context[objJob.intPrecNum];
+      loc_arFoll = new XmlDocument[objJob.intFollNum];
+      loc_arFollCnt = new Context[objJob.intFollNum];
       for (intI = 0; intI < loc_arPrec.length; intI++) {
         loc_arPrec[intI] = new XmlDocument();
         loc_arPrecCnt[intI] = new Context();
@@ -637,10 +640,10 @@ public class XmlForest extends CrpGlobal {
       // Start up the chunk reader
       loc_xrdFile = new XmlChunkReader(fThis);
       // Read the current node + following context
-      for (intI = 0; intI <= intFollNum; intI++) {
+      for (intI = 0; intI <= objJob.intFollNum; intI++) {
         // Move to the first forest
         if (! (loc_xrdFile.ReadToFollowing("forest"))) {
-          DoError("StreamFirstForest error: cannot find <forest> in file [" + strFile + "]");
+          objErr.DoError("StreamFirstForest error: cannot find <forest> in file [" + strFile + "]");
           return false;
         }
         // Store it
@@ -668,12 +671,12 @@ public class XmlForest extends CrpGlobal {
       return true;
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("XmlForest/PsdxPerFile_FirstForest runtime error: " + ex.getMessage() + "\r\n");
+      objErr.DoError("XmlForest/PsdxPerFile_FirstForest runtime error: " + ex.getMessage() + "\r\n");
       // Return failure
       return false;
     } catch (XPathExpressionException | IOException | SAXException ex) {
       // Warn user
-      DoError("XmlForest/PsdxPerFile_FirstForest Xpath/IO/SAX error: " + ex.getMessage() + "\r\n");
+      objErr.DoError("XmlForest/PsdxPerFile_FirstForest Xpath/IO/SAX error: " + ex.getMessage() + "\r\n");
       // Return failure
       return false;
     }
@@ -687,10 +690,10 @@ public class XmlForest extends CrpGlobal {
   // ----------------------------------------------------------------------------------------------------------
   private boolean PsdxPerFile_IsEnd() {
     try {
-      return (loc_xrdFile.EOF) && (intFollNum == 0 || (loc_arFoll[0] == null));
+      return (loc_xrdFile.EOF) && (objJob.intFollNum == 0 || (loc_arFoll[0] == null));
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("XmlForest/PsdxPerFile_IsEnd error: " + ex.getMessage()  + "\r\n");
+      objErr.DoError("XmlForest/PsdxPerFile_IsEnd error: " + ex.getMessage()  + "\r\n");
       // Return failure
       return false;
     }
@@ -730,9 +733,9 @@ public class XmlForest extends CrpGlobal {
         return true;
       }
       // Do we have any preceding context to take care of?
-      if (intPrecNum > 0) {
+      if (objJob.intPrecNum > 0) {
         // Copy preceding context
-        for (intI = 1; intI < intPrecNum; intI++) {
+        for (intI = 1; intI < objJob.intPrecNum; intI++) {
           // Copy context, so that loc_arPrec(0) contains the furthest-away-being context
           loc_arPrec[intI - 1] = loc_arPrec[intI];
           // loc_arPrecCnt(intI - 1) = loc_arPrecCnt(intI)
@@ -741,14 +744,14 @@ public class XmlForest extends CrpGlobal {
           loc_arPrecCnt[intI - 1].TxtId = loc_arPrecCnt[intI].TxtId;
         }
         // Copy current into preceding context
-        loc_arPrec[intPrecNum - 1] = loc_pdxThis;
-        // loc_arPrecCnt(intPrecNum - 1) = loc_cntThis
-        loc_arPrecCnt[intPrecNum - 1].Loc = loc_cntThis.Loc;
-        loc_arPrecCnt[intPrecNum - 1].Seg = loc_cntThis.Seg;
-        loc_arPrecCnt[intPrecNum - 1].TxtId = loc_cntThis.TxtId;
+        loc_arPrec[objJob.intPrecNum - 1] = loc_pdxThis;
+        // loc_arPrecCnt(objJob.intPrecNum - 1) = loc_cntThis
+        loc_arPrecCnt[objJob.intPrecNum - 1].Loc = loc_cntThis.Loc;
+        loc_arPrecCnt[objJob.intPrecNum - 1].Seg = loc_cntThis.Seg;
+        loc_arPrecCnt[objJob.intPrecNum - 1].TxtId = loc_cntThis.TxtId;
       }
       // Do we have any following context to take care of?
-      if (intFollNum > 0) {
+      if (objJob.intFollNum > 0) {
         // Copy the first-following into the current
         loc_pdxThis = loc_arFoll[0];
         loc_cntThis.Loc = loc_arFollCnt[0].Loc;
@@ -761,7 +764,7 @@ public class XmlForest extends CrpGlobal {
         //If (loc_pdxThis.SelectSingleNode("./descendant::forest[1]").Attributes("forestId").Value = 2) Then Stop
         //' ====================================
         // Shift all the other elements
-        for (intI = 1; intI < intFollNum; intI++) {
+        for (intI = 1; intI < objJob.intFollNum; intI++) {
           // Shift XmlDocument
           loc_arFoll[intI - 1] = loc_arFoll[intI];
           // Shift Context element
@@ -770,14 +773,14 @@ public class XmlForest extends CrpGlobal {
           loc_arFollCnt[intI - 1].TxtId = loc_arFollCnt[intI].TxtId;
         }
         // The last element becomes what we have physically read
-        loc_arFoll[intFollNum - 1] = new XmlDocument();
-        loc_arFoll[intFollNum - 1].LoadXml(strNext);
+        loc_arFoll[objJob.intFollNum - 1] = new XmlDocument();
+        loc_arFoll[objJob.intFollNum - 1].LoadXml(strNext);
         // Get working node <forest>
-        ndxWork = loc_arFoll[intFollNum - 1].SelectSingleNode("./descendant::forest[1]");
+        ndxWork = loc_arFoll[objJob.intFollNum - 1].SelectSingleNode("./descendant::forest[1]");
         // Calculate the correct context
-        loc_arFollCnt[intFollNum - 1].Seg = objParse.GetSeg(ndxWork, crpThis.getProjectType());
-        loc_arFollCnt[intFollNum - 1].Loc = ndxWork.Attributes("Location").Value;
-        loc_arFollCnt[intFollNum - 1].TxtId = ndxWork.Attributes("TextId").Value;
+        loc_arFollCnt[objJob.intFollNum - 1].Seg = objParse.GetSeg(ndxWork, crpThis.getProjectType());
+        loc_arFollCnt[objJob.intFollNum - 1].Loc = ndxWork.Attributes("Location").Value;
+        loc_arFollCnt[objJob.intFollNum - 1].TxtId = ndxWork.Attributes("TextId").Value;
       } else {
         // No following context...
         loc_pdxThis.LoadXml(strNext);
@@ -806,12 +809,12 @@ public class XmlForest extends CrpGlobal {
       return true;
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("XmlForest/PsdxPerFile_NextForest runtime error: " + ex.getMessage() + "\r\n");
+      objErr.DoError("XmlForest/PsdxPerFile_NextForest runtime error: " + ex.getMessage() + "\r\n");
       // Return failure
       return false;
     } catch (XPathExpressionException | IOException | SAXException ex) {
       // Warn user
-      DoError("XmlForest/PsdxPerFile_NextForest Xpath/IO/SAX error: " + ex.getMessage() + "\r\n");
+      objErr.DoError("XmlForest/PsdxPerFile_NextForest Xpath/IO/SAX error: " + ex.getMessage() + "\r\n");
       // Return failure
       return false;
     }
@@ -836,7 +839,7 @@ public class XmlForest extends CrpGlobal {
       return true;
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("XmlForest/PsdxPerFile_NextForest error: " + ex.getMessage() + "\r\n");
+      objErr.DoError("XmlForest/PsdxPerFile_NextForest error: " + ex.getMessage() + "\r\n");
       // Return failure
       return false;
     }
@@ -858,9 +861,9 @@ public class XmlForest extends CrpGlobal {
       // Prepend the textid (name of the text)
       strPrec = "[<b>" + loc_cntThis.TxtId + "</b>]";
       // Add the preceding context
-      if (intPrecNum > 0) {
+      if (objJob.intPrecNum > 0) {
         // Attempt to get the preceding context
-        for (intI = 0; intI < intPrecNum; intI++) {
+        for (intI = 0; intI < objJob.intPrecNum; intI++) {
           // Only load existing context
           if (loc_arPrecCnt[intI].Seg != null && loc_arPrecCnt[intI].Seg.length() > 0) {
             strPrec += "[" + loc_arPrecCnt[intI].Loc + "]" + loc_arPrecCnt[intI].Seg;
@@ -868,9 +871,9 @@ public class XmlForest extends CrpGlobal {
         }
       }
       // Add the following context
-      if (intFollNum > 0) {
+      if (objJob.intFollNum > 0) {
         // Attempt to get the preceding context
-        for (intI = 0; intI < intFollNum; intI++) {
+        for (intI = 0; intI < objJob.intFollNum; intI++) {
           if (loc_arFollCnt[intI].Seg != null && loc_arFollCnt[intI].Seg.length() > 0) {
             strFoll += "[" + loc_arFollCnt[intI].Loc + "]" + loc_arFollCnt[intI].Seg;
           }
@@ -892,7 +895,7 @@ public class XmlForest extends CrpGlobal {
       return strBack;
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("XmlForest/PsdxPerFile_GetContext error: " + ex.getMessage() + "\r\n");
+      objErr.DoError("XmlForest/PsdxPerFile_GetContext error: " + ex.getMessage() + "\r\n");
       // Return failure
       return "";
     }
@@ -905,7 +908,7 @@ public class XmlForest extends CrpGlobal {
   // 24/apr/2015  ERK Ported to Java
   // ----------------------------------------------------------------------------------------------------------
   private boolean StreamIsEnd() {
-    return (loc_xrdFile.EOF && intFollNum == 0 || loc_arFoll[0] == null);
+    return (loc_xrdFile.EOF && objJob.intFollNum == 0 || loc_arFoll[0] == null);
   }  
 // </editor-fold>
 

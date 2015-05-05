@@ -15,7 +15,7 @@ import javax.xml.xpath.XPathFactory;
 import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.XdmNode;
 import nl.ru.crpx.project.CorpusResearchProject;
-import nl.ru.crpx.project.CrpGlobal;
+import nl.ru.crpx.search.JobXq;
 import static nl.ru.crpx.xq.English.VernToEnglish;
 import nl.ru.util.StringUtil;
 import nl.ru.util.json.JSONObject;
@@ -26,13 +26,12 @@ import org.w3c.dom.NodeList;
  *
  * @author Erwin R. Komen
  */
-public class RuBase extends CorpusResearchProject {
+public class RuBase extends JobXq {
   // This class uses a logger
   private static final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(RuBase.class);
 // <editor-fold defaultstate="collapsed" desc="Local and global variables">
   // ======== attempt ============
   protected List<JSONObject> lAttempt;
-
   // ==================== local variables ======================================
   // private CrpGlobal objGen;
   private String strRuLexFile;  // Location of the ru:lex file
@@ -80,9 +79,10 @@ public class RuBase extends CorpusResearchProject {
 // </editor-fold>
 
   // =========================== instantiate the class =========================
-  public RuBase() {
+  public RuBase(CorpusResearchProject objPrj) {
+    // Make sure the class I extend is initialized
+    super(objPrj);
     try {
-      // prjThis = crpThis;
       ru_xpNodeText_Psdx = xpath.compile("./descendant::eLeaf[@Type = 'Vern' or @Type = 'Punct']");
       ru_xpNodeText_Folia = xpath.compile("./descendant::w/child::t");
       ru_xpNodeText_Alp = xpath.compile("./descendant::node[count(@word)>0]");
@@ -108,7 +108,7 @@ public class RuBase extends CorpusResearchProject {
       return true;
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("RuBase/RuInitLex error", ex, RuBase.class);
+      errHandle.DoError("RuBase/RuInitLex error", ex, RuBase.class);
       // Return failure
       return false;
     }
@@ -141,7 +141,7 @@ public class RuBase extends CorpusResearchProject {
       return true;
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("RuBase/RuAddLex error", ex, RuBase.class);
+      errHandle.DoError("RuBase/RuAddLex error", ex, RuBase.class);
       // Return failure
       return false;
     }
@@ -189,7 +189,7 @@ public class RuBase extends CorpusResearchProject {
           default:
             // Complain about this
             logger.error("ru:conv error - type unknown: " + sTypeThis);
-            bInterrupt = true;
+            errHandle.bInterrupt = true;
             return "";
         }
       }
@@ -198,7 +198,7 @@ public class RuBase extends CorpusResearchProject {
       return strOut;
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("RuBase/RuConv error", ex, RuBase.class);
+      errHandle.DoError("RuBase/RuConv error", ex, RuBase.class);
       // Return failure
       return "";
     }
@@ -226,7 +226,7 @@ public class RuBase extends CorpusResearchProject {
       // Default value for array
       arSent = null;
       // Action depends on the kind of xml project we have
-      switch(intProjType) {
+      switch(crpThis.intProjType) {
         case ProjPsdx:
           // Make a list of all <eLeaf> nodes
           ndList = (NodeList) ru_xpNodeText_Psdx.evaluate(ndStart, XPathConstants.NODESET);
@@ -260,13 +260,13 @@ public class RuBase extends CorpusResearchProject {
           // TODO: implement
           break;
         default:
-          DoError("RuNodeText: cannot process type " + getProjectType(), RuBase.class);
+          errHandle.DoError("RuNodeText: cannot process type " + crpThis.getProjectType(), RuBase.class);
       }
       // Build a string from the array
       return StringUtil.join(arSent, " ");
     } catch (RuntimeException | XPathExpressionException ex) {
       // Warn user
-      DoError("RuBase/RuNodeText error", ex, RuBase.class);
+      errHandle.DoError("RuBase/RuNodeText error", ex, RuBase.class);
       // Return failure
       return "";
     }
@@ -291,7 +291,7 @@ public class RuBase extends CorpusResearchProject {
       if (ndSax == null) return "";
       // Initialize values
       sNodeName = ndSax.getNodeName().getLocalName();
-      switch (intProjType) {
+      switch (crpThis.intProjType) {
         case ProjNegra:
           // Get the ID of the node in [ndSax]
           switch (sNodeName) {
@@ -339,7 +339,7 @@ public class RuBase extends CorpusResearchProject {
       return strRef;
     } catch (RuntimeException ex) {
       // Show error
-      DoError("RuBase/GetRefId error", ex, RuBase.class);
+      errHandle.DoError("RuBase/GetRefId error", ex, RuBase.class);
       // Return failure
       return "";
     }

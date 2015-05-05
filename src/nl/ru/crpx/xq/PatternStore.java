@@ -10,17 +10,22 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 import nl.ru.crpx.project.CrpGlobal;
+import nl.ru.crpx.tools.ErrHandle;
 
 /**
  *
  * @author Erwin R. Komen
  */
-public class PatternStore extends CrpGlobal {
+public class PatternStore  {
+  // =============== Locally needed variables ==================================
   private List<MatchHelp> lMatchHelp;
+  private ErrHandle objErr;
   // ============== CLASS initialization =======================================
-  public PatternStore() {
+  public PatternStore(ErrHandle oErr) {
     // Initialize a list of string arrays to help ru:matches()
     lMatchHelp = new ArrayList<>();
+    // Set the correct error handler
+    objErr = oErr;
   }
   
   // Find a string-array of regular expressions derived from @sPatterns
@@ -41,7 +46,7 @@ public class PatternStore extends CrpGlobal {
       return oNew.patt;
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("Extensions/getMatchHelp error", ex, PatternStore.class);
+      objErr.DoError("PatternStore/getMatchHelp error", ex, PatternStore.class);
       // Return failure
       return null;
     }

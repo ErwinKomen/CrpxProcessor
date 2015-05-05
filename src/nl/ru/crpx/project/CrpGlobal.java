@@ -30,12 +30,11 @@ public class CrpGlobal {
   public static boolean bTraceXq = false;         // Trace on XQ processing
   */
   // ========== Variables that are 'globally' available to all classes that "Extend CrpGlobal" ================
-  protected int intPrecNum = 2;                 // Number of preceding context lines
-  protected int intFollNum = 1;                 // Number of following context lines
-  protected int intCurrentQCline = 0;           // The current QC line we are working on
-  protected Node ndxCurrentHeader = null;       // XML header of the current XML file
-  // protected CorpusResearchProject crpThis;      // Global pointer to the corpus research project we are working on
-  protected boolean ru_bFileSaveAsk = false;    // Needed for ru:setattrib()
+  // protected int intPrecNum = 2;                 // Number of preceding context lines
+  // protected int intFollNum = 1;                 // Number of following context lines
+  // protected int intCurrentQCline = 0;           // The current QC line we are working on
+  // protected Node ndxCurrentHeader = null;       // XML header of the current XML file
+  // protected boolean ru_bFileSaveAsk = false;    // Needed for ru:setattrib()
   protected boolean bInterrupt = false;         // Global interrupt flag
   protected boolean bTraceXq = false;           // Trace on XQ processing
   // protected Extensions objExt = null;           // The extensions

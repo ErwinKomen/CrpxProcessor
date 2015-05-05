@@ -166,7 +166,6 @@ public class Execute extends CrpGlobal {
     bInterrupt = false;                     // Clear interrupt flag
     bDoStream = this.crpThis.getStream();   // Execute streaming mode or not
     this.setCurrentPsdx("");                // Indicate that there is no currently loaded file
-    this.ru_bFileSaveAsk = false;           // Needed for function ru:setattrib()
     
     // Initialise syntax error dataset
     // TODO: InitXqErr()
