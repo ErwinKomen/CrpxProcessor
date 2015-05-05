@@ -31,4 +31,10 @@ public class JobXq extends Job {
     intFollNum = crpThis.getFollNum();
     intPrecNum = crpThis.getPrecNum();
   }
+  
+  // ======================= Perform the search ================================
+  @Override
+  public void performSearch() throws QueryException {
+    
+  }
 }

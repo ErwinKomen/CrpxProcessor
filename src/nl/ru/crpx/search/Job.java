@@ -27,4 +27,9 @@ public class Job {
     // Set my copy of the corpus research project we are dealing with
     crpThis = objPrj;
   }
+  @SuppressWarnings("unused")
+  protected void performSearch() throws InterruptedException, QueryException {
+    // (to override)
+  }
+
 }
