@@ -7,7 +7,8 @@
 package nl.ru.crpx.xq;
 
 import java.io.IOException;
-import java.util.Iterator;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Pattern;
 import javax.xml.xpath.XPathExpressionException;
 import net.sf.saxon.s9api.Axis;
@@ -17,12 +18,11 @@ import net.sf.saxon.s9api.XdmNode;
 import net.sf.saxon.s9api.XdmSequenceIterator;
 import net.sf.saxon.s9api.XdmValue;
 import net.sf.saxon.value.AtomicValue;
-import net.sf.saxon.value.StringValue;
 import nl.ru.crpx.project.CorpusResearchProject;
-import nl.ru.crpx.project.CrpGlobal;
-import static nl.ru.crpx.project.CrpGlobal.DoError;
+import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.crpx.tools.FileIO;
 import nl.ru.util.ByRef;
+import nl.ru.util.json.JSONObject;
 import nl.ru.xmltools.XmlDocument;
 import nl.ru.xmltools.XmlNode;
 import org.xml.sax.SAXException;
@@ -31,26 +31,37 @@ import org.xml.sax.SAXException;
  *
  * @author Erwin R. Komen
  */
-public class Extensions extends CrpGlobal {
+public class Extensions extends RuBase {
   // This class uses a logger
   private static final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(Extensions.class);
   // ============== Variables associated with the *class* "Extensions" =========
   private static PatternStore objStore;
   private static RuBase objBase;
+  private static List<JSONObject> lErrStack;
+  // ============== The error handler can be accessed globally =================
+  public static ErrHandle errHandle;
+  // ============== Variables local to me ======================================
+  // private static CorpusResearchProject prjThis;
+  private static ProjType loc_intProjType;
+  private static String loc_sNodeNameSnt;
+  // ============== Local constants ============================================
   private static final QName loc_qnName = new QName("", "", "name");
   private static final QName loc_qnValue = new QName("", "", "value");
   private static final QName loc_qnFs = new QName("", "", "fs");
   private static final QName loc_qnF = new QName("", "", "f");
 
-  // ============== Variables local to me ======================================
-  private static CorpusResearchProject prjThis;
   // ============== CLASS initialization =======================================
   public Extensions() {
+    // initialize my own error handler
+    errHandle = new ErrHandle(Extensions.class );
     // Initialize a list of string arrays to help ru:matches()
     objStore = new PatternStore();
     objBase = new RuBase();    
     // objGen = new CrpGlobal();
-    prjThis = crpThis;
+    // prjThis = crpThis;
+    lErrStack = new ArrayList<>();
+    loc_intProjType = this.intProjType;
+    loc_sNodeNameSnt = this.sNodeNameSnt;
   }
 // <editor-fold defaultstate="collapsed" desc="ru:back">
   // ------------------------------------------------------------------------------------
@@ -89,7 +100,7 @@ public class Extensions extends CrpGlobal {
       return ndxFor;
     } catch (RuntimeException | XPathExpressionException | IOException | SAXException ex) {
       // Warn user
-      DoError("Extensions/back() error: " + ex.getMessage() + "\r\n");
+      errHandle.DoError("Extensions/back() error", ex, Extensions.class);
       // Return failure
       return null;
     }
@@ -129,7 +140,7 @@ public class Extensions extends CrpGlobal {
       return ndxFor;
     } catch (RuntimeException | XPathExpressionException | IOException | SAXException ex) {
       // Warn user
-      DoError("Extensions/back() error: " + ex.getMessage() + "\r\n");
+      errHandle.DoError("Extensions/back() error", ex, Extensions.class);
       // Return failure
       return null;
     }
@@ -172,7 +183,7 @@ public class Extensions extends CrpGlobal {
       return ndxFor;
     } catch (RuntimeException | XPathExpressionException | IOException | SAXException ex) {
       // Warn user
-      DoError("Extensions/back() error: " + ex.getMessage() + "\r\n");
+      errHandle.DoError("Extensions/back() error", ex, Extensions.class);
       // Return failure
       return null;
     }
@@ -206,7 +217,7 @@ public class Extensions extends CrpGlobal {
       return strText;
     } catch (RuntimeException ex) {
       // Show error
-      logger.error("Extensions/conv error: " + ex.getMessage() + "\r\n");
+      errHandle.DoError("Extensions/conv error", ex, Extensions.class);
       // Return failure
       return "";
     }
@@ -234,7 +245,7 @@ public class Extensions extends CrpGlobal {
       return strFval;
     } catch (RuntimeException ex) {
       // Show error
-      DoError("Extensions/feature error: " + ex.getMessage() + "\r\n" );
+      errHandle.DoError("Extensions/feature error", ex, Extensions.class );
       // Return failure
       return "";
     }
@@ -250,14 +261,14 @@ public class Extensions extends CrpGlobal {
       // Get node and validate it
       ndSax = getNodeValue(valSax); if (ndSax == null) return "";
       // Initialise depending on project type
-      switch (prjThis.intProjType) {
+      switch (loc_intProjType) {
         case ProjPsdx:
           // We can only get features for an [eTree] node
           if (!ndSax.getNodeName().getLocalName().equals("eTree")) return "";
           break;
         default:
           // This method doesn't work for other projects
-          logger.error("ru:feature() is not implemented for this project");
+          errHandle.DoError("ru:feature() is not implemented for this project", Extensions.class);
           return "";
       }
       // Visit all the <fs> children of [ndSax]
@@ -281,7 +292,7 @@ public class Extensions extends CrpGlobal {
       return "";
     } catch (SaxonApiUncheckedException ex) {
       // Show error
-      DoError("Extensions/feature error: " + ex.getMessage() + "\r\n" );
+      errHandle.DoError("Extensions/feature error", ex, Extensions.class );
       // Return failure
       return "";
     }
@@ -532,14 +543,14 @@ public class Extensions extends CrpGlobal {
           while (!ndSax.getClass().getName().equals("XdmEmptySequence")) {
             String sNodeName = ndSax.getNodeName().getLocalName();
             // Make sure this is not the highest element that can occur, given the proejct
-            if (sNodeName.equals(prjThis.sNodeNameSnt)) break;
+            if (sNodeName.equals(loc_sNodeNameSnt)) break;
             // Step to the parent
             ndFor = ndFor.getParent();
           }
           // Check the result
           if (ndFor == null || ndFor.getClass().getName().equals("XdmEmptySequence")) return false;
           // Get the values of all the features we need
-          switch (prjThis.intProjType) {
+          switch (loc_intProjType) {
             case ProjPsdx:
               strLoc.argValue = ndSax.getAttributeValue(RuBase.ru_qnLoc);
               strFile.argValue = ndSax.getAttributeValue(RuBase.ru_qnFile);
@@ -561,7 +572,7 @@ public class Extensions extends CrpGlobal {
               break;
             default:
               // There is a problem
-              DoError("ru:back error: uknown project type ");
+              errHandle.DoError("ru:back error: uknown project type ", Extensions.class);
               return false;
           }
 
@@ -572,11 +583,41 @@ public class Extensions extends CrpGlobal {
       return true;
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("Extensions/PrepareBack() error: " + ex.getMessage() + "\r\n");
+      errHandle.DoError("Extensions/PrepareBack() error", ex, Extensions.class);
       // Return failure
       return false;
     }
     
   }
 // </editor-fold>
+  /*
+  private static boolean errHandle.DoError(String msg, Exception ex, Class cls) {
+    JSONObject oThis = new JSONObject();  // Where we store all the info
+    
+    // Fill the object
+    oThis.put("msg", msg);
+    if (ex==null) oThis.put("ex", ""); else oThis.put("ex", ex.getMessage());
+    oThis.put("cls", cls.getName());
+    // Add the object to the static stack
+    lErrStack.add(oThis);
+    // Return failure
+    return false;
+  }
+  private static boolean errHandle.DoError(String msg, Class cls) {
+    JSONObject oThis = new JSONObject();  // Where we store all the info
+    return errHandle.DoError(msg, null, cls);
+  }
+  // ========== Allow others to see that there are errors ===========
+  public boolean hasXqErr() {
+    return (lErrStack.size() > 0);
+  }
+  // ========== Allow retrieval of the complete stack ===============
+  public List<JSONObject> getXqErrList() {
+    return lErrStack;
+  }
+  // ========== Allow others to reset the error stack ===============
+  public void clearXqErr() {
+    lErrStack.clear();
+  }
+  */
 }

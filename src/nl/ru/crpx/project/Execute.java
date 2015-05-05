@@ -31,7 +31,6 @@ import nl.ru.util.StringUtil;
 public class Execute extends CrpGlobal {
   protected static final Logger logger = Logger.getLogger(Execute.class);
   protected CorpusResearchProject crpThis;
-  protected CrpGlobal objGen;
   // ===================== The elements of an execution object =================
   protected Query[] arQuery;        // Array of queries to be executed (so this is the constructor) 
   protected Qinfo[] arQinfo;        // Information for each *query* (not query-line)
@@ -68,12 +67,13 @@ public class Execute extends CrpGlobal {
   private String TEMP_FILE = "CrpTemp";
   
   // Initialisation of the Execute class
-  public Execute() {
+  public Execute(CorpusResearchProject oProj) {
+    // Set our copy of the corpus research project
+    crpThis = oProj;
+    // Perform other initialisations
     String strInput = "";           // Source files
 
     // Perform class initialisations that are valid for all extended classes
-    // this.crpThis = prjThis;       // Keep a local copy of the project
-    // this.objGen = oGen;           // Keep a local copy of the GENERAL object
     this.bKeepGarbage = false;    // Do NOT normally retain temporary files
     bIsXquery = false; bDoStream = false;
     bErrors = false; bSrcBuilt = false;
@@ -101,7 +101,7 @@ public class Execute extends CrpGlobal {
     // Verify the QC consistency
     if (!VerifyQC()) return;
     // Reset interruption
-    objGen.setInterrupt(false);
+    bInterrupt = false;
     // Reset output file initialisation
     // TODO: RuInit(false);
     
@@ -113,7 +113,7 @@ public class Execute extends CrpGlobal {
     
     // Gather the source files and validate the result
     strInput = crpThis.getSource();   // Usually this is [*.psdx] or something like that
-    if (strInput.isEmpty()) {DoError("First choose input files"); objGen.setInterrupt(true); return;}
+    if (strInput.isEmpty()) {DoError("First choose input files"); bInterrupt = true; return;}
     // Make an array of input files, as defined in [strInput]
     arInput = strInput.split(CrpGlobal.GetDelim(strInput));
     
@@ -163,10 +163,10 @@ public class Execute extends CrpGlobal {
     // Initialisations
     strQtemp = "temp_";                     // Prefix to temporary file
     intWait = 500;                          // TODO: Waiting time for...
-    this.objGen.setInterrupt(false);        // Clear interrupt flag
+    bInterrupt = false;                     // Clear interrupt flag
     bDoStream = this.crpThis.getStream();   // Execute streaming mode or not
-    objGen.setCurrentPsdx("");              // Indicate that there is no currently loaded file
-    objGen.ru_bFileSaveAsk = false;         // Needed for function ru:setattrib()
+    this.setCurrentPsdx("");                // Indicate that there is no currently loaded file
+    this.ru_bFileSaveAsk = false;           // Needed for function ru:setattrib()
     
     // Initialise syntax error dataset
     // TODO: InitXqErr()

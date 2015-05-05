@@ -15,7 +15,6 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
-import static nl.ru.crpx.project.CrpGlobal.DoError;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
 // import org.w3c.dom.Node;
@@ -50,7 +49,6 @@ public class XmlDocument {
       this.parser = this.factory.newDocumentBuilder();
     } catch (ParserConfigurationException ex) {
       logger.error("XmlDocument: could not create documentbuilder", ex);
-      DoError("Could not create XmlDocument");
     }
   }  
   public void LoadXml(String sXmlText) throws IOException, SAXException {

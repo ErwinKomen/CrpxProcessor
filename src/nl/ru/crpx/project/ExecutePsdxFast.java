@@ -15,10 +15,10 @@ package nl.ru.crpx.project;
    History:
    20/apr/2015   ERK Created
    --------------------------------------------------------------------------- */
-public class ExecutePsdxFast  extends Execute {
-  public ExecutePsdxFast() {
+public class ExecutePsdxFast  extends ExecuteXml {
+  public ExecutePsdxFast(CorpusResearchProject oProj) {
     // Do the initialisations for all Execute() classes
-    super();
+    super(oProj);
   }
   @Override
   public boolean ExecuteQueries() {

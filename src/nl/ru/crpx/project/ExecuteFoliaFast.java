@@ -16,11 +16,11 @@ package nl.ru.crpx.project;
    History:
    20/apr/2015   ERK Created
    --------------------------------------------------------------------------- */
-public class ExecuteFoliaFast extends Execute {
+public class ExecuteFoliaFast extends ExecuteXml {
   //protected CrpGlobal objGen;
-  public ExecuteFoliaFast() {
+  public ExecuteFoliaFast(CorpusResearchProject oProj) {
     // Do the initialisations for all Execute() classes
-    super();
+    super(oProj);
   }
   @Override
   public boolean ExecuteQueries() {

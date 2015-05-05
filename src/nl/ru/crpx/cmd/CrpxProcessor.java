@@ -27,8 +27,10 @@ public class CrpxProcessor {
   public static File flProject = null;    // The project we are working with
   public static File dirInput = null;     // Main directory where the psdx files are located
   // =================== instance variables ==================================
-  private static CrpGlobal objGen = new CrpGlobal();         // This is a local copy
-  private CorpusResearchProject prjThis = objGen.getCrpx();
+  // private CorpusResearchProject prjTmp = new CorpusResearchProject();
+  // private static CrpGlobal objGen = new CrpGlobal();         // This is a local copy
+  // private static CorpusResearchProject prjThis = objGen.getCrpx();
+  private static CorpusResearchProject prjThis = new CorpusResearchProject();
   // =================== main code start =====================================
 /* ---------------------------------------------------------------------------
    Name:    main
@@ -37,7 +39,8 @@ public class CrpxProcessor {
    History:
    17/10/2014   ERK Created
    --------------------------------------------------------------------------- */
-    public void main(String[] args) throws Exception {
+    public static void main(String[] args) throws Exception {
+      // Try to configure
       try {
         BasicConfigurator.configure();
       } catch (Exception e) {
@@ -63,7 +66,7 @@ public class CrpxProcessor {
               // We next expect the actual directory to follow
               i++;
               if (i>args.length-1) {
-                System.err.println("Option --inputdir should be followed by a directory");
+                logger.error("Option --inputdir should be followed by a directory");
                 usage(); return;
               } else {
                 // Get the input directory
@@ -71,7 +74,7 @@ public class CrpxProcessor {
                 // Check it up
                 if (!dirInput.exists()) {
                 // The project cannot be read/opened
-                System.err.println("Cannot open input directory: " + dirInput);
+                logger.error("Cannot open input directory: " + dirInput);
                 usage(); return;
                 }
               }
@@ -79,7 +82,7 @@ public class CrpxProcessor {
             case "help":
               usage(); return;
             default:
-              System.err.println("Unknown option --" + name);
+              logger.error("Unknown option --" + name);
               usage(); return;
           }
         } else if (i==0) {
@@ -89,7 +92,7 @@ public class CrpxProcessor {
       }
       // Try to load the project
       if (!prjThis.Load(strProject)) {
-        objGen.DoError("Could not load project " + strProject);
+        logger.error("Could not load project " + strProject);
         return;
       }
       
@@ -99,9 +102,16 @@ public class CrpxProcessor {
 
       // Execute queries
       if (!prjThis.Execute()) {
-        objGen.DoError("The queries could not be executed");
+        logger.error("The queries could not be executed");
+      }
+      // Check for interrupt
+      if (prjThis.errHandle.bInterrupt) {
+        logger.error("The program has been interrupted");
+        return;
       }
       
+      // Exit program normally
+      logger.debug("Ready!");
     }
 
 /* ---------------------------------------------------------------------------

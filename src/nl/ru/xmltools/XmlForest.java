@@ -14,9 +14,7 @@ import java.util.List;
 import javax.xml.xpath.XPathExpressionException;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.project.CrpGlobal;
-import static nl.ru.crpx.project.CrpGlobal.DoError;
 import nl.ru.util.ByRef;
-import static nl.ru.xmltools.Parse.GetSeg;
 import org.xml.sax.SAXException;
 // </editor-fold>
 /**
@@ -83,7 +81,8 @@ public class XmlForest extends CrpGlobal {
   private XmlChunkReader loc_xrdFile;   // Local copy of XML chunk reader
   private ForType loc_Type;             // The type of treatment expected
   private CrpGlobal objGen;               // Local access to the general object with global variables
-  private CorpusResearchProject crpThis;// The corpus research project for which I am created
+  private CorpusResearchProject crpThis;  // The corpus research project for which I am created
+  private Parse objParse;                 // Object to use my own version of the "GetSeg()" function
   // private XmlReaderSettings loc_xrdSet; // Special arrangements for the reader --> already done in XmlDocument()
   // ==========================================================================================================
   // Class instantiation
@@ -95,6 +94,7 @@ public class XmlForest extends CrpGlobal {
     loc_Type  = ForType.PsdxWholeFile;
     objGen = oGen;
     crpThis = oCrp;
+    objParse = new Parse();
   }
 // </editor-fold>
 // <editor-fold defaultstate="collapsed" desc="Main">
@@ -338,7 +338,7 @@ public class XmlForest extends CrpGlobal {
           loc_pdxThis.LoadXml(loc_xrdFile.ReadOuterXml());
           // Get the current context
           ndxForest.argValue = loc_pdxThis.SelectSingleNode("./descendant::forest[1]");
-          loc_cntThis.Seg = GetSeg(ndxForest.argValue, crpThis.getProjectType());
+          loc_cntThis.Seg = objParse.GetSeg(ndxForest.argValue, crpThis.getProjectType());
           loc_cntThis.Loc = ndxForest.argValue.Attributes("Location").Value;
           loc_cntThis.TxtId = ndxForest.argValue.Attributes("TextId").Value;
         } else {
@@ -346,7 +346,7 @@ public class XmlForest extends CrpGlobal {
           loc_arFoll[intI - 1].LoadXml(loc_xrdFile.ReadOuterXml());
           // Fill the following context @seg, @txtid and @loc
           ndxWork = loc_arFoll[intI - 1].SelectSingleNode("./descendant::forest[1]");
-          loc_arFollCnt[intI - 1].Seg = GetSeg(ndxWork, crpThis.getProjectType());
+          loc_arFollCnt[intI - 1].Seg = objParse.GetSeg(ndxWork, crpThis.getProjectType());
           loc_arFollCnt[intI - 1].Loc = ndxWork.Attributes("Location").Value;
           loc_arFollCnt[intI - 1].TxtId = ndxWork.Attributes("TextId").Value;
         }
@@ -474,7 +474,7 @@ public class XmlForest extends CrpGlobal {
         // Get working node <forest>
         ndxWork = loc_arFoll[intFollNum - 1].SelectSingleNode("./descendant::forest[1]");
         // Calculate the correct context
-        loc_arFollCnt[intFollNum - 1].Seg = GetSeg(ndxWork, crpThis.getProjectType());
+        loc_arFollCnt[intFollNum - 1].Seg = objParse.GetSeg(ndxWork, crpThis.getProjectType());
         loc_arFollCnt[intFollNum - 1].Loc = ndxWork.Attributes("Location").Value;
         loc_arFollCnt[intFollNum - 1].TxtId = ndxWork.Attributes("TextId").Value;
       } else {
@@ -483,7 +483,7 @@ public class XmlForest extends CrpGlobal {
         // Get this forest
         ndxWork = loc_pdxThis.SelectSingleNode("./descendant::forest[1]");
         // Calculate the correct context
-        loc_cntThis.Seg = GetSeg(ndxWork, crpThis.getProjectType());
+        loc_cntThis.Seg = objParse.GetSeg(ndxWork, crpThis.getProjectType());
         loc_cntThis.Loc = ndxWork.Attributes("Location").Value;
         loc_cntThis.TxtId = ndxWork.Attributes("TextId").Value;
       }
@@ -649,7 +649,7 @@ public class XmlForest extends CrpGlobal {
           loc_pdxThis.LoadXml(loc_xrdFile.ReadOuterXml());
           // Get the current context
           ndxForest.argValue = loc_pdxThis.SelectSingleNode("./descendant::forest[1]");
-          loc_cntThis.Seg = GetSeg(ndxForest.argValue, crpThis.getProjectType());
+          loc_cntThis.Seg = objParse.GetSeg(ndxForest.argValue, crpThis.getProjectType());
           loc_cntThis.Loc = ndxForest.argValue.Attributes("Location").Value;
           loc_cntThis.TxtId = ndxForest.argValue.Attributes("TextId").Value;
         } else {
@@ -657,7 +657,7 @@ public class XmlForest extends CrpGlobal {
           loc_arFoll[intI - 1].LoadXml(loc_xrdFile.ReadOuterXml());
           // Fill the following context @seg, @txtid and @loc
           ndxWork = loc_arFoll[intI - 1].SelectSingleNode("./descendant::forest[1]");
-          loc_arFollCnt[intI - 1].Seg = GetSeg(ndxWork, crpThis.getProjectType());
+          loc_arFollCnt[intI - 1].Seg = objParse.GetSeg(ndxWork, crpThis.getProjectType());
           loc_arFollCnt[intI - 1].Loc = ndxWork.Attributes("Location").Value;
           loc_arFollCnt[intI - 1].TxtId = ndxWork.Attributes("TextId").Value;
         }
@@ -775,7 +775,7 @@ public class XmlForest extends CrpGlobal {
         // Get working node <forest>
         ndxWork = loc_arFoll[intFollNum - 1].SelectSingleNode("./descendant::forest[1]");
         // Calculate the correct context
-        loc_arFollCnt[intFollNum - 1].Seg = GetSeg(ndxWork, crpThis.getProjectType());
+        loc_arFollCnt[intFollNum - 1].Seg = objParse.GetSeg(ndxWork, crpThis.getProjectType());
         loc_arFollCnt[intFollNum - 1].Loc = ndxWork.Attributes("Location").Value;
         loc_arFollCnt[intFollNum - 1].TxtId = ndxWork.Attributes("TextId").Value;
       } else {
@@ -784,7 +784,7 @@ public class XmlForest extends CrpGlobal {
         // Get this forest
         ndxWork = loc_pdxThis.SelectSingleNode("./descendant::forest[1]");
         // Calculate the correct context
-        loc_cntThis.Seg = GetSeg(ndxWork, crpThis.getProjectType());
+        loc_cntThis.Seg = objParse.GetSeg(ndxWork, crpThis.getProjectType());
         loc_cntThis.Loc = ndxWork.Attributes("Location").Value;
         loc_cntThis.TxtId = ndxWork.Attributes("TextId").Value;
       }

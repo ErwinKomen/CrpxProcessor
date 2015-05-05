@@ -29,9 +29,9 @@ public class ExecutePsdxStream extends ExecuteXml {
   History:
   20/apr/2015   ERK Created
   ------------------------------------------------------------------------------ */
-  public ExecutePsdxStream() {
+  public ExecutePsdxStream(CorpusResearchProject oProj) {
     // Do the initialisations for all Execute() classes
-    super();
+    super(oProj);
     
     
     // TODO: make sure we provide [intCurrentQCline] with the correct value!!

@@ -18,16 +18,15 @@ import java.util.Map;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.parsers.*;
 import javax.xml.xpath.*;
+import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.util.Json;
 import nl.ru.util.json.JSONObject;
 import static nl.ru.xmltools.XmlIO.WriteXml;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
-import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-// import  nl.ru.crpx.project.Execute;
 
 /* ---------------------------------------------------------------------------
    Class:   CorpusResearchProject
@@ -35,10 +34,9 @@ import org.xml.sax.SAXException;
    History:
    17/10/2014   ERK Created
    --------------------------------------------------------------------------- */
-public class CorpusResearchProject extends CrpGlobal {
+public class CorpusResearchProject {
   // This class uses a logger
   private static final Logger logger = Logger.getLogger(CorpusResearchProject.class);
-  // protected CrpGlobal objGen;
   // ================== Enumerations in use ==================================
   public enum ProjType {
     ProjPsd, ProjPsdx, ProjNegra, ProjAlp, ProjFolia, None;
@@ -61,6 +59,7 @@ public class CorpusResearchProject extends CrpGlobal {
   public String sNodeNameCns;       // Name of the "constituent-level" node
   public String sNodeNamePrg;       // Name of "paragraph-level" node
   public String sNodeNameWrd;       // Name of "word-level" node
+  public ErrHandle errHandle;       // My own error handler
   // ================== instance fields for the research project =============
   private PrjTypeManager prjTypeManager;
   // =================== private variables ====================================
@@ -98,8 +97,10 @@ public class CorpusResearchProject extends CrpGlobal {
   static List<JSONObject> lPeriodInfo = new ArrayList<>();
 
   // ==================== Class initialisations ================================
-  //  OLD: public CorpusResearchProject(CrpGlobal oGen) {
   public CorpusResearchProject() {
+    // Set error handler
+    errHandle = new ErrHandle(CorpusResearchProject.class);
+    // Other class-level initialisations
     this.docProject = null;
     this.parser = null;
     this.factory = DocumentBuilderFactory.newInstance();
@@ -110,7 +111,6 @@ public class CorpusResearchProject extends CrpGlobal {
     }
     this.dirInput = null;
     this.flProject = null;
-    // this.objGen = oGen;
     // Set default project type
     this.intProjType = ProjType.ProjPsdx;
   }
@@ -128,11 +128,11 @@ public class CorpusResearchProject extends CrpGlobal {
     this.flProject = new File(this.Location);
     if (!this.flProject.canRead()) {
       // The project cannot be read/opened
-      return(DoError("Cannot read [" + this.flProject + "]"));
+      return(errHandle.DoError("Cannot read [" + this.flProject + "]"));
     }    
     try {
       // Perform initialisations
-      if (!DoInit()) return(DoError("unable to initialize"));
+      if (!DoInit()) return(errHandle.DoError("unable to initialize"));
     } catch (ParserConfigurationException ex) {
       logger.error("Load crpx: could not configure parser", ex);
       return false;
@@ -204,16 +204,16 @@ public class CorpusResearchProject extends CrpGlobal {
     ReadCrpList(lDbFeatList, "./descendant::DbFeatList/child::DbFeat", 
                 "DbFeatId;Name;Pre;QCid;FtNum", "");
     // Check directories
-    if (!this.QueryDir.isDirectory())  if (!this.QueryDir.mkdir()) return(DoError("Could not create QueryDir [" + this.QueryDir + "]"));
-    if (!this.DstDir.isDirectory())  if (!this.DstDir.mkdir()) return(DoError("Could not create DstDir [" + this.DstDir + "]"));
-    if (!this.SrcDir.isDirectory())  if (!this.SrcDir.mkdir()) return(DoError("Could not create SrcDir [" + this.SrcDir + "]"));
+    if (!this.QueryDir.isDirectory())  if (!this.QueryDir.mkdir()) return(errHandle.DoError("Could not create QueryDir [" + this.QueryDir + "]"));
+    if (!this.DstDir.isDirectory())  if (!this.DstDir.mkdir()) return(errHandle.DoError("Could not create DstDir [" + this.DstDir + "]"));
+    if (!this.SrcDir.isDirectory())  if (!this.SrcDir.mkdir()) return(errHandle.DoError("Could not create SrcDir [" + this.SrcDir + "]"));
 
     // Check the project type
     switch(this.ProjectType) {
       case "Xquery-psdx": // Okay, we are able to process this kind of project
         break;
       default: 
-        return(DoError("Sorry, cannot process projects of type [" + this.ProjectType + "]"));
+        return(errHandle.DoError("Sorry, cannot process projects of type [" + this.ProjectType + "]"));
     }
     
     // Perform initialisations related to this project-type using the config file
@@ -225,7 +225,7 @@ public class CorpusResearchProject extends CrpGlobal {
       is = getClass().getClassLoader().getResourceAsStream(configFileName);
       if (is == null) {
         // We cannot continue...
-        return(DoError("Could not find " + configFileName + "!"));
+        return(errHandle.DoError("Could not find " + configFileName + "!"));
       }
     }
     // Create configuration object
@@ -238,7 +238,7 @@ public class CorpusResearchProject extends CrpGlobal {
         is.close();
       }
     } catch (Exception e) {
-      return(DoError("Error reading JSON config file: " +  e.getMessage()));
+      return(errHandle.DoError("Error reading JSON config file: " +  e.getMessage()));
     }
     // Create a new project-type manager on the basis of the configuration settings
     prjTypeManager = new PrjTypeManager(config);
@@ -283,33 +283,33 @@ public class CorpusResearchProject extends CrpGlobal {
         // Do we need to do streaming or not?
         if (this.getStream()) {
           // objEx = new ExecutePsdxStream(this, objGen);
-          objEx = new ExecutePsdxStream();
+          objEx = new ExecutePsdxStream(this);
         } else {
           // objEx = new ExecutePsdxFast(this, objGen);
-          objEx = new ExecutePsdxFast();
+          objEx = new ExecutePsdxFast(this);
         }
         break;
       case ProjFolia:
         // Do we need to do streaming or not?
         if (this.getStream()) {
           // objEx  = new ExecuteFoliaStream(this, objGen);
-          objEx  = new ExecuteFoliaStream();
+          objEx  = new ExecuteFoliaStream(this);
         } else {
           // objEx  = new ExecuteFoliaFast(this, objGen);
-          objEx  = new ExecuteFoliaFast();
+          objEx  = new ExecuteFoliaFast(this);
         }
         break;
       case ProjAlp:
       case ProjPsd:
       case ProjNegra:
       default: 
-       DoError("Sorry, cannot execute projects of type [" + this.getProjectType() + "]");
+       errHandle.DoError("Sorry, cannot execute projects of type [" + this.getProjectType() + "]");
     }
     if (objEx == null) return false;
     // Execute the queries using the chosen method
     bFlag = objEx.ExecuteQueries();
-    // Check if we have been interrupted
-    if (!bFlag || bInterrupt) return false;
+    // Check if the query-execution resulted in an interrupt
+    if (!bFlag || objEx.bInterrupt) { errHandle.bInterrupt = true; return false; }
     // Is this a corpussearch project?
     /*
       ' Is this a corpussearch project?
@@ -440,6 +440,86 @@ public class CorpusResearchProject extends CrpGlobal {
     return prjTypeManager;
   }
 
+
+
+  /* ---------------------------------------------------------------------------
+   Name:    doSort
+   Goal:    Sort the JSONObject ArrayList @sList on @sField
+   History:
+   21/apr/2015   ERK Created
+   --------------------------------------------------------------------------- */
+  public boolean doSort(String sList, String sField) { 
+    // Check on the list
+    switch(sList) {
+      case "QClist":
+        if (sField.equals("QCid")) {
+          // Sort the QueryConstructor list on [QCid]
+          Collections.sort(this.lQueryConstructor, new IntIdComparator("QCid") {});
+        } else return false;
+        break;
+      case "QueryList":
+        if (sField.equals("QueryId")) {
+          // Sort the QueryConstructor list on [QueryId]
+          Collections.sort(this.lQueryList, new IntIdComparator("QueryId") {});
+        } else return false;
+        break;
+      case "DefList":
+        if (sField.equals("DefId")) {
+          Collections.sort(this.lDefList, new IntIdComparator("DefId") {});
+        }
+        break;
+      default:
+        return false;
+    }
+    // Return positively
+    return true;
+  }
+
+  /* ---------------------------------------------------------------------------
+     Name:     GetForTagName
+     Goal:     Get the name of the <forest> equivalent tag for the current project
+     History:
+     21-09-2011  ERK Created for .NET CorpusStudio
+     25/apr/2015 ERK transformed to Java CRPP
+     --------------------------------------------------------------------------- */
+  public String GetForTagName() {
+    if (this.intProjType == ProjType.None) return "";
+    switch(this.intProjType) {
+      case ProjPsdx:
+        return "<forest";
+      case ProjNegra:
+        return "<s";
+      case ProjAlp:
+        return "<node";
+      case ProjFolia:
+        return "<s";
+      default:
+        return "";
+    }
+  }
+
+
+  // =================== Private methods ======================================
+  /* ---------------------------------------------------------------------------
+   Name:    DoInit
+   Goal:    Any initialisations
+   History:
+   17/10/2014   ERK Created
+   --------------------------------------------------------------------------- */
+  private boolean DoInit() throws ParserConfigurationException {
+    // Look for factory
+    if (this.factory==null) return(false);
+    // Set up factory
+    this.factory.setIgnoringComments(true);  // Ignore comments
+    this.factory.setCoalescing(true);        // Convert CDATA to Text nodes
+    this.factory.setNamespaceAware(false);   // No namespace (default)
+    this.factory.setValidating(false);       // Don't validate DTD
+    // Use the factory to create a DOM parser
+    parser = this.factory.newDocumentBuilder();
+    // Return positively
+    return(true);
+  }
+
   /* ---------------------------------------------------------------------------
    Name:    ReadCrpList
    Goal:    Read a list of objects into a JSON list
@@ -549,84 +629,6 @@ public class CorpusResearchProject extends CrpGlobal {
     return true;
   }
   
-
-  // =================== Private methods ======================================
-  /* ---------------------------------------------------------------------------
-   Name:    DoInit
-   Goal:    Any initialisations
-   History:
-   17/10/2014   ERK Created
-   --------------------------------------------------------------------------- */
-  private boolean DoInit() throws ParserConfigurationException {
-    // Look for factory
-    if (this.factory==null) return(false);
-    // Set up factory
-    this.factory.setIgnoringComments(true);  // Ignore comments
-    this.factory.setCoalescing(true);        // Convert CDATA to Text nodes
-    this.factory.setNamespaceAware(false);   // No namespace (default)
-    this.factory.setValidating(false);       // Don't validate DTD
-    // Use the factory to create a DOM parser
-    parser = this.factory.newDocumentBuilder();
-    // Return positively
-    return(true);
-  }
-
-  /* ---------------------------------------------------------------------------
-   Name:    doSort
-   Goal:    Sort the JSONObject ArrayList @sList on @sField
-   History:
-   21/apr/2015   ERK Created
-   --------------------------------------------------------------------------- */
-  public boolean doSort(String sList, String sField) { 
-    // Check on the list
-    switch(sList) {
-      case "QClist":
-        if (sField.equals("QCid")) {
-          // Sort the QueryConstructor list on [QCid]
-          Collections.sort(this.lQueryConstructor, new IntIdComparator("QCid") {});
-        } else return false;
-        break;
-      case "QueryList":
-        if (sField.equals("QueryId")) {
-          // Sort the QueryConstructor list on [QueryId]
-          Collections.sort(this.lQueryList, new IntIdComparator("QueryId") {});
-        } else return false;
-        break;
-      case "DefList":
-        if (sField.equals("DefId")) {
-          Collections.sort(this.lDefList, new IntIdComparator("DefId") {});
-        }
-        break;
-      default:
-        return false;
-    }
-    // Return positively
-    return true;
-  }
-
-  /* ---------------------------------------------------------------------------
-     Name:     GetForTagName
-     Goal:     Get the name of the <forest> equivalent tag for the current project
-     History:
-     21-09-2011  ERK Created for .NET CorpusStudio
-     25/apr/2015 ERK transformed to Java CRPP
-     --------------------------------------------------------------------------- */
-  public String GetForTagName() {
-    if (this.intProjType == ProjType.None) return "";
-    switch(this.intProjType) {
-      case ProjPsdx:
-        return "<forest";
-      case ProjNegra:
-        return "<s";
-      case ProjAlp:
-        return "<node";
-      case ProjFolia:
-        return "<s";
-      default:
-        return "";
-    }
-  }
-
 }
 
 /* ---------------------------------------------------------------------------

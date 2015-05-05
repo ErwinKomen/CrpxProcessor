@@ -9,13 +9,13 @@ package nl.ru.crpx.xq;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
-import static nl.ru.crpx.project.CrpGlobal.DoError;
+import nl.ru.crpx.project.CrpGlobal;
 
 /**
  *
  * @author Erwin R. Komen
  */
-public class PatternStore {
+public class PatternStore extends CrpGlobal {
   private List<MatchHelp> lMatchHelp;
   // ============== CLASS initialization =======================================
   public PatternStore() {
@@ -41,7 +41,7 @@ public class PatternStore {
       return oNew.patt;
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("Extensions/getMatchHelp error: " + ex.getMessage() + "\r\n");
+      DoError("Extensions/getMatchHelp error", ex, PatternStore.class);
       // Return failure
       return null;
     }

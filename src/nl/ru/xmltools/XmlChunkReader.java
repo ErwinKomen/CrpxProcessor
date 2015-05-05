@@ -24,7 +24,7 @@ public class XmlChunkReader {
   private static final Logger logger = Logger.getLogger(XmlChunkReader.class);
   // ======================== variables for internal use
   private BufferedReader reader;  // Buffered file reader
-  private int iLinesRead = 0;     // Number of lines read with last readFile
+  private int iLinesRead = 0;     // Number of lines read during the *last* readFile
   private String strTag;          // Name of the tag we are using
   private String strLastLine;     // Line that we read last
   private String ls;              // line separator

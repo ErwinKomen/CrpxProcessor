@@ -28,7 +28,7 @@ import nl.ru.xmltools.XqErr;
 
 /**
  *
- * @author Erwin
+ * @author Erwin R. Komen
  */
 public class ExecuteXml extends Execute {
   // ============= Variables that are only for the XML-processing "Execute" classes
@@ -47,15 +47,15 @@ public class ExecuteXml extends Execute {
   private XqErr oXq;                    // For using XqErr
   
   // ============= Class initializer ==========================================
-  public ExecuteXml() {
+  public ExecuteXml(CorpusResearchProject oProj) {
     // Do the initialisations for all Execute() classes
-    super();
+    super(oProj);
     // For work with Saxon Xquery see the 9.1.0.1 documentation:
     //  D:/DownLoad/XML/saxon-resources9-1-0-1/doc/using-xquery/api-query/s9api-query.html
 
     // Create a processor that is NOT schema-aware (so we use Saxon-B 9.1.0.8)
     objSaxon = new Processor(false);
-    // Trace binding of external functions
+    // Trace binding of external functions (see definition in CrpGlobal)
     if (bTraceXq) {
       objSaxon.setConfigurationProperty(FeatureKeys.TRACE_EXTERNAL_FUNCTIONS, true);
       objSaxon.setConfigurationProperty(FeatureKeys.COMPILE_WITH_TRACING, true);
@@ -153,9 +153,13 @@ public class ExecuteXml extends Execute {
       objBack.add(strTemp);
       // Save the first results into [strBack] (see 2674-2676 in [modMain])
       // TODO: find a better method to deal with this...
+      
+      // Reset the query examples
       for (Query arQuery1 : arQuery) arQuery1.Examp.clear();
+      
       // Initialize the database-locator
       dbLoc = new DbLoc();
+      
       // Initialize the lexeme-collector
       // lexCol = new LexCol();
       

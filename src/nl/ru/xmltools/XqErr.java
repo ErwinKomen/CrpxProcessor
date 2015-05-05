@@ -9,17 +9,18 @@ package nl.ru.xmltools;
 import java.util.ArrayList;
 import java.util.List;
 import nl.ru.crpx.project.Qinfo;
-import static nl.ru.crpx.project.CrpGlobal.DoError;
 import static nl.ru.crpx.project.CrpGlobal.Status;
 import nl.ru.util.ByRef;
 import nl.ru.util.json.JSONException;
 import nl.ru.util.json.JSONObject;
+import org.apache.log4j.Logger;
 
 /**
  *
  * @author Erwin
  */
 public class XqErr {
+  protected static final Logger logger = Logger.getLogger(XqErr.class);
   // ============ Elements that are available globally =========================
   public List<JSONObject> lQerr;    // List of error objects
   // ============ Local copies for internal use ================================
@@ -121,7 +122,7 @@ public class XqErr {
       return "indeterminable";
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("XqErr/getXqErrLoc error: " + ex.getMessage() + "\r\n");
+      logger.error("XqErr/getXqErrLoc error", ex);
       // Return failure
       return "";
     }
@@ -157,7 +158,7 @@ public class XqErr {
       this.lQerr.add(oErr);
     }  catch (JSONException ex) {
       // Warn user
-      DoError("ExecutePsdxStream/ExecuteQueries error: " + ex.getMessage() + "\r\n");
+      logger.error("ExecutePsdxStream/ExecuteQueries error", ex);
     }
   }
 

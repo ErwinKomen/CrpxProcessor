@@ -6,11 +6,9 @@
 
 package nl.ru.crpx.tools;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.xml.xpath.XPathExpressionException;
 import nl.ru.crpx.project.CorpusResearchProject;
-import static nl.ru.crpx.project.CrpGlobal.DoError;
+import nl.ru.crpx.project.CrpGlobal;
 import nl.ru.xmltools.XmlNode;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.NodeList;
@@ -19,7 +17,7 @@ import org.w3c.dom.NodeList;
  *
  * @author Erwin R. Komen
  */
-public class Parse {
+public class Parse extends CrpGlobal {
   public Parse() {
     
   }
@@ -32,7 +30,7 @@ public class Parse {
   // 20-02-2010   ERK Created for .NET
   // 23/apr/2015  ERK Adapted for Java
   // ----------------------------------------------------------------------------------------------------------
-  public static String GetSeg(XmlNode ndThis, CorpusResearchProject crpThis) {
+  public String GetSeg(XmlNode ndThis, CorpusResearchProject crpThis) {
     XmlNode ndxOrg;   // The div/seg node we are looking for
     NodeList ndxTrm;  // List of terminal nodes
     String strProjType; // The project type we are dealing with
@@ -56,18 +54,18 @@ public class Parse {
           break;
         default:
           // Cannot handle this
-          DoError("modParse/GetSeg: Can not handle project type " + strProjType);
+          DoError("modParse/GetSeg: Can not handle project type " + strProjType, Parse.class);
           return "";
       }
       
       return "";
     } catch (DOMException ex) {
       // Warn user
-      DoError("Parse/GetSeg DOM error: " + ex.getMessage() + "\r\n");
+      DoError("Parse/GetSeg DOM error", ex, Parse.class);
       // Return failure
       return "";
     } catch (XPathExpressionException ex) {
-      DoError("Parse/GetSeg xpath error: " + ex.getMessage() + "\r\n");
+      DoError("Parse/GetSeg xpath error", ex, Parse.class);
       return "";
     }
   }

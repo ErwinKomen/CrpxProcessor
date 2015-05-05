@@ -6,6 +6,7 @@
 
 package nl.ru.crpx.xq;
 
+import java.util.List;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
@@ -15,9 +16,9 @@ import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.XdmNode;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.project.CrpGlobal;
-import static nl.ru.crpx.project.CrpGlobal.DoError;
 import static nl.ru.crpx.xq.English.VernToEnglish;
 import nl.ru.util.StringUtil;
+import nl.ru.util.json.JSONObject;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
@@ -25,18 +26,21 @@ import org.w3c.dom.NodeList;
  *
  * @author Erwin R. Komen
  */
-public class RuBase extends CrpGlobal {
+public class RuBase extends CorpusResearchProject {
   // This class uses a logger
   private static final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(RuBase.class);
 // <editor-fold defaultstate="collapsed" desc="Local and global variables">
+  // ======== attempt ============
+  protected List<JSONObject> lAttempt;
+
   // ==================== local variables ======================================
   // private CrpGlobal objGen;
   private String strRuLexFile;  // Location of the ru:lex file
   private XPath xpath = XPathFactory.newInstance().newXPath();
-  private XPathExpression ru_xpNodeText_Psdx;   // Search expression for ProjPsdx
-  private XPathExpression ru_xpNodeText_Folia;  // Search expression for ProjFolia
-  private XPathExpression ru_xpNodeText_Negra;  // Search expression for ProjNegra
-  private XPathExpression ru_xpNodeText_Alp;    // Search expression for ProjAlp
+  private static XPathExpression ru_xpNodeText_Psdx;   // Search expression for ProjPsdx
+  private static XPathExpression ru_xpNodeText_Folia;  // Search expression for ProjFolia
+  private static XPathExpression ru_xpNodeText_Negra;  // Search expression for ProjNegra
+  private static XPathExpression ru_xpNodeText_Alp;    // Search expression for ProjAlp
   // ===================== public constants ====================================
   public static final QName ru_qnETreeId = new QName("", "", "Id");      // Id feature name of an <eTree> element
   public static final QName ru_qnTreeId = new QName("", "", "TreeId");   // TreeId feature name
@@ -66,15 +70,19 @@ public class RuBase extends CrpGlobal {
   private final QName qnIdResult = new QName("", "", "eTreeId");
   private final QName qnForestIdPsdx = new QName("", "", "forestId");
   private final QName qnIdFoliaAll = new QName("", "", "id");
+
   */
-  private static CorpusResearchProject prjThis;
+  // ========= Needed for referencing from static contexts =====================
+  // private static CorpusResearchProject prjThis;
+  
+  // ========= 
+  
 // </editor-fold>
 
   // =========================== instantiate the class =========================
   public RuBase() {
     try {
-      // objGen = new CrpGlobal();
-      prjThis = crpThis;
+      // prjThis = crpThis;
       ru_xpNodeText_Psdx = xpath.compile("./descendant::eLeaf[@Type = 'Vern' or @Type = 'Punct']");
       ru_xpNodeText_Folia = xpath.compile("./descendant::w/child::t");
       ru_xpNodeText_Alp = xpath.compile("./descendant::node[count(@word)>0]");
@@ -82,7 +90,7 @@ public class RuBase extends CrpGlobal {
       logger.error("RuBase initialisation error", ex);
     }
   }
-// <editor-fold defaultstate="collapsed" desc="Initialisation for Extensions">
+// <editor-fold defaultstate="collapsed" desc="Initialisation for the Extensions class">
 
   // ------------------------------------------------------------------------------------
   // Name:   RuInitLex
@@ -100,7 +108,7 @@ public class RuBase extends CrpGlobal {
       return true;
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("RuBase/RuInitLex error: " + ex.getMessage() + "\r\n");
+      DoError("RuBase/RuInitLex error", ex, RuBase.class);
       // Return failure
       return false;
     }
@@ -109,7 +117,7 @@ public class RuBase extends CrpGlobal {
     return RuInitLex(false);
   }
 // </editor-fold>
-// <editor-fold defaultstate="collapsed" desc="Implementation of Extensions">
+// <editor-fold defaultstate="collapsed" desc="Implementation of functions in the Extensions class">
 
   // ------------------------------------------------------------------------------------
   // Name:   RuAddLex
@@ -133,7 +141,7 @@ public class RuBase extends CrpGlobal {
       return true;
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("RuBase/RuAddLex error: " + ex.getMessage() + "\r\n");
+      DoError("RuBase/RuAddLex error", ex, RuBase.class);
       // Return failure
       return false;
     }
@@ -190,7 +198,7 @@ public class RuBase extends CrpGlobal {
       return strOut;
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("RuBase/RuConv error: " + ex.getMessage() + "\r\n");
+      DoError("RuBase/RuConv error", ex, RuBase.class);
       // Return failure
       return "";
     }
@@ -218,7 +226,7 @@ public class RuBase extends CrpGlobal {
       // Default value for array
       arSent = null;
       // Action depends on the kind of xml project we have
-      switch(prjThis.intProjType) {
+      switch(intProjType) {
         case ProjPsdx:
           // Make a list of all <eLeaf> nodes
           ndList = (NodeList) ru_xpNodeText_Psdx.evaluate(ndStart, XPathConstants.NODESET);
@@ -252,13 +260,13 @@ public class RuBase extends CrpGlobal {
           // TODO: implement
           break;
         default:
-          logger.error("RuNodeText: cannot process type " + prjThis.getProjectType());
+          DoError("RuNodeText: cannot process type " + getProjectType(), RuBase.class);
       }
       // Build a string from the array
       return StringUtil.join(arSent, " ");
     } catch (RuntimeException | XPathExpressionException ex) {
       // Warn user
-      logger.error("RuBase/RuNodeText error: " + ex.getMessage() + "\r\n");
+      DoError("RuBase/RuNodeText error", ex, RuBase.class);
       // Return failure
       return "";
     }
@@ -283,7 +291,7 @@ public class RuBase extends CrpGlobal {
       if (ndSax == null) return "";
       // Initialize values
       sNodeName = ndSax.getNodeName().getLocalName();
-      switch (prjThis.intProjType) {
+      switch (intProjType) {
         case ProjNegra:
           // Get the ID of the node in [ndSax]
           switch (sNodeName) {
@@ -331,10 +339,11 @@ public class RuBase extends CrpGlobal {
       return strRef;
     } catch (RuntimeException ex) {
       // Show error
-      DoError("RuBase/GetRefId error: " + ex.getMessage() + "\r\n");
+      DoError("RuBase/GetRefId error", ex, RuBase.class);
       // Return failure
       return "";
     }
   }
+
 // </editor-fold>
 }

@@ -13,7 +13,6 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
-import static nl.ru.crpx.project.CrpGlobal.DoError;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -43,7 +42,6 @@ public abstract class XmlNode implements Node {
       this.parser = this.factory.newDocumentBuilder();
     } catch (ParserConfigurationException ex) {
       logger.error("XmlNode: could not create documentbuilder", ex);
-      DoError("Could not create XmlDocument");
     }
   }
 
