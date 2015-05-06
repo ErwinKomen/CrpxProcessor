@@ -19,6 +19,7 @@ import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.parsers.*;
 import javax.xml.xpath.*;
 import nl.ru.crpx.tools.ErrHandle;
+import nl.ru.util.FileUtil;
 import nl.ru.util.Json;
 import nl.ru.util.json.JSONObject;
 import static nl.ru.xmltools.XmlIO.WriteXml;
@@ -188,9 +189,9 @@ public class CorpusResearchProject {
         this.bXmlData = true;
     }
     // Load the settings: directories
-    this.QueryDir = new File(getSetting("QueryDir"));
-    this.DstDir = new File(getSetting("DstDir"));
-    this.SrcDir = new File(getSetting("SrcDir"));
+    this.QueryDir = new File(FileUtil.nameNormalize(getSetting("QueryDir")));
+    this.DstDir = new File(FileUtil.nameNormalize(getSetting("DstDir")));
+    this.SrcDir = new File(FileUtil.nameNormalize(getSetting("SrcDir")));
     // Load the list of definitions
     ReadCrpList(lDefList, "./descendant::DefList/child::Definition", 
                 "DefId;Name;File;Goal;Comment;Created;Changed", "Text");
@@ -204,9 +205,9 @@ public class CorpusResearchProject {
     ReadCrpList(lDbFeatList, "./descendant::DbFeatList/child::DbFeat", 
                 "DbFeatId;Name;Pre;QCid;FtNum", "");
     // Check directories
-    if (!this.QueryDir.isDirectory())  if (!this.QueryDir.mkdir()) return(errHandle.DoError("Could not create QueryDir [" + this.QueryDir + "]"));
-    if (!this.DstDir.isDirectory())  if (!this.DstDir.mkdir()) return(errHandle.DoError("Could not create DstDir [" + this.DstDir + "]"));
-    if (!this.SrcDir.isDirectory())  if (!this.SrcDir.mkdir()) return(errHandle.DoError("Could not create SrcDir [" + this.SrcDir + "]"));
+    if (!this.QueryDir.isDirectory())  if (!this.QueryDir.mkdir()) return(errHandle.DoError("Could not create QueryDir [" + this.QueryDir.toString() + "]"));
+    if (!this.DstDir.isDirectory())  if (!this.DstDir.mkdir()) return(errHandle.DoError("Could not create DstDir [" + this.DstDir.toString() + "]"));
+    if (!this.SrcDir.isDirectory())  if (!this.SrcDir.mkdir()) return(errHandle.DoError("Could not create SrcDir [" + this.SrcDir.toString() + "]"));
 
     // Check the project type
     switch(this.ProjectType) {

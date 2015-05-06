@@ -93,6 +93,9 @@ public class CrpxProcessor {
       // Try to load the project
       if (!prjThis.Load(strProject)) {
         logger.error("Could not load project " + strProject);
+        // Try to show the list of errors, if there is one
+        String sMsg = prjThis.errHandle.getErrList().toString();
+        logger.error("List of errors:\n" + sMsg);
         return;
       }
       

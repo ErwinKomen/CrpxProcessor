@@ -8,6 +8,7 @@
 
 package nl.ru.crpx.tools;
 
+import java.util.ArrayList;
 import java.util.List;
 import nl.ru.util.json.JSONObject;
 
@@ -25,6 +26,7 @@ public class ErrHandle {
   public ErrHandle(Class clsMine) {
     clsDefault = clsMine;
     bInterrupt = false;
+    lErrStack = new ArrayList<>();
   }
   // ================== Public methods for this class ==========================
   public boolean DoError(String msg, Exception ex, Class cls) {

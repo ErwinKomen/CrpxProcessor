@@ -27,10 +27,14 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -466,7 +470,51 @@ public class FileUtil {
   }
   // ERK: added string-to-string file name normalization using .nio
   public static String nameNormalize(String sName) {
-    return Paths.get(sName).normalize().toString();
+    String fs = System.getProperty("file.separator");
+    // Check if we need Windows >> Mac/nix conversion
+    if (fs.equals("/") && sName.contains("\\")) {
+      // Perform conversion first
+      sName = sName.replace("\\", "/").toLowerCase().replace("d:/", "/Users/erwin/");
+    }
+    try {
+      // Perform normalization
+      Path pThis = Paths.get(sName);
+      pThis = pThis.normalize();
+      LinkOption lThis = LinkOption.NOFOLLOW_LINKS;
+      try {
+        pThis = pThis.toRealPath(lThis);
+      } catch (NoSuchFileException ex) {
+        // This particular file/directory is not found: attempt dir-by-dir
+        String[] arDir = pThis.toString().split("/");
+        String sTmpPath = "";
+        // Walk the whole directory structure part-for-part
+        for (int i=1; i< arDir.length; i++) {
+          // Check if this exists
+          File fNew = new File(sTmpPath + "/" + arDir[i]);
+          if (!fNew.exists()) {
+            // Look for a variant 
+            File fOld = new File(sTmpPath);
+            if (!fOld.isDirectory()) {
+              // This is a problem: we can only look inside directories
+            }
+            String[] arHere = fOld.list();
+            // Find the variant
+            for (int j=0;j<arHere.length; j++) {
+              if (arHere[j].equalsIgnoreCase(arDir[i])) {
+                // We found the culprit
+                arDir[i] = arHere[j];
+              }
+            }
+          }
+          // Build path
+          sTmpPath += "/" + arDir[i];
+        }
+      }
+      sName = pThis.toString();
+    } catch (IOException ex) {
+      Logger.getLogger(FileUtil.class.getName()).log(Level.SEVERE, null, ex);
+    }
+    return sName;
   }
   // ERK: added: get all filtered files recursively
   public static void getFileNames(List<String> fileNames, Path dir, String sFilter) {
