@@ -163,7 +163,19 @@ public class ExecuteXml extends Execute {
       // Initialize the lexeme-collector
       // lexCol = new LexCol();
       
-      // TODO: ga verder bij regel #2672 in ExecuteQueriesXqueryStream
+      // Note: skip period initialisation and the For-Each-Period loop
+      
+      // If the input is a database, then adapt source files...
+      if (bIsDbase) {
+        // DO the source file adaptations
+        // if (!BuildSourceDbase(arSource, pdxDbase)) {
+        //   // Warn the user
+        //   DoError("There is a problem building the source files from the database");
+        //   return false;
+        // }
+      }
+
+      // TODO: ga verder bij regel #2728 in ExecuteQueriesXqueryStream
       
       // Return positively
       return true;

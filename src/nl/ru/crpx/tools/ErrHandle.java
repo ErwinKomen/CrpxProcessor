@@ -11,12 +11,14 @@ package nl.ru.crpx.tools;
 import java.util.ArrayList;
 import java.util.List;
 import nl.ru.util.json.JSONObject;
+import org.apache.log4j.Logger;
 
 /**
  *
  * @author Erwin R. Komen
  */
 public class ErrHandle {
+  protected static final Logger logger = Logger.getLogger(ErrHandle.class);
   // ============== Variables associated with the *class* "ErrHandle" ==========
   private List<JSONObject> lErrStack;
   private Class clsDefault;
@@ -49,6 +51,9 @@ public class ErrHandle {
   }
   public boolean DoError(String msg) {
     return DoError(msg, null, clsDefault);
+  }
+  public void debug(String msg) {
+    logger.debug(msg);
   }
   // ========== Allow others to see that there are errors ===========
   public boolean hasErr() {

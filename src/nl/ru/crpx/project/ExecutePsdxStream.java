@@ -5,6 +5,11 @@
  */
 package nl.ru.crpx.project;
 
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import nl.ru.crpx.search.JobXq;
+
 /**
  *
  * @author E.R.Komen
@@ -51,6 +56,17 @@ public class ExecutePsdxStream extends ExecuteXml {
       if (!super.ExecuteQueriesSetUp()) return false;
       // Perform setup part that is specifically for Xml/Xquery
       if (!super.ExecuteXmlSetup()) return false;
+      
+      // Visit all the source files stored in [lSource]
+      for (int i=0;i<lSource.size(); i++) {
+        // Take this input file
+        File fInput = new File(lSource.get(i));
+        // Start a search job that uses all the queries and this input file
+        JobXq objJob = new JobXq(crpThis);
+        
+        
+      }
+      
       
       // TODO: continue implementing the actual execution of the queries
       
