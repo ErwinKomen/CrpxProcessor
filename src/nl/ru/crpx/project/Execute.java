@@ -7,16 +7,20 @@ package nl.ru.crpx.project;
 // Which methods need to be imported
 import java.util.ArrayList;
 import java.util.List;
-// import static nl.ru.crpx.project.CrpGlobal.DoError;
 import static nl.ru.crpx.project.CrpGlobal.Status;
 import static nl.ru.crpx.project.CrpGlobal.getCurrentTimeStamp;
 import static nl.ru.crpx.project.CrpGlobal.getJsonString;
+import nl.ru.crpx.search.Job;
+import nl.ru.crpx.search.SearchManager;
+import nl.ru.crpx.search.SearchParameters;
+import nl.ru.crpx.tools.ErrHandle;
+import nl.ru.crpx.xq.RuBase;
 import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
+import nl.ru.util.StringUtil;
 import nl.ru.util.json.JSONObject;
 import nl.ru.xmltools.XmlForest;
 import org.apache.log4j.Logger;
-import nl.ru.util.StringUtil;
 
 /**
  *
@@ -30,7 +34,14 @@ import nl.ru.util.StringUtil;
    --------------------------------------------------------------------------- */
 public class Execute extends CrpGlobal {
   protected static final Logger logger = Logger.getLogger(Execute.class);
-  protected CorpusResearchProject crpThis;
+  protected static final ErrHandle errHandle = new ErrHandle(Execute.class);
+  // ===================== parameters for this user/execution of a CRP =========
+  protected CorpusResearchProject crpThis;// The corpus research project for this execution
+  protected String userId;                // ID of the user for this execution
+  protected SearchManager searchMan;      // The manager for this search
+  protected SearchParameters searchPar;   // The parameters for this search
+  protected RuBase ruBase;                // The base used by me
+  protected int iMaxParJobs;              // Maximum number of parallel jobs per user
   // ===================== The elements of an execution object =================
   protected Query[] arQuery;        // Array of queries to be executed (so this is the constructor) 
   protected Qinfo[] arQinfo;        // Information for each *query* (not query-line)
@@ -58,6 +69,7 @@ public class Execute extends CrpGlobal {
   protected String strOtemp;        // Name of temporary output file
   protected String strCtemp;        // Name of temporary complement file
   protected XmlForest objProcType;  // Provides functions, depending on processing type in [XmlForest]
+  protected Job objSearchJob;
   // =============== local constants ===========================================
   // in .NET: String strRuDef = "declare namespace ru = 'clitype:CorpusStudio.RuXqExt.RU?asm=CorpusStudio';\r\n";
   private final String strRuDef = "declare namespace ru = 'java:nl.ru.crpx.xq.Extensions';\r\n";
@@ -70,6 +82,20 @@ public class Execute extends CrpGlobal {
   public Execute(CorpusResearchProject oProj) {
     // Set our copy of the corpus research project
     crpThis = oProj;
+    // Set the rubase
+    ruBase = new RuBase(crpThis);
+    // Set the maximum number of parallel jobs per user
+    iMaxParJobs = 4;    // TODO: this should depend on the number of processors available!
+    // Set the search manager associated with the CRP
+    this.searchMan = crpThis.getSearchManager();
+    // Create a search parameters object
+    this.searchPar = new SearchParameters(this.searchMan);
+    /* ===========
+    // Fill the object with default values
+    for (String name: this.searchMan.getSearchParameterNames()) {
+      // Get the value for this parameter or the Default value...
+    }
+     ============ */
     // Perform other initialisations
     String strInput = "";           // Source files
 
@@ -135,7 +161,7 @@ public class Execute extends CrpGlobal {
   }
 
   @SuppressWarnings("unused")
-  public boolean ExecuteQueries() {
+  public boolean ExecuteQueries(Job jobCaller) {
     // This is an overridable method
     return true;
   }

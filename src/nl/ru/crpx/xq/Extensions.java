@@ -9,6 +9,7 @@ package nl.ru.crpx.xq;
 import java.io.IOException;
 import java.util.regex.Pattern;
 import javax.xml.xpath.XPathExpressionException;
+import net.sf.saxon.expr.XPathContext;
 import net.sf.saxon.s9api.Axis;
 import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.SaxonApiUncheckedException;
@@ -18,6 +19,7 @@ import net.sf.saxon.s9api.XdmValue;
 import net.sf.saxon.value.AtomicValue;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.project.CorpusResearchProject.ProjType;
+import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.crpx.tools.FileIO;
 import nl.ru.util.ByRef;
 import nl.ru.xmltools.XmlDocument;
@@ -38,6 +40,7 @@ public class Extensions extends RuBase {
   // private static CorpusResearchProject prjThis;
   private static ProjType loc_intProjType;
   private static String loc_sNodeNameSnt;
+  private static ErrHandle errHandle;
   // ============== Local constants ============================================
   private static final QName loc_qnName = new QName("", "", "name");
   private static final QName loc_qnValue = new QName("", "", "value");
@@ -50,8 +53,9 @@ public class Extensions extends RuBase {
     super(objPrj);
     // Initialize a list of string arrays to help ru:matches()
     objStore = new PatternStore(errHandle);
-    loc_intProjType = crpThis.intProjType;
-    loc_sNodeNameSnt = crpThis.sNodeNameSnt;
+    // loc_intProjType = crpThis.intProjType;
+    // loc_sNodeNameSnt = crpThis.sNodeNameSnt;
+    errHandle = new ErrHandle(Extensions.class);
   }
 // <editor-fold defaultstate="collapsed" desc="ru:back">
   // ------------------------------------------------------------------------------------
@@ -61,7 +65,7 @@ public class Extensions extends RuBase {
   // 26-04-2012  ERK Created for .NET
   // 29/apr/2015 ERK Adapted for Java
   // ------------------------------------------------------------------------------------
-  public static XmlNode back(XdmValue valSax) {
+  public static XmlNode back(XPathContext objXp, XdmValue valSax) {
     XdmNode ndSax;                            // The actual node
     XmlNode ndxFor = null;                    // The new forest node we make
     XmlDocument pdxThis;                      // Where we provide the feedback
@@ -75,7 +79,7 @@ public class Extensions extends RuBase {
       ndSax = getNodeValue(valSax);
       if (ndSax == null) return null;
       // ProjPsdx preparations: get appropriate values for each of the <forest> elements
-      if (!PrepareBack(ndSax,strLoc, strFile, strForestId, strTreeId)) return null;
+      if (!PrepareBack(objXp, ndSax,strLoc, strFile, strForestId, strTreeId)) return null;
       // Add a <forest> node
       String sNode = "<forest Location=\"" + strLoc.argValue + "\"" + 
               " File=\"" + strFile.argValue + "\"" + 
@@ -95,10 +99,10 @@ public class Extensions extends RuBase {
       return null;
     }
   }
-  public static XmlNode back(XdmValue valSax, AtomicValue strMsg) {
-    return back(valSax, strMsg.getStringValue());
+  public static XmlNode back(XPathContext objXp, XdmValue valSax, AtomicValue strMsg) {
+    return back(objXp, valSax, strMsg.getStringValue());
   }
-  public static XmlNode back(XdmValue valSax, String strMsg) {
+  public static XmlNode back(XPathContext objXp, XdmValue valSax, String strMsg) {
     XdmNode ndSax;                            // The actual node
     XmlNode ndxFor = null;                    // The new forest node we make
     ByRef<String> strLoc = new ByRef("");     // Location feature
@@ -112,7 +116,7 @@ public class Extensions extends RuBase {
       ndSax = getNodeValue(valSax);
       if (ndSax == null) return null;
       // ProjPsdx preparations: get appropriate values for each of the <forest> elements
-      if (!PrepareBack(ndSax,strLoc, strFile, strForestId, strTreeId)) return null;
+      if (!PrepareBack(objXp, ndSax,strLoc, strFile, strForestId, strTreeId)) return null;
       // Make sure the message is okay
       strMsg = strMsg.replace("'", "''");
       // Add a <forest> node
@@ -135,10 +139,10 @@ public class Extensions extends RuBase {
       return null;
     }
   }
-  public static XmlNode back(XdmValue valSax, AtomicValue strMsg, AtomicValue strCat) {
-    return back(valSax, strMsg.getStringValue(), strCat.getStringValue());
+  public static XmlNode back(XPathContext objXp, XdmValue valSax, AtomicValue strMsg, AtomicValue strCat) {
+    return back(objXp, valSax, strMsg.getStringValue(), strCat.getStringValue());
   }
-  public static XmlNode back(XdmValue valSax, String strMsg, String strCat) {
+  public static XmlNode back(XPathContext objXp, XdmValue valSax, String strMsg, String strCat) {
     XdmNode ndSax;                            // The actual node
     XmlNode ndxFor = null;                    // The new forest node we make
     ByRef<String> strLoc = new ByRef("");     // Location feature
@@ -152,7 +156,7 @@ public class Extensions extends RuBase {
       ndSax = getNodeValue(valSax);
       if (ndSax == null) return null;
       // ProjPsdx preparations: get appropriate values for each of the <forest> elements
-      if (!PrepareBack(ndSax,strLoc, strFile, strForestId, strTreeId)) return null;
+      if (!PrepareBack(objXp, ndSax,strLoc, strFile, strForestId, strTreeId)) return null;
       // Make sure the message is okay
       strMsg = strMsg.replace("'", "''");
       // Make sure the CAT is okay
@@ -193,11 +197,18 @@ public class Extensions extends RuBase {
     // Calculate using the main ru:conv() function
     return conv(getStringValue(varText), strType);
   } */
-  public static String conv(AtomicValue strText, String strType) {
+  public static String conv(XPathContext objXp, AtomicValue strText, String strType) {
     // Call the main ru:conv() handling function
-    return conv(strText.getStringValue(), strType);
+    return conv(objXp, strText.getStringValue(), strType);
   }
-  private static String conv(String strText, String strType) {
+  /*
+  public static String conv(XPathContext objXp, AtomicValue strText, String strType) {
+    // Try to get user-data
+    XdmNode nThis = (XdmNode) objXp.getController().getUserData("aap", "type");
+    // Continue...
+    return conv(strText.getStringValue(), strType);
+  } */
+  private static String conv(XPathContext objXp, String strText, String strType) {
     try {
       // Validate
       if (strText.isEmpty()) return "";
@@ -310,15 +321,15 @@ public class Extensions extends RuBase {
     // call the main lex() function
     return lex(strText, strPos);
   } */
-  public static boolean lex(AtomicValue strText, AtomicValue strPos) {
-    return lex(strText.getStringValue(), strPos.getStringValue());
+  public static boolean lex(XPathContext objXp, AtomicValue strText, AtomicValue strPos) {
+    return lex(objXp, strText.getStringValue(), strPos.getStringValue());
   }
-  private static boolean lex(String strText, String strPos) {
+  private static boolean lex(XPathContext objXp, String strText, String strPos) {
     // If the text to compare is empty, then we return false
     if (strText.isEmpty()) return false;
     // Note: [strPos] may be empty!!
     // Process further using the "AddLex" function defined in the RuBase class
-    return objBase.RuAddLex(strText, strPos);
+    return objBase.RuAddLex(objXp, strText, strPos);
   }
 // </editor-fold>
 
@@ -419,13 +430,13 @@ public class Extensions extends RuBase {
   // 12-02-2014  ERK Added variant with[strType]
   // 29/apr/2015 ERK Ported to Java
   // ----------------------------------------------------------------------------------------------------------
-  public static String NodeText(XdmValue valSax) {
-    return NodeText(valSax, "");
+  public static String NodeText(XPathContext objXp, XdmValue valSax) {
+    return NodeText(objXp, valSax, "");
   }
-  public static String NodeText(XdmValue valSax, AtomicValue strType) {
-    return NodeText(valSax, strType.getStringValue());
+  public static String NodeText(XPathContext objXp, XdmValue valSax, AtomicValue strType) {
+    return NodeText(objXp, valSax, strType.getStringValue());
   }
-  private static String NodeText(XdmValue valSax, String strType) {
+  private static String NodeText(XPathContext objXp, XdmValue valSax, String strType) {
     // XmlDocument docThis = new XmlDocument(); // Where we store it
     XdmNode ndSax = null; // Myself, if I am a proper node
 
@@ -437,7 +448,7 @@ public class Extensions extends RuBase {
       
       // Convert to text
       // return GetNodeText(docThis.FirstChild, strType);
-      return objBase.RuNodeText(ndSax, strType);
+      return objBase.RuNodeText(objXp, ndSax, strType);
     } catch (RuntimeException ex) {
       // Show error
       logger.error("Extensions/NodeText error: " + ex.getMessage() + "\r\n");
@@ -488,7 +499,7 @@ public class Extensions extends RuBase {
   // 12-06-2012  ERK Created for .NET
   // 29/apr/2015 ERK Ported to Java
   // ------------------------------------------------------------------------------------
-  private static boolean PrepareBack(XdmNode ndSax, ByRef<String> strLoc, ByRef<String> strFile,
+  private static boolean PrepareBack(XPathContext objXp, XdmNode ndSax, ByRef<String> strLoc, ByRef<String> strFile,
           ByRef<String> strForestId, ByRef<String> strTreeId) {
     XdmNode ndFor;    // The forest I am part of
     XmlNode ndxFor;   // The <forest> node in the document
@@ -516,7 +527,7 @@ public class Extensions extends RuBase {
           return false;
       }
       // Get the id value
-      strTreeId.argValue = objBase.GetRefId(ndSax);
+      strTreeId.argValue = objBase.GetRefId(objXp, ndSax);
       // Action depends on the kind of node I am
       switch(ndSax.getNodeName().getLocalName()) {
         case "Result":

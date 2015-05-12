@@ -6,16 +6,18 @@
 
 package nl.ru.crpx.xq;
 
+import java.util.ArrayList;
 import java.util.List;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
+import net.sf.saxon.expr.XPathContext;
 import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.XdmNode;
 import nl.ru.crpx.project.CorpusResearchProject;
-import nl.ru.crpx.search.JobXq;
+import nl.ru.crpx.tools.ErrHandle;
 import static nl.ru.crpx.xq.English.VernToEnglish;
 import nl.ru.util.StringUtil;
 import nl.ru.util.json.JSONObject;
@@ -26,16 +28,20 @@ import org.w3c.dom.NodeList;
  *
  * @author Erwin R. Komen
  */
-public class RuBase extends JobXq {
+public class RuBase /* extends Job */ {
   // This class uses a logger
   private static final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(RuBase.class);
+
 // <editor-fold defaultstate="collapsed" desc="Local and global variables">
   // ======== attempt ============
   protected List<JSONObject> lAttempt;
+  // ==================== static list of all CRPs that are using me ============
+  private static List<CrpFile> lCrpCaller;
   // ==================== local variables ======================================
   // private CrpGlobal objGen;
   private String strRuLexFile;  // Location of the ru:lex file
   private XPath xpath = XPathFactory.newInstance().newXPath();
+  private static ErrHandle errHandle;
   private static XPathExpression ru_xpNodeText_Psdx;   // Search expression for ProjPsdx
   private static XPathExpression ru_xpNodeText_Folia;  // Search expression for ProjFolia
   private static XPathExpression ru_xpNodeText_Negra;  // Search expression for ProjNegra
@@ -80,16 +86,133 @@ public class RuBase extends JobXq {
 
   // =========================== instantiate the class =========================
   public RuBase(CorpusResearchProject objPrj) {
+    /* =============
     // Make sure the class I extend is initialized
-    super(objPrj);
+    super(objPrj); 
+    ================= */
     try {
       ru_xpNodeText_Psdx = xpath.compile("./descendant::eLeaf[@Type = 'Vern' or @Type = 'Punct']");
       ru_xpNodeText_Folia = xpath.compile("./descendant::w/child::t");
       ru_xpNodeText_Alp = xpath.compile("./descendant::node[count(@word)>0]");
+      errHandle = new ErrHandle(RuBase.class);
+      // Create an empty list of CRP callers that use me
+      lCrpCaller = new ArrayList<>();
     } catch (XPathExpressionException ex) {
       logger.error("RuBase initialisation error", ex);
     }
   }
+// <editor-fold defaultstate="collapsed" desc="Handling of the CrpCaller list">
+  // ------------------------------------------------------------------------------------
+  // Name:   setCrpCaller
+  // Goal:   Add this crp from the list if it is not yet there
+  // History:
+  // 11/may/2015  ERK Created for Java
+  // ------------------------------------------------------------------------------------
+  public static boolean setCrpCaller(CrpFile oCrp) {
+    try {
+      // Check if it is not yet there
+      if (!hasCrpCaller(oCrp)) {
+        // The object is not yet on the stack
+        //    So: we add it there
+        lCrpCaller.add(oCrp);
+      }
+      // Return positively
+      return true;
+    }  catch (RuntimeException ex) {
+      // Warn user
+      errHandle.DoError("RuBase/setCrpCaller error", ex, RuBase.class);
+      // Return failure
+      return false;
+    }
+  }
+  // ------------------------------------------------------------------------------------
+  // Name:   getCrpCaller
+  // Goal:   Get the @id value of the CRP/File combination
+  // History:
+  // 11/may/2015  ERK Created for Java
+  // ------------------------------------------------------------------------------------
+  public static int getCrpCaller(CrpFile oCrp) {
+    try {
+      // Check if it is not yet there
+      for (CrpFile oThis: lCrpCaller) {
+        if (oThis.equals(oCrp)) {
+          return lCrpCaller.indexOf(oThis);
+        }
+      }
+      // Return failure: negative index
+      return -1;
+    }  catch (RuntimeException ex) {
+      // Warn user
+      errHandle.DoError("RuBase/getCrpCaller error", ex, RuBase.class);
+      // Return failure
+      return -1;
+    }
+  }
+  // ------------------------------------------------------------------------------------
+  // Name:   getCrpFile
+  // Goal:   Get the CrpFile of the entry with index @idx
+  // History:
+  // 11/may/2015  ERK Created for Java
+  // ------------------------------------------------------------------------------------
+  public static CrpFile getCrpFile(int idx) {
+    try {
+      if (idx < 0 || lCrpCaller.size() <= idx) return null;
+      return lCrpCaller.get(idx);
+    } catch (RuntimeException ex) {
+      // Warn user
+      errHandle.DoError("RuBase/getCrpFile error", ex, RuBase.class);
+      // Return failure
+      return null;
+    }
+  }
+  // ------------------------------------------------------------------------------------
+  // Name:   removeCrpCaller
+  // Goal:   Remove this crp from the list
+  // History:
+  // 11/may/2015  ERK Created for Java
+  // ------------------------------------------------------------------------------------
+  public static boolean removeCrpCaller(CrpFile oCrp) {
+    try {
+      // Check if it is not yet there
+      for (CrpFile oThis: lCrpCaller) {
+        if (oThis.equals(oCrp)) {
+          // Remove it from the list
+          lCrpCaller.remove(oCrp);
+          // Return positively
+          return true;
+        }
+      }
+      // Return positively
+      return true;
+    }  catch (RuntimeException ex) {
+      // Warn user
+      errHandle.DoError("RuBase/removeCrpCaller error", ex, RuBase.class);
+      // Return failure
+      return false;
+    }
+  }
+  // ------------------------------------------------------------------------------------
+  // Name:   hasCrpCaller
+  // Goal:   Check if this crp is on the list
+  // History:
+  // 11/may/2015  ERK Created for Java
+  // ------------------------------------------------------------------------------------
+  public static boolean hasCrpCaller(CrpFile oCrp) {
+    try {
+      // Check if it is not yet there
+      for (CrpFile oThis: lCrpCaller) {
+        if (oThis.equals(oCrp)) return true;
+      }
+      // We don't have it
+      return false;
+    } catch (RuntimeException ex) {
+      // Warn user
+      errHandle.DoError("RuBase/hasCrpCaller error", ex, RuBase.class);
+      // Return failure
+      return false;
+    }
+  }
+// </editor-fold>
 // <editor-fold defaultstate="collapsed" desc="Initialisation for the Extensions class">
 
   // ------------------------------------------------------------------------------------
@@ -126,7 +249,7 @@ public class RuBase extends JobXq {
   // 03-10-2013  ERK Created for .NET
   // 29/apr/2015 ERK Implemented for Java
   // ------------------------------------------------------------------------------------
-  public boolean RuAddLex(String strLexeme, String strPos, int intQC) {
+  public boolean RuAddLex(XPathContext objXp, String strLexeme, String strPos, int intQC) {
     String strFile;     // Which file to use
     String strOut;      // What we append
     
@@ -146,8 +269,9 @@ public class RuBase extends JobXq {
       return false;
     }
   }
-  public boolean RuAddLex(String strLexeme, String strPos) {
-    return RuAddLex(strLexeme, strPos, intCurrentQCline);
+  public boolean RuAddLex(XPathContext objXp, String strLexeme, String strPos) {
+    int intCurrentQCline = (int) objXp.getController().getUserData("QCline", "QCline");
+    return RuAddLex(objXp, strLexeme, strPos, intCurrentQCline);
   }
   // ----------------------------------------------------------------------------------------------------------
   // Name :  RuConv
@@ -212,19 +336,22 @@ public class RuBase extends JobXq {
   // 12-02-2014  ERK Added [strType]
   // 29/apr/2015 ERK Implemented for Java
   // ------------------------------------------------------------------------------------
-  public String RuNodeText(XdmNode ndStart) {
+  public String RuNodeText(XPathContext objXp, XdmNode ndStart) {
     // Call the generalized NodeText function
-    return RuNodeText(ndStart, "");
+    return RuNodeText(objXp, ndStart, "");
   }
-  public String RuNodeText(XdmNode ndStart, String strType) {
-    NodeList ndList;  // Result of looking for the end-nodes
-    String[] arSent;  // The whole sentence
+  public String RuNodeText(XPathContext objXp, XdmNode ndStart, String strType) {
+    NodeList ndList;                // Result of looking for the end-nodes
+    String[] arSent;                // The whole sentence
+    CorpusResearchProject crpThis;  // The CRP we are working with/for
     
     try {
       // Validate
       if (ndStart == null) return "";
       // Default value for array
       arSent = null;
+      // Determine which CRP this is
+      crpThis = ((CrpFile) objXp.getController().getUserData("CrpFile", "CrpFile")).crpThis;
       // Action depends on the kind of xml project we have
       switch(crpThis.intProjType) {
         case ProjPsdx:
@@ -247,7 +374,7 @@ public class RuBase extends JobXq {
           }
           break;
         case ProjAlp:
-          // Make a list of all <eLeaf> nodes
+          // Make a list of all end nodes; Alpino only uses <node> tags
           ndList = (NodeList) ru_xpNodeText_Alp.evaluate(ndStart, XPathConstants.NODESET);
           arSent = new String[ndList.getLength()];
           for (int i=0;i<ndList.getLength();i++) {
@@ -282,13 +409,16 @@ public class RuBase extends JobXq {
   // 18-12-2012  ERK Added capabilities to process <CrpOview> --> <Result>
   // 29/apr/2015 ERK Ported to Java
   // ------------------------------------------------------------------------------------
-  public final String GetRefId(XdmNode ndSax) {
-    String strRef = ""; // The ID of the second node
+  public final String GetRefId(XPathContext objXp, XdmNode ndSax) {
+    String strRef = "";             // The ID of the second node
     String sNodeName;
+    CorpusResearchProject crpThis;  // Current corpus research project
 
     try {
       // Validate
       if (ndSax == null) return "";
+      // Determine which CRP this is
+      crpThis = ((CrpFile) objXp.getController().getUserData("CrpFile", "CrpFile")).crpThis;
       // Initialize values
       sNodeName = ndSax.getNodeName().getLocalName();
       switch (crpThis.intProjType) {

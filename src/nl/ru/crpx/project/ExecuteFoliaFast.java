@@ -6,6 +6,9 @@
 package nl.ru.crpx.project;
 // import static nl.ru.crpx.project.CrpGlobal.DoError;
 
+import nl.ru.crpx.search.Job;
+
+
 /**
  *
  * @author u459154
@@ -23,7 +26,7 @@ public class ExecuteFoliaFast extends ExecuteXml {
     super(oProj);
   }
   @Override
-  public boolean ExecuteQueries() {
+  public boolean ExecuteQueries(Job jobCaller) {
     try {
       // Perform general setup
       if (!super.ExecuteQueriesSetUp()) return false;

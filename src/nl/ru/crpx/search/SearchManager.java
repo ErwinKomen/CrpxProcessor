@@ -120,76 +120,113 @@ public class SearchManager {
    * seems reasonable.
    */
   private int clientCacheTimeSec;
+  
+  /**
+   * My own copy of the corpus research project we are working on
+   */
+  private CorpusResearchProject crpThis;
 
-  // private JSONObject properties;
-
+  /**
+   * 
+   * @param properties 
+   */
   public SearchManager(JSONObject properties) {
-          logger.debug("SearchManager created");
+    logger.debug("SearchManager created");
 
-          // this.properties = properties;
-          JSONArray jsonDebugModeIps = properties.getJSONArray("debugModeIps");
-          debugModeIps = new HashSet<String>();
-          for (int i = 0; i < jsonDebugModeIps.length(); i++) {
-                  debugModeIps.add(jsonDebugModeIps.getString(i));
-          }
+    // this.properties = properties;
+    JSONArray jsonDebugModeIps = properties.getJSONArray("debugModeIps");
+    debugModeIps = new HashSet<String>();
+    for (int i = 0; i < jsonDebugModeIps.length(); i++) {
+      debugModeIps.add(jsonDebugModeIps.getString(i));
+    }
 
-          // Request properties
-          JSONObject reqProp = properties.getJSONObject("requests");
-          defaultOutputType = DataFormat.XML; // XML if nothing specified (because
-                                                                                  // of browser's default Accept
-                                                                                  // header)
-          if (reqProp.has("defaultOutputType"))
-                  defaultOutputType = DataFormat.XML;
-          defaultBlockingMode = JsonUtil.getBooleanProp(reqProp,
-                          "defaultBlockingMode", true);
-          JSONArray jsonOverrideUserIdIps = reqProp
-                          .getJSONArray("overrideUserIdIps");
-          overrideUserIdIps = new HashSet<String>();
-          for (int i = 0; i < jsonOverrideUserIdIps.length(); i++) {
-                  overrideUserIdIps.add(jsonOverrideUserIdIps.getString(i));
-          }
+    // Request properties
+    JSONObject reqProp = properties.getJSONObject("requests");
+    defaultOutputType = DataFormat.XML; // XML if nothing specified (because
+                                        // of browser's default Accept
+                                        // header)
+    if (reqProp.has("defaultOutputType"))
+      defaultOutputType = DataFormat.XML;
+    defaultBlockingMode = JsonUtil.getBooleanProp(reqProp,
+                    "defaultBlockingMode", true);
+    JSONArray jsonOverrideUserIdIps = reqProp
+                    .getJSONArray("overrideUserIdIps");
+    overrideUserIdIps = new HashSet<String>();
+    for (int i = 0; i < jsonOverrideUserIdIps.length(); i++) {
+            overrideUserIdIps.add(jsonOverrideUserIdIps.getString(i));
+    }
 
-          // Performance properties
-          JSONObject perfProp = properties.getJSONObject("performance");
-          minFreeMemForSearchMegs = JsonUtil.getIntProp(perfProp,
-                          "minFreeMemForSearchMegs", 50);
-          maxRunningJobsPerUser = JsonUtil.getIntProp(perfProp,
-                          "maxRunningJobsPerUser", 20);
-          checkAgainAdviceMinimumMs = JsonUtil.getIntProp(perfProp,
-                          "checkAgainAdviceMinimumMs", 200);
-          checkAgainAdviceDivider = JsonUtil.getIntProp(perfProp,
-                          "checkAgainAdviceDivider", 5);
-          waitTimeInNonblockingModeMs = JsonUtil.getIntProp(perfProp,
-                          "waitTimeInNonblockingModeMs", 100);
-          clientCacheTimeSec = JsonUtil.getIntProp(perfProp,
-                          "clientCacheTimeSec", 3600);
+    // Performance properties
+    JSONObject perfProp = properties.getJSONObject("performance");
+    minFreeMemForSearchMegs = JsonUtil.getIntProp(perfProp,
+                    "minFreeMemForSearchMegs", 50);
+    maxRunningJobsPerUser = JsonUtil.getIntProp(perfProp,
+                    "maxRunningJobsPerUser", 20);
+    checkAgainAdviceMinimumMs = JsonUtil.getIntProp(perfProp,
+                    "checkAgainAdviceMinimumMs", 200);
+    checkAgainAdviceDivider = JsonUtil.getIntProp(perfProp,
+                    "checkAgainAdviceDivider", 5);
+    waitTimeInNonblockingModeMs = JsonUtil.getIntProp(perfProp,
+                    "waitTimeInNonblockingModeMs", 100);
+    clientCacheTimeSec = JsonUtil.getIntProp(perfProp,
+                    "clientCacheTimeSec", 3600);
 
-          // Cache properties
-          JSONObject cacheProp = perfProp.getJSONObject("cache");
+    // Cache properties
+    JSONObject cacheProp = perfProp.getJSONObject("cache");
 
-          // Keep a list of searchparameters.
-          searchParameterNames = Arrays.asList("resultsType", "query", "queryid", "tmpdir", "waitfortotal");
+    // Keep a list of searchparameters.
+    searchParameterNames = Arrays.asList("resultsType", "query", "queryid", "tmpdir", "waitfortotal");
 
-          // Set up the parameter default values
-          defaultParameterValues = new HashMap<String, String>();
-          defaultParameterValues.put("waitfortotal", "no");
-          defaultParameterValues.put("tmpdir", "");
+    // Set up the parameter default values
+    defaultParameterValues = new HashMap<String, String>();
+    defaultParameterValues.put("waitfortotal", "no");
+    defaultParameterValues.put("tmpdir", "");
 
-          // Start with empty cache
-          cache = new SearchCache(cacheProp);
+    // Start with empty cache
+    cache = new SearchCache(cacheProp);
   }
 
   public List<String> getSearchParameterNames() {
-          return searchParameterNames;
+    return searchParameterNames;
   }
 
-
-  public Job searchXq(CorpusResearchProject objPrj, String userId, SearchParameters par)
-                  throws QueryException, InterruptedException {
-          SearchParameters parBasic = par.copyWithOnly("query");
-          parBasic.put("tmpdir", par.getString("tmpdir"));
-          parBasic.put("jobclass", "JobRvisx");
-          return (Job) search(objPrj, userId, parBasic);
+  /**
+   * searchXqF - perform search operation for a whole CRP
+   * @param objPrj
+   * @param userId
+   * @param par
+   * @return result of the search job
+   * @throws QueryException
+   * @throws InterruptedException 
+   */
+  public JobXq searchXq(CorpusResearchProject objPrj, String userId, SearchParameters par)
+            throws QueryException, InterruptedException {
+    // Only copy the query parameter
+    SearchParameters parBasic = par.copyWithOnly("query");
+    // Set the correct jobclass
+    parBasic.put("jobclass", "JobXq");
+    return (JobXq) search(objPrj, userId, parBasic);
+  }
+  
+  /** 
+   * searchXqF - perform search operation on one file for a CRP
+   * 
+   * @param objPrj
+   * @param userId
+   * @param par
+   * @return result of the search job
+   * @throws QueryException
+   * @throws InterruptedException 
+   */
+  public JobXqF searchXqF(CorpusResearchProject objPrj, String userId, SearchParameters par) 
+          throws QueryException, InterruptedException {
+    // Only copy the query parameter
+    SearchParameters parBasic = par.copyWithOnly("query");
+    // Then add the "file" parameter
+    parBasic.put("crpfileid", par.getString("crpfileid"));
+    // Set the correct jobclass
+    parBasic.put("jobclass", "JobXqF");
+    return (JobXqF) search(objPrj, userId, parBasic);
   }
 
   /**
@@ -214,6 +251,9 @@ public class SearchManager {
     // Search the cache / running jobs for this search, create new if not
     // found.
     boolean performSearch = false;
+    // Retrieve the corpus research project we are working on
+    this.crpThis = objPrj;
+    // Create room for a job
     Job search;
     synchronized (this) {
       search = cache.get(searchParameters);
@@ -258,7 +298,7 @@ public class SearchManager {
 
         // Create a new search object with these parameters and place it
         // in the cache
-        search = Job.create(objPrj, this, userId, searchParameters);
+        search = Job.create(this, userId, searchParameters);
         cache.put(search);
 
         // Update running jobs
@@ -287,6 +327,13 @@ public class SearchManager {
     return minFreeMemForSearchMegs;
   }
 
+  /**
+   * getCrp: make the corpus research project we are working on available
+   * 
+   * @return - corpus research project we are working on
+   */
+  public CorpusResearchProject getCrp() { return this.crpThis; }
+  
   public String getParameterDefaultValue(String paramName) {
     String defVal = defaultParameterValues.get(paramName);
     /*

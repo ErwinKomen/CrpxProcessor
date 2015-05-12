@@ -5,6 +5,8 @@
  */
 package nl.ru.crpx.project;
 
+import nl.ru.crpx.search.Job;
+
 
 /**
  *
@@ -36,7 +38,7 @@ public class ExecuteFoliaStream extends ExecuteXml {
      20/apr/2015   ERK Created
      --------------------------------------------------------------------------- */
   @Override
-  public boolean ExecuteQueries() {
+  public boolean ExecuteQueries(Job jobCaller) {
     try {
       // Perform general setup
       if (!super.ExecuteQueriesSetUp()) return false;

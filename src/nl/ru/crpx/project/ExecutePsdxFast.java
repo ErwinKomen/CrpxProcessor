@@ -5,6 +5,8 @@
  */
 package nl.ru.crpx.project;
 
+import nl.ru.crpx.search.Job;
+
 /**
  *
  * @author E.R.Komen
@@ -21,7 +23,7 @@ public class ExecutePsdxFast  extends ExecuteXml {
     super(oProj);
   }
   @Override
-  public boolean ExecuteQueries() {
+  public boolean ExecuteQueries(Job jobCaller) {
     try {
       // Perform general setup
       if (!super.ExecuteQueriesSetUp()) return false;

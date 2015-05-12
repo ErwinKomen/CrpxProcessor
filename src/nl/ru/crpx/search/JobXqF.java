@@ -9,16 +9,16 @@
 package nl.ru.crpx.search;
 
 import java.io.File;
-import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.xq.CrpFile;
-import nl.ru.crpx.xq.Extensions;
+import nl.ru.crpx.xq.RuBase;
 import org.w3c.dom.Node;
 
 /**
- *
+ * A "JobXqF" handles processing of one file for one corpus research project
+ * 
  * @author Erwin R. Komen
  */
-public class JobXq extends Job {
+public class JobXqF extends Job {
 // <editor-fold defaultstate="collapsed" desc="Variables">
   // ========== Variables needed for this Xq search job ========================
   public int intPrecNum;                    // Number of preceding context lines
@@ -28,14 +28,18 @@ public class JobXq extends Job {
   public boolean ru_bFileSaveAsk = false;   // Needed for ru:setattrib()
   public boolean bTraceXq = false;          // Trace on XQ processing
   File fInput;                              // The file to be searched
+  // ========== Variables local to this search job =============================
+  private CrpFile oCrpFile;                 // The CrpFile object of what we are doing now
 // </editor-fold>
   // =================== Class initialisation ==================================
-  public JobXq(SearchManager searchMan, String userId, SearchParameters par) {
+  public JobXqF(SearchManager searchMan, String userId, SearchParameters par) {
     // Make sure the class I extend is initialized
     super(searchMan, userId, par);
     // Other initializations for this Xq search job
     intFollNum = crpThis.getFollNum();
     intPrecNum = crpThis.getPrecNum();
+    // My own copy of the CrpFile object
+    oCrpFile = RuBase.getCrpFile(par.getInteger("crpfileid"));
   }
   
   // ======================= Perform the search ================================
@@ -44,17 +48,9 @@ public class JobXq extends Job {
     try {
       // Validate
       if (crpThis==null) { errHandle.DoError("There is no CRP"); return;}
-      // Execute queries
-      if (crpThis.Execute(this, this.userId)) {
-        // Check for interrupt
-        if (errHandle.bInterrupt) {
-          errHandle.DoError("The program has been interrupted");
-        } else {
-          errHandle.debug("performSearch: ready handling job");
-        }
-      } else {
-        errHandle.DoError("The queries could not be executed");
-      }
+
+      // Get the current file we are searching
+      fInput = oCrpFile.flThis;
       
     } catch (Exception ex) {
       // Show the error

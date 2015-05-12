@@ -18,6 +18,8 @@ import java.util.Map;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.parsers.*;
 import javax.xml.xpath.*;
+import nl.ru.crpx.search.Job;
+import nl.ru.crpx.search.SearchManager;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.util.FileUtil;
 import nl.ru.util.Json;
@@ -89,7 +91,9 @@ public class CorpusResearchProject {
   private DocumentBuilderFactory factory;
   private DocumentBuilder parser;
   private XPath xpath = XPathFactory.newInstance().newXPath();
-  private Map mSet = new HashMap(); // Hash table with settings
+  private Map mSet = new HashMap();       // Hash table with settings
+  private SearchManager searchMan;        // The manager associated with this CRP
+  private String userId;                  // ID of calling user
   // Each project contains a number of lists
   static List<JSONObject> lDefList = new ArrayList<>();
   static List<JSONObject> lQueryList = new ArrayList<>();
@@ -110,6 +114,7 @@ public class CorpusResearchProject {
     } catch (ParserConfigurationException ex) {
       logger.error("CorpusResearchProject: could not create documentbuilder", ex);
     }
+    this.userId = "";
     this.dirInput = null;
     this.flProject = null;
     // Set default project type
@@ -124,135 +129,144 @@ public class CorpusResearchProject {
    17/10/2014   ERK Created
    --------------------------------------------------------------------------- */
   public boolean Load() {
-    // Validate crucial settings ---------------------------------
-    if (this.Location.equals("")) return(false);
-    this.flProject = new File(this.Location);
-    if (!this.flProject.canRead()) {
-      // The project cannot be read/opened
-      return(errHandle.DoError("Cannot read [" + this.flProject + "]"));
-    }    
-    try {
-      // Perform initialisations
-      if (!DoInit()) return(errHandle.DoError("unable to initialize"));
-    } catch (ParserConfigurationException ex) {
-      logger.error("Load crpx: could not configure parser", ex);
-      return false;
-    }
-    mSet.clear();
-    try {
-      // Read the CRPX project xml file
-      this.docProject = this.parser.parse(this.flProject);
-    } catch (SAXException ex) {
-      logger.error("Load crpx file: SAX problem", ex);
-      return false;
-    } catch (IOException ex) {
-      logger.error("Load crpx file: IO problem", ex);
-      return false;
-    }
-    // Debugging
-    logger.debug("Root node=" + this.docProject.getDocumentElement().getTagName());
-    try {
-      NodeList ndxList = (NodeList) xpath.compile("./descendant::Setting").evaluate( this.docProject, XPathConstants.NODESET);
-      logger.debug("Settings of this crpx: " + ndxList.getLength());
-    } catch (XPathExpressionException ex) {
-      logger.error("debug", ex);
-    }
-    // === Loading the settings assumes that this.docProject exists!!
-    // Load the settings: strings
-    this.Name = getSetting("Name");
-    this.Source = getSetting("Source");
-    this.Goal = getSetting("Goal");
-    this.Comments = getSetting("Comments");
-    this.Author = getSetting("Author");
-    this.ProjectType = getSetting("ProjectType");
-    this.intProjType = ProjType.getType(this.ProjectType);
-    // Determine the names of nodes available globally
-    switch (this.intProjType) {
-      case ProjPsdx:
-        sNodeNameSnt = "forest"; sNodeNamePrg=""; sNodeNameWrd="eLeaf"; sNodeNameCns = "eTree"; break;
-      case ProjFolia:
-        sNodeNameSnt = "s"; sNodeNamePrg="p"; sNodeNameWrd="w"; sNodeNameCns = "su"; break;
-      case ProjNegra:
-        sNodeNameSnt = "s"; sNodeNamePrg=""; sNodeNameWrd="t"; sNodeNameCns = ""; break;
-      case ProjAlp:
-        sNodeNameSnt = "node"; sNodeNamePrg=""; sNodeNameWrd="node"; sNodeNameCns = "node"; break;
-      case ProjPsd:
-        sNodeNameSnt = ""; sNodeNamePrg=""; sNodeNameWrd=""; sNodeNameCns = ""; break;
-      default:
-    }
-
-    // Calculate bXmlData
-    switch(this.ProjectType.toLowerCase()) {
-      case "xquery-psdx":
-        this.bXmlData = true; break;
-      default:
-        this.bXmlData = true;
-    }
-    // Load the settings: directories
-    this.QueryDir = new File(FileUtil.nameNormalize(getSetting("QueryDir")));
-    this.DstDir = new File(FileUtil.nameNormalize(getSetting("DstDir")));
-    this.SrcDir = new File(FileUtil.nameNormalize(getSetting("SrcDir")));
-    // Load the list of definitions
-    ReadCrpList(lDefList, "./descendant::DefList/child::Definition", 
-                "DefId;Name;File;Goal;Comment;Created;Changed", "Text");
-    // Load the list of queries
-    ReadCrpList(lQueryList, "./descendant::QueryList/child::Query", 
-                "QueryId;Name;File;Goal;Comment;Created;Changed", "Text");
-    // Load the list of QC items (query constructor)
-    ReadCrpList(lQueryConstructor, "./descendant::QueryConstructor/child::QC", 
-                "QCid;Input;Query;Output;Result;Cmp;Mother;Goal;Comment", "");
-    // Load the list of database features
-    ReadCrpList(lDbFeatList, "./descendant::DbFeatList/child::DbFeat", 
-                "DbFeatId;Name;Pre;QCid;FtNum", "");
-    // Check directories
-    if (!this.QueryDir.isDirectory())  if (!this.QueryDir.mkdir()) return(errHandle.DoError("Could not create QueryDir [" + this.QueryDir.toString() + "]"));
-    if (!this.DstDir.isDirectory())  if (!this.DstDir.mkdir()) return(errHandle.DoError("Could not create DstDir [" + this.DstDir.toString() + "]"));
-    if (!this.SrcDir.isDirectory())  if (!this.SrcDir.mkdir()) return(errHandle.DoError("Could not create SrcDir [" + this.SrcDir.toString() + "]"));
-
-    // Check the project type
-    switch(this.ProjectType) {
-      case "Xquery-psdx": // Okay, we are able to process this kind of project
-        break;
-      default: 
-        return(errHandle.DoError("Sorry, cannot process projects of type [" + this.ProjectType + "]"));
-    }
-    
-    // Perform initialisations related to this project-type using the config file
-    // Read it from the class path
-    String configFileName = "crpp-settings.json";
-    InputStream is = getClass().getClassLoader().getResourceAsStream(configFileName);
-    if (is == null) {
-      configFileName = "crpp-settings-default.json.txt";  // Internal default
-      is = getClass().getClassLoader().getResourceAsStream(configFileName);
-      if (is == null) {
-        // We cannot continue...
-        return(errHandle.DoError("Could not find " + configFileName + "!"));
-      }
-    }
-    // Create configuration object
-    JSONObject config;
-    // Process input stream with configuration
-    try {
       try {
-        config = Json.read(is);
-      } finally {
-        is.close();
+      // Validate crucial settings ---------------------------------
+      if (this.Location.equals("")) return(false);
+      this.flProject = new File(this.Location);
+      if (!this.flProject.canRead()) {
+        // The project cannot be read/opened
+        return(errHandle.DoError("Cannot read [" + this.flProject + "]"));
+      }    
+      try {
+        // Perform initialisations
+        if (!DoInit()) return(errHandle.DoError("unable to initialize"));
+      } catch (ParserConfigurationException ex) {
+        logger.error("Load crpx: could not configure parser", ex);
+        return false;
       }
-    } catch (Exception e) {
-      return(errHandle.DoError("Error reading JSON config file: " +  e.getMessage()));
+      mSet.clear();
+      try {
+        // Read the CRPX project xml file
+        this.docProject = this.parser.parse(this.flProject);
+      } catch (SAXException ex) {
+        logger.error("Load crpx file: SAX problem", ex);
+        return false;
+      } catch (IOException ex) {
+        logger.error("Load crpx file: IO problem", ex);
+        return false;
+      }
+      // Debugging
+      logger.debug("Root node=" + this.docProject.getDocumentElement().getTagName());
+      try {
+        NodeList ndxList = (NodeList) xpath.compile("./descendant::Setting").evaluate( this.docProject, XPathConstants.NODESET);
+        logger.debug("Settings of this crpx: " + ndxList.getLength());
+      } catch (XPathExpressionException ex) {
+        logger.error("debug", ex);
+      }
+      // === Loading the settings assumes that this.docProject exists!!
+      // Load the settings: strings
+      this.Name = getSetting("Name");
+      this.Source = getSetting("Source");
+      this.Goal = getSetting("Goal");
+      this.Comments = getSetting("Comments");
+      this.Author = getSetting("Author");
+      this.ProjectType = getSetting("ProjectType");
+      this.intProjType = ProjType.getType(this.ProjectType);
+      // Determine the names of nodes available globally
+      switch (this.intProjType) {
+        case ProjPsdx:
+          sNodeNameSnt = "forest"; sNodeNamePrg=""; sNodeNameWrd="eLeaf"; sNodeNameCns = "eTree"; break;
+        case ProjFolia:
+          sNodeNameSnt = "s"; sNodeNamePrg="p"; sNodeNameWrd="w"; sNodeNameCns = "su"; break;
+        case ProjNegra:
+          sNodeNameSnt = "s"; sNodeNamePrg=""; sNodeNameWrd="t"; sNodeNameCns = ""; break;
+        case ProjAlp:
+          sNodeNameSnt = "node"; sNodeNamePrg=""; sNodeNameWrd="node"; sNodeNameCns = "node"; break;
+        case ProjPsd:
+          sNodeNameSnt = ""; sNodeNamePrg=""; sNodeNameWrd=""; sNodeNameCns = ""; break;
+        default:
+      }
+
+      // Calculate bXmlData
+      switch(this.ProjectType.toLowerCase()) {
+        case "xquery-psdx":
+          this.bXmlData = true; break;
+        default:
+          this.bXmlData = true;
+      }
+      // Load the settings: directories
+      this.QueryDir = new File(FileUtil.nameNormalize(getSetting("QueryDir")));
+      this.DstDir = new File(FileUtil.nameNormalize(getSetting("DstDir")));
+      this.SrcDir = new File(FileUtil.nameNormalize(getSetting("SrcDir")));
+      // Load the list of definitions
+      ReadCrpList(lDefList, "./descendant::DefList/child::Definition", 
+                  "DefId;Name;File;Goal;Comment;Created;Changed", "Text");
+      // Load the list of queries
+      ReadCrpList(lQueryList, "./descendant::QueryList/child::Query", 
+                  "QueryId;Name;File;Goal;Comment;Created;Changed", "Text");
+      // Load the list of QC items (query constructor)
+      ReadCrpList(lQueryConstructor, "./descendant::QueryConstructor/child::QC", 
+                  "QCid;Input;Query;Output;Result;Cmp;Mother;Goal;Comment", "");
+      // Load the list of database features
+      ReadCrpList(lDbFeatList, "./descendant::DbFeatList/child::DbFeat", 
+                  "DbFeatId;Name;Pre;QCid;FtNum", "");
+      // Check directories
+      if (!this.QueryDir.isDirectory())  if (!this.QueryDir.mkdir()) return(errHandle.DoError("Could not create QueryDir [" + this.QueryDir.toString() + "]"));
+      if (!this.DstDir.isDirectory())  if (!this.DstDir.mkdir()) return(errHandle.DoError("Could not create DstDir [" + this.DstDir.toString() + "]"));
+      if (!this.SrcDir.isDirectory())  if (!this.SrcDir.mkdir()) return(errHandle.DoError("Could not create SrcDir [" + this.SrcDir.toString() + "]"));
+
+      // Check the project type
+      switch(this.ProjectType) {
+        case "Xquery-psdx": // Okay, we are able to process this kind of project
+          break;
+        default: 
+          return(errHandle.DoError("Sorry, cannot process projects of type [" + this.ProjectType + "]"));
+      }
+
+      // Perform initialisations related to this project-type using the config file
+      // Read it from the class path
+      String configFileName = "crpp-settings.json";
+      InputStream is = getClass().getClassLoader().getResourceAsStream(configFileName);
+      if (is == null) {
+        configFileName = "crpp-settings-default.json.txt";  // Internal default
+        is = getClass().getClassLoader().getResourceAsStream(configFileName);
+        if (is == null) {
+          // We cannot continue...
+          return(errHandle.DoError("Could not find " + configFileName + "!"));
+        }
+      }
+      // Create configuration object
+      JSONObject config;
+      // Process input stream with configuration
+      try {
+        try {
+          config = Json.read(is);
+        } finally {
+          is.close();
+        }
+      } catch (Exception e) {
+        return(errHandle.DoError("Error reading JSON config file: " +  e.getMessage()));
+      }
+      // Create a new project-type manager on the basis of the configuration settings
+      prjTypeManager = new PrjTypeManager(config);
+
+      // Set the search manager
+      searchMan = new SearchManager(config);
+
+      // Load the definitions
+
+      // Close the project file
+
+      // Return positively
+
+      return(true);
+    } catch (Exception ex) {
+      errHandle.DoError("CorpusResearchProject will not load", ex, CorpusResearchProject.class);
+      // Return failure
+      return false;
     }
-    // Create a new project-type manager on the basis of the configuration settings
-    prjTypeManager = new PrjTypeManager(config);
-    
-    // Load the definitions
-    
-    // Close the project file
-    
-    // Return positively
-    
-    return(true);
   }
-  public boolean Load(String loc) throws Exception {
+  public boolean Load(String loc) {
     this.Location = loc;
     return(Load());
   }
@@ -274,9 +288,12 @@ public class CorpusResearchProject {
     return bFlag;
   }
   
-  public boolean Execute() {
-    Execute objEx = null;
-    boolean bFlag = true;
+  public boolean Execute(Job jobCaller, String sCallingUser) {
+    Execute objEx = null; // Execution object
+    boolean bFlag = true; // Flag with execution result
+    
+    // Set the userid
+    this.userId = sCallingUser;
     // Create an execution object instance
         // Check what kind of project this is
     switch (this.intProjType) {
@@ -308,7 +325,7 @@ public class CorpusResearchProject {
     }
     if (objEx == null) return false;
     // Execute the queries using the chosen method
-    bFlag = objEx.ExecuteQueries();
+    bFlag = objEx.ExecuteQueries(jobCaller);
     // Check if the query-execution resulted in an interrupt
     if (!bFlag || objEx.bInterrupt) { errHandle.bInterrupt = true; return false; }
     // Is this a corpussearch project?
@@ -336,6 +353,7 @@ public class CorpusResearchProject {
   public String getComments() { return this.Comments;}
   public String getAuthor() { return this.Author;}
   public String getProjectType() { return this.ProjectType;}
+  public String getUserId() { return this.userId; }
   // Set string values
   public void setLocation(String sValue) { this.Location = sValue;}
   public void setProjectType(String sValue) { this.ProjectType = sValue;}
@@ -391,6 +409,9 @@ public class CorpusResearchProject {
   // ================ Database Feature list elements
   public int getListDbFeatSize() { return lDbFeatList.size(); }
   public JSONObject getListDbFeatItem(int iValue) {return lDbFeatList.get(iValue); }
+  // ================ Other objects ============================================
+  public SearchManager getSearchManager() {return this.searchMan; }
+
   // =================== Compatibility with .NET: get 'table' ==================
   public List<JSONObject> getTable(String sName) {
     switch(sName) {

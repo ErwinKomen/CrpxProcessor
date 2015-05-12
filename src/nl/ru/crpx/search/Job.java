@@ -1,6 +1,8 @@
 package nl.ru.crpx.search;
 
 // <editor-fold defaultstate="collapsed" desc="Imports">
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 import nl.ru.crpx.dataobject.DataObjectMapElement;
@@ -50,12 +52,11 @@ public abstract class Job implements Comparable<Job> {
 
 // </editor-fold>
   // ============== Class initialisation ======================================
-  public Job(CorpusResearchProject objPrj, SearchManager searchMan, String userId, SearchParameters par) {
-    // initialize my own error handler
-    // errHandle = new ErrHandle(Extensions.class );
-    errHandle = objPrj.errHandle;
+  public Job(SearchManager searchMan, String userId, SearchParameters par) {
     // Set my copy of the corpus research project we are dealing with
-    crpThis = objPrj;
+    crpThis = searchMan.getCrp();
+    // initialize my own error handler
+    errHandle = crpThis.errHandle;
     // Set my copy of the search manager
     this.searchMan = searchMan;
     // Set my copy of the user
@@ -150,12 +151,12 @@ public abstract class Job implements Comparable<Job> {
    * @return the new Search object
    * @throws QueryException
    */
-  public static Job create(CorpusResearchProject objPrj, SearchManager searchMan, String userId, SearchParameters par) throws QueryException {
+  public static Job create(SearchManager searchMan, String userId, SearchParameters par) throws QueryException {
     Job search = null;
     String jobClass = par.getString("jobclass");
     // Check what kind of job this is and call the specific job execution
     if (jobClass.equals("JobXq")) {
-      search = new JobXq(objPrj, searchMan, userId, par);
+      search = new JobXq(searchMan, userId, par);
     } else
       throw new QueryException("INTERNAL_ERROR", "An internal error occurred. Please contact the administrator. Error code: 1.");
 
@@ -255,23 +256,12 @@ public abstract class Job implements Comparable<Job> {
 
 // </editor-fold>
 // <editor-fold desc="AboutThisJob">
-  public SearchParameters getParameters() {
-    return par;
-  }
-
-  public String getJobId() {
-    return String.valueOf(id);
-  }
-
-  public String getJobResult() {
-    return jobResult;
-  }
-  public String getJobStatus() {
-    return jobStatus;
-  }
-  private String shortUserId() {
-    return userId.substring(0, 6);
-  }
+  public SearchParameters getParameters() {return par;}
+  public String getJobId() {return String.valueOf(id);}
+  public String getJobResult() {return jobResult;}
+  public void setJobResult(String sData) { jobResult = sData;}
+  public String getJobStatus() {return jobStatus;}
+  private String shortUserId() {return userId.substring(0, 6);}
   @Override
   public String toString() {
     return id + ": " + par.toString();
@@ -354,5 +344,13 @@ public abstract class Job implements Comparable<Job> {
     return 0;
   }
   
+// </editor-fold>
+// <editor-fold defaultstate="collapsed" desc="Extra's">
+  public static String getCurrentTimeStamp() {
+    SimpleDateFormat sdfDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//dd/MM/yyyy
+    Date now = new Date();
+    String strDate = sdfDate.format(now);
+    return strDate;
+  }
 // </editor-fold>
 }
