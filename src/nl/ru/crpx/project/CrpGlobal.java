@@ -10,10 +10,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import nl.ru.crpx.xq.Extensions;
 import nl.ru.util.json.JSONObject;
 import org.apache.log4j.Logger;
-import org.w3c.dom.Node;
 
 /**
  *

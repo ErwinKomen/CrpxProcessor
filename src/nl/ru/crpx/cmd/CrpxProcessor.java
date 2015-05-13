@@ -132,6 +132,7 @@ public class CrpxProcessor {
     // Perform initialisations related to this project-type using the config file
     // Read it from the class path
     String configFileName = "crpp-settings.json";
+    // InputStream is = getClass().getClassLoader().getResourceAsStream();
     InputStream is = FileUtil.getInputStream(configFileName);
     if (is == null) {
       configFileName = "crpp-settings-default.json.txt";  // Internal default

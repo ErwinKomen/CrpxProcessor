@@ -94,6 +94,7 @@ public class CorpusResearchProject {
   private Map mSet = new HashMap();       // Hash table with settings
   private SearchManager searchMan;        // The manager associated with this CRP
   private String userId;                  // ID of calling user
+  private Execute objEx = null;           // Execution object
   // Each project contains a number of lists
   static List<JSONObject> lDefList = new ArrayList<>();
   static List<JSONObject> lQueryList = new ArrayList<>();
@@ -223,6 +224,7 @@ public class CorpusResearchProject {
           return(errHandle.DoError("Sorry, cannot process projects of type [" + this.ProjectType + "]"));
       }
 
+      /*
       // Perform initialisations related to this project-type using the config file
       // Read it from the class path
       String configFileName = "crpp-settings.json";
@@ -247,12 +249,13 @@ public class CorpusResearchProject {
       } catch (Exception e) {
         return(errHandle.DoError("Error reading JSON config file: " +  e.getMessage()));
       }
+      
       // Create a new project-type manager on the basis of the configuration settings
       prjTypeManager = new PrjTypeManager(config);
 
       // Set the search manager
       searchMan = new SearchManager(config);
-
+*/
       // Load the definitions
 
       // Close the project file
@@ -289,7 +292,6 @@ public class CorpusResearchProject {
   }
   
   public boolean Execute(Job jobCaller, String sCallingUser) {
-    Execute objEx = null; // Execution object
     boolean bFlag = true; // Flag with execution result
     
     // Set the userid
@@ -411,7 +413,7 @@ public class CorpusResearchProject {
   public JSONObject getListDbFeatItem(int iValue) {return lDbFeatList.get(iValue); }
   // ================ Other objects ============================================
   public SearchManager getSearchManager() {return this.searchMan; }
-
+  public Execute getExe() { return this.objEx; }
   // =================== Compatibility with .NET: get 'table' ==================
   public List<JSONObject> getTable(String sName) {
     switch(sName) {

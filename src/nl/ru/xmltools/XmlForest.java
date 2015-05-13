@@ -13,10 +13,10 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.xml.xpath.XPathExpressionException;
 import nl.ru.crpx.project.CorpusResearchProject;
-import nl.ru.crpx.project.CrpGlobal;
 import nl.ru.crpx.search.JobXq;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.util.ByRef;
+import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 // </editor-fold>
 /**
@@ -97,7 +97,7 @@ public class XmlForest {
     loc_Type  = ForType.PsdxWholeFile;
     objErr = oErr;
     crpThis = oCrp;
-    objParse = new Parse();
+    objParse = new Parse(oCrp, oErr);
   }
 // </editor-fold>
 // <editor-fold defaultstate="collapsed" desc="Main">
@@ -147,6 +147,51 @@ public class XmlForest {
       return false;
     }
   }
+  // ----------------------------------------------------------------------------------------------------------
+  // Name :  GetForestId
+  // Goal :  Get the ID of the forest [ndxThis]
+  // History:
+  // 02-07-2011  ERK Created  for .NET
+  // 13/may/2015 ERK Adapted for Java
+  // ----------------------------------------------------------------------------------------------------------
+  public final boolean GetForestId(ByRef<XmlNode> ndxForest, ByRef<Integer> intForestId) {
+    Node attrThis;  // Room for one attribute
+    
+    try {
+      // Supply default value to indicate failure
+      intForestId.argValue = -1;
+      switch (loc_Type) {
+        case FoliaPerDiv:
+          break;
+        case FoliaPerPara:
+          break;
+        case FoliaPerS:
+          break;
+        case FoliaWholeFile:
+          break;
+        case PsdxPerForest:
+          // Check if there is a @forestId attribute
+          attrThis = ndxForest.argValue.Attributes("forestId") ;
+          if (attrThis == null ) return objErr.DoError("<forest> does not have @forestId");
+          // Get the @forestId value
+          intForestId.argValue = Integer.parseInt(attrThis.getNodeValue());
+        case PsdxPerForgrp:
+          break;
+        case PsdxWholeFile:
+          break;
+        default:
+          return false;
+      }
+      // Return success
+      return true;
+    } catch (RuntimeException ex) {
+      // Warn user
+      objErr.DoError("XmlForest/GetForestId error: " + ex.getMessage() + "\r\n");
+      // Return failure
+      return false;
+    }
+  }
+
   // ----------------------------------------------------------------------------------------------------------
   // Name :  NextForest
   // Goal :  Load the next forest, depending on the particular method
@@ -341,7 +386,7 @@ public class XmlForest {
           loc_pdxThis.LoadXml(loc_xrdFile.ReadOuterXml());
           // Get the current context
           ndxForest.argValue = loc_pdxThis.SelectSingleNode("./descendant::forest[1]");
-          loc_cntThis.Seg = objParse.GetSeg(ndxForest.argValue, crpThis.getProjectType());
+          loc_cntThis.Seg = objParse.GetSeg(ndxForest.argValue);
           loc_cntThis.Loc = ndxForest.argValue.Attributes("Location").Value;
           loc_cntThis.TxtId = ndxForest.argValue.Attributes("TextId").Value;
         } else {
@@ -349,7 +394,7 @@ public class XmlForest {
           loc_arFoll[intI - 1].LoadXml(loc_xrdFile.ReadOuterXml());
           // Fill the following context @seg, @txtid and @loc
           ndxWork = loc_arFoll[intI - 1].SelectSingleNode("./descendant::forest[1]");
-          loc_arFollCnt[intI - 1].Seg = objParse.GetSeg(ndxWork, crpThis.getProjectType());
+          loc_arFollCnt[intI - 1].Seg = objParse.GetSeg(ndxWork);
           loc_arFollCnt[intI - 1].Loc = ndxWork.Attributes("Location").Value;
           loc_arFollCnt[intI - 1].TxtId = ndxWork.Attributes("TextId").Value;
         }
@@ -477,7 +522,7 @@ public class XmlForest {
         // Get working node <forest>
         ndxWork = loc_arFoll[objJob.intFollNum - 1].SelectSingleNode("./descendant::forest[1]");
         // Calculate the correct context
-        loc_arFollCnt[objJob.intFollNum - 1].Seg = objParse.GetSeg(ndxWork, crpThis.getProjectType());
+        loc_arFollCnt[objJob.intFollNum - 1].Seg = objParse.GetSeg(ndxWork);
         loc_arFollCnt[objJob.intFollNum - 1].Loc = ndxWork.Attributes("Location").Value;
         loc_arFollCnt[objJob.intFollNum - 1].TxtId = ndxWork.Attributes("TextId").Value;
       } else {
@@ -486,7 +531,7 @@ public class XmlForest {
         // Get this forest
         ndxWork = loc_pdxThis.SelectSingleNode("./descendant::forest[1]");
         // Calculate the correct context
-        loc_cntThis.Seg = objParse.GetSeg(ndxWork, crpThis.getProjectType());
+        loc_cntThis.Seg = objParse.GetSeg(ndxWork);
         loc_cntThis.Loc = ndxWork.Attributes("Location").Value;
         loc_cntThis.TxtId = ndxWork.Attributes("TextId").Value;
       }
@@ -652,7 +697,7 @@ public class XmlForest {
           loc_pdxThis.LoadXml(loc_xrdFile.ReadOuterXml());
           // Get the current context
           ndxForest.argValue = loc_pdxThis.SelectSingleNode("./descendant::forest[1]");
-          loc_cntThis.Seg = objParse.GetSeg(ndxForest.argValue, crpThis.getProjectType());
+          loc_cntThis.Seg = objParse.GetSeg(ndxForest.argValue);
           loc_cntThis.Loc = ndxForest.argValue.Attributes("Location").Value;
           loc_cntThis.TxtId = ndxForest.argValue.Attributes("TextId").Value;
         } else {
@@ -660,7 +705,7 @@ public class XmlForest {
           loc_arFoll[intI - 1].LoadXml(loc_xrdFile.ReadOuterXml());
           // Fill the following context @seg, @txtid and @loc
           ndxWork = loc_arFoll[intI - 1].SelectSingleNode("./descendant::forest[1]");
-          loc_arFollCnt[intI - 1].Seg = objParse.GetSeg(ndxWork, crpThis.getProjectType());
+          loc_arFollCnt[intI - 1].Seg = objParse.GetSeg(ndxWork);
           loc_arFollCnt[intI - 1].Loc = ndxWork.Attributes("Location").Value;
           loc_arFollCnt[intI - 1].TxtId = ndxWork.Attributes("TextId").Value;
         }
@@ -778,7 +823,7 @@ public class XmlForest {
         // Get working node <forest>
         ndxWork = loc_arFoll[objJob.intFollNum - 1].SelectSingleNode("./descendant::forest[1]");
         // Calculate the correct context
-        loc_arFollCnt[objJob.intFollNum - 1].Seg = objParse.GetSeg(ndxWork, crpThis.getProjectType());
+        loc_arFollCnt[objJob.intFollNum - 1].Seg = objParse.GetSeg(ndxWork);
         loc_arFollCnt[objJob.intFollNum - 1].Loc = ndxWork.Attributes("Location").Value;
         loc_arFollCnt[objJob.intFollNum - 1].TxtId = ndxWork.Attributes("TextId").Value;
       } else {
@@ -787,7 +832,7 @@ public class XmlForest {
         // Get this forest
         ndxWork = loc_pdxThis.SelectSingleNode("./descendant::forest[1]");
         // Calculate the correct context
-        loc_cntThis.Seg = objParse.GetSeg(ndxWork, crpThis.getProjectType());
+        loc_cntThis.Seg = objParse.GetSeg(ndxWork);
         loc_cntThis.Loc = ndxWork.Attributes("Location").Value;
         loc_cntThis.TxtId = ndxWork.Attributes("TextId").Value;
       }

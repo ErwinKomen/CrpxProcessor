@@ -14,20 +14,26 @@ import java.util.List;
 // import static nl.ru.crpx.project.CrpGlobal.DoError;
 // import static nl.ru.crpx.project.CrpGlobal.Status;
 import nl.ru.util.ByRef;
+import nl.ru.xmltools.XmlNode;
 
 /**
  *
  * @author Erwin R. Komen
  */
 public class Dbase extends CrpGlobal {
-  // ================= Class initialisation ====================================
-  public Dbase() {
-    
-  }
   // ================= local variables =========================================
   private String loc_strDbSource;       // Database file name
   private String loc_strDbCurrentFile;  // File name of the current database <entry>
   private List<String> loc_colDbFiles;  // Collection of files that have been read
+  private XmlNode loc_ndxDbRes;         //
+  // ================= Class initialisation ====================================
+  public Dbase() {
+    loc_strDbSource = "";
+    loc_strDbCurrentFile = "";
+    loc_colDbFiles = new ArrayList<>();
+    loc_ndxDbRes = null;
+  }
+// <editor-fold desc="Corpus database as input">
   // ---------------------------------------------------------------------------------------------------------
   // Name :  DbaseQueryInit
   // Goal :  Initialise database reading for Dbase oriented queries
@@ -147,4 +153,27 @@ public class Dbase extends CrpGlobal {
       return false;
     }
   }
+// </editor-fold>
+// <editor-fold desc="Result database">
+  // ---------------------------------------------------------------------------------------------------------
+  // Name :  DbaseQueryCurrent
+  // Goal :  Return the current <Result> node
+  // History:
+  // 23-01-2014  ERK Created for .NET
+  // 1/may/2015  ERK Adapted for Java
+  // ---------------------------------------------------------------------------------------------------------
+  public boolean DbaseQueryCurrent(ByRef<XmlNode> ndxThis) {
+    try {
+      // Get current result
+      ndxThis.argValue = this.loc_ndxDbRes;
+      // Return success
+      return true;
+    } catch (RuntimeException ex) {
+      // Show there is something wrong
+      DoError("modDbase/DbaseQueryCurrent error: " + ex.getMessage() + "\r\n" );
+      // Return failure
+      return false;
+    }
+  }
+// </editor-fold>
 }

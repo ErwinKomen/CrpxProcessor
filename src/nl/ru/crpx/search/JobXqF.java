@@ -9,6 +9,8 @@
 package nl.ru.crpx.search;
 
 import java.io.File;
+import nl.ru.crpx.project.Execute;
+import nl.ru.crpx.project.ExecutePsdxStream;
 import nl.ru.crpx.xq.CrpFile;
 import nl.ru.crpx.xq.RuBase;
 import org.w3c.dom.Node;
@@ -24,12 +26,14 @@ public class JobXqF extends Job {
   public int intPrecNum;                    // Number of preceding context lines
   public int intFollNum;                    // Number of following context lines
   public int intCurrentQCline = 0;          // The current QC line we are working on
+  public int intCrpFileId;                  // The @id associated with this job
   public Node ndxCurrentHeader = null;      // XML header of the current XML file
   public boolean ru_bFileSaveAsk = false;   // Needed for ru:setattrib()
   public boolean bTraceXq = false;          // Trace on XQ processing
   File fInput;                              // The file to be searched
+  ExecutePsdxStream objEx;                            // Execution method
   // ========== Variables local to this search job =============================
-  private CrpFile oCrpFile;                 // The CrpFile object of what we are doing now
+  // private CrpFile oCrpFile;                 // The CrpFile object of what we are doing now
 // </editor-fold>
   // =================== Class initialisation ==================================
   public JobXqF(SearchManager searchMan, String userId, SearchParameters par) {
@@ -38,8 +42,13 @@ public class JobXqF extends Job {
     // Other initializations for this Xq search job
     intFollNum = crpThis.getFollNum();
     intPrecNum = crpThis.getPrecNum();
+    // Get the execution object
+    this.objEx = (ExecutePsdxStream) crpThis.getExe();
+    // Get the parameter
+    intCrpFileId = par.getInteger("crpfileid");
     // My own copy of the CrpFile object
-    oCrpFile = RuBase.getCrpFile(par.getInteger("crpfileid"));
+    // oCrpFile = RuBase.getCrpFile(par.getInteger("crpfileid"));
+    //
   }
   
   // ======================= Perform the search ================================
@@ -48,9 +57,21 @@ public class JobXqF extends Job {
     try {
       // Validate
       if (crpThis==null) { errHandle.DoError("There is no CRP"); return;}
+      // Perform the queries on the selected CrpFile object
+      if (this.objEx.ExecuteQueriesFile(this, intCrpFileId)) {
+        // Check for interrupt
+        if (errHandle.bInterrupt) {
+          errHandle.DoError("The program has been interrupted");
+        } else {
+          errHandle.debug("performSearch: ready handling job");
+        }
+      } else {
+        errHandle.DoError("The queries could not be executed");
+      }
 
       // Get the current file we are searching
-      fInput = oCrpFile.flThis;
+      // fInput = oCrpFile.flThis;
+      
       
     } catch (Exception ex) {
       // Show the error

@@ -5,7 +5,7 @@
  */
 
 package nl.ru.crpx.project;
-
+// <editor-fold desc="import">
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -24,13 +24,17 @@ import static nl.ru.crpx.tools.FileIO.getFileNameWithoutExtension;
 import static nl.ru.crpx.project.CrpGlobal.Status;
 import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
+import nl.ru.xmltools.Parse;
+import nl.ru.xmltools.XmlNode;
 import nl.ru.xmltools.XqErr;
+// </editor-fold>
 
 /**
  *
  * @author Erwin R. Komen
  */
 public class ExecuteXml extends Execute {
+// <editor-fold desc="Variables">
   // ============= Variables that are only for the XML-processing "Execute" classes
   protected String strForTag;           // Name of the forest tag
   protected ByRef<String> strDbType;    // Kind of database
@@ -42,10 +46,11 @@ public class ExecuteXml extends Execute {
   protected List<String> objBack;       // Element to collect Html output
   protected List<String> objExmp;       // Element to collect examples for Html output (for the current QC step)
   protected List<String> objSubCat;     // Element to collect subcagegorisation examples for HTML output
+  protected Parse objParseXq;           // Object to parse Xquery
   // protected Extensions objExt;          // Make the extensions available
   private FileUtil fHandle;             // For processing FileUtil functions
   private XqErr oXq;                    // For using XqErr
-  
+// </editor-fold>
   // ============= Class initializer ==========================================
   public ExecuteXml(CorpusResearchProject oProj) {
     // Do the initialisations for all Execute() classes
@@ -75,8 +80,10 @@ public class ExecuteXml extends Execute {
     objCompiler.setCompileWithTracing(true);
     objSaxDoc = objSaxon.newDocumentBuilder();
     // objExt = new Extensions();
+    objParseXq = new Parse(oProj, errHandle);
   }
   
+// <editor-fold desc="Preparation of Xml execution">
   // ----------------------------------------------------------------------------------------------------------
   // Name :  ExecuteXmlSetup
   // Goal :  Set the contents of [arQuery] specifically for Xml projects using Xquery
@@ -186,6 +193,7 @@ public class ExecuteXml extends Execute {
       return false;
     }
   }
+// </editor-fold>
 // <editor-fold defaultstate="collapsed" desc="Support functions">
   // ----------------------------------------------------------------------------------------------------------
   // Name :  GetExec
