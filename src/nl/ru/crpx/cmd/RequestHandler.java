@@ -46,19 +46,25 @@ public abstract class RequestHandler {
 
   // ============== Class initiator ============================================
   RequestHandler(CrpxProcessor servlet, String indexName, CorpusResearchProject crpThis) {
-    // Get the search manager from the calling CrpxProcessor
-    this.searchMan = servlet.getSearchManager();
-    this.searchParam = servlet.getSearchParameters(indexName);
-    // Get my copy of the project
-    this.prjThis = crpThis;
-    // Get the current user/session ID from the system
-    this.userId = System.getProperty("user.name");
-    // Get the name of the project
-    strProject = crpThis.getName();
+    try {
+      // Get the search manager from the calling CrpxProcessor
+      this.searchMan = servlet.getSearchManager();
+      this.searchParam = servlet.getSearchParameters(indexName);
+      // Add the project name as parameter
+      this.searchParam.put("query", crpThis.getName());
+      // Get my copy of the project
+      this.prjThis = crpThis;
+      // Get the current user/session ID from the system
+      this.userId = System.getProperty("user.name");
+      // Get the name of the project
+      strProject = crpThis.getName();
 
-    // Set up a Request Argument JSON string, mimicking server processing
-    sReqArgument = "{ \"userid\": \"" + userId + "\", " + 
-            "\"query\": \"" + strProject + "\"}";
+      // Set up a Request Argument JSON string, mimicking server processing
+      sReqArgument = "{ \"userid\": \"" + userId + "\", " + 
+              "\"query\": \"" + strProject + "\"}";
+    } catch (Exception ex) {
+      errHandle.DoError("Could not create [RequestHandler]", ex, RequestHandler.class);
+    }
   }
   
   /**
@@ -78,12 +84,16 @@ public abstract class RequestHandler {
 
       // Choose the RequestHandler subclass
       RequestHandler requestHandler = null;
-      if (indexName.equals("execute") ) {
-        requestHandler = new RequestHandlerExecute(servlet, indexName, crpThis);
-      } else if (indexName.equals("show")) {
-        requestHandler = new RequestHandlerShow(servlet, indexName, crpThis);
-      } else {
-        // There is no default handling; requesthandler stays NULL
+      switch (indexName) {
+        case "execute":
+          requestHandler = new RequestHandlerExecute(servlet, indexName, crpThis);
+          break;
+        case "show":
+          requestHandler = new RequestHandlerShow(servlet, indexName, crpThis);
+          break;
+        default:
+          // There is no default handling; requesthandler stays NULL
+          break;
       }
 
       // Make sure we catch empty requesthandlers

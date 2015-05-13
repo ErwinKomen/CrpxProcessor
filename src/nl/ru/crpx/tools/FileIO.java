@@ -12,6 +12,7 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStreamWriter;
 
 /**
@@ -79,5 +80,9 @@ public class FileIO {
     String fileExtension = filename.substring(0, extensionIndex);
 
     return fileExtension;
+  }
+  public static InputStream getProjectDirectory(Class clsThis, String sFile) {
+    InputStream is = clsThis.getClassLoader().getResourceAsStream(sFile);
+    return is;
   }
 }

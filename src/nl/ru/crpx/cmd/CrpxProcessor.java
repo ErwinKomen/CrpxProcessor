@@ -8,6 +8,8 @@ package nl.ru.crpx.cmd;
 
 // <editor-fold defaultstate="collapsed" desc="Import">
 import java.io.*;
+import java.nio.file.Files;
+import java.util.Properties;
 import nl.ru.crpx.dataobject.DataFormat;
 import nl.ru.crpx.dataobject.DataObject;
 import nl.ru.crpx.dataobject.DataObjectPlain;
@@ -15,6 +17,7 @@ import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.search.SearchManager;
 import nl.ru.crpx.search.SearchParameters;
 import nl.ru.crpx.tools.ErrHandle;
+import nl.ru.crpx.tools.FileIO;
 import nl.ru.util.FileUtil;
 import nl.ru.util.Json;
 import nl.ru.util.json.JSONObject;
@@ -133,10 +136,12 @@ public class CrpxProcessor {
     // Read it from the class path
     String configFileName = "crpp-settings.json";
     // InputStream is = getClass().getClassLoader().getResourceAsStream();
-    InputStream is = FileUtil.getInputStream(configFileName);
+    InputStream is = FileIO.getProjectDirectory(CrpxProcessor.class, configFileName);
+    // InputStream is = FileUtil.getInputStream(configFileName);
     if (is == null) {
       configFileName = "crpp-settings-default.json.txt";  // Internal default
-      is = FileUtil.getInputStream(configFileName);
+      // is = FileUtil.getInputStream(configFileName);
+      is = FileIO.getProjectDirectory(CrpxProcessor.class, configFileName);
       if (is == null) {
         // We cannot continue...
         return errHandle.DoError("Could not find " + configFileName + "!");
@@ -242,23 +247,36 @@ public class CrpxProcessor {
    * @return the unique key
    */
   public SearchParameters getSearchParameters(String request) {
-    // Set up a parameters object
-    SearchParameters param = new SearchParameters(searchManager);
-    // Walk all relevant search parameters
-    for (String name: searchManager.getSearchParameterNames()) {
-      String value = "";  // Default value
-      switch (name) {
-        case "resultsType": value = "XML"; break;
-        case "waitfortotal": value= "no"; break;
-        case "tmpdir": value = System.getProperty("tmpdir");
+    try {
+      // Set up a parameters object
+      SearchParameters param = new SearchParameters(searchManager);
+      Properties arProp = System.getProperties();
+
+      // Walk all relevant search parameters
+      for (String name: searchManager.getSearchParameterNames()) {
+        String value = "";  // Default value
+        switch (name) {
+          case "resultsType": value = "XML"; break;
+          case "waitfortotal": value= "no"; break;
+          case "tmpdir": 
+            // Create temporary file
+            File fTmp = File.createTempFile("tmp", ".txt");
+            // Get the path of this file
+            String sPath = fTmp.getAbsolutePath();
+            value = sPath.substring(0,sPath.lastIndexOf(File.separator));
+            // value = Files.createTempDirectory("tmpdir").toString(); // System.getProperty("tmpdir");
+        }
+        // Check if it has some kind of value
+        if (value.length() == 0) continue;
+        // Since it really has a value, add it to the parameters object
+        param.put(name, value);
       }
-      // Check if it has some kind of value
-      if (value.length() == 0) continue;
-      // Since it really has a value, add it to the parameters object
-      param.put(name, value);
+      // Return the object that contains the parameters
+      return param;
+    } catch (Exception ex) {
+      errHandle.DoError("could not get search parameters", ex, CrpxProcessor.class);
+      return null;
     }
-    // Return the object that contains the parameters
-    return param;
   }
 
 }
