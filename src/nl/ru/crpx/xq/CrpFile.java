@@ -20,6 +20,7 @@ public class CrpFile {
   public File flThis;                   // File that is being treated
   public int QCcurrentLine;             // Current QC line of project being executed
   public XmlNode ndxCurrentForest;      // The sentence element we are now working on
+  public XmlNode ndxHeader;             // The header object of this file
   
   // =========== Class initializer =============================================
   public CrpFile(CorpusResearchProject oCrp, File fFile) {

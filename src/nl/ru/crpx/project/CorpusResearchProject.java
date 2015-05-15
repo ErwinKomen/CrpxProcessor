@@ -63,8 +63,6 @@ public class CorpusResearchProject {
   public String sNodeNamePrg;       // Name of "paragraph-level" node
   public String sNodeNameWrd;       // Name of "word-level" node
   public ErrHandle errHandle;       // My own error handler
-  // ================== instance fields for the research project =============
-  private PrjTypeManager prjTypeManager;
   // =================== private variables ====================================
   private String Location = "";     // Full filename and location of this project
   private String Name = "";         // Name of this project (w.o. extension)
@@ -93,6 +91,7 @@ public class CorpusResearchProject {
   private XPath xpath = XPathFactory.newInstance().newXPath();
   private Map mSet = new HashMap();       // Hash table with settings
   private SearchManager searchMan;        // The manager associated with this CRP
+  private PrjTypeManager prjTypeManager;  // Project type manager associated with this CRP
   private String userId;                  // ID of calling user
   private Execute objEx = null;           // Execution object
   // Each project contains a number of lists
@@ -413,6 +412,9 @@ public class CorpusResearchProject {
   public JSONObject getListDbFeatItem(int iValue) {return lDbFeatList.get(iValue); }
   // ================ Other objects ============================================
   public SearchManager getSearchManager() {return this.searchMan; }
+  public void setSearchManager(SearchManager oThis) {this.searchMan = oThis;}
+  public PrjTypeManager getPrjTypeManager() {return prjTypeManager;}
+  public void setPrjTypeManager(PrjTypeManager oThis) { this.prjTypeManager = oThis;}
   public Execute getExe() { return this.objEx; }
   // =================== Compatibility with .NET: get 'table' ==================
   public List<JSONObject> getTable(String sName) {
@@ -459,10 +461,6 @@ public class CorpusResearchProject {
     return true;
   }
 
-  // Make the project-type manager for this project available to others
-  public PrjTypeManager getPrjTypeManager() {
-    return prjTypeManager;
-  }
 
 
 

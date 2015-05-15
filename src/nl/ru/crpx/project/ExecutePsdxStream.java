@@ -9,17 +9,20 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import nl.ru.crpx.search.Job;
+import nl.ru.crpx.search.JobXq;
 import nl.ru.crpx.search.JobXqF;
 import nl.ru.crpx.search.QueryException;
 import nl.ru.crpx.search.SearchParameters;
-import nl.ru.xmltools.Parse;
 import nl.ru.crpx.xq.CrpFile;
 import nl.ru.crpx.xq.RuBase;
 import nl.ru.util.ByRef;
 import nl.ru.util.StringUtil;
 import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
+import nl.ru.xmltools.Parse;
 import nl.ru.xmltools.ParseResult;
+import nl.ru.xmltools.XmlForest;
+import nl.ru.xmltools.XmlForest.ForType;
 import nl.ru.xmltools.XmlNode;
 import org.w3c.dom.Node;
 
@@ -72,6 +75,12 @@ public class ExecutePsdxStream extends ExecuteXml {
     int iCrpFileId; // Index of CrpFile object
     
     try {
+      // Set the job for global access within Execute > ExecuteXml > ExecutePsdxStream
+      this.objSearchJob = jobCaller;
+      // Set the XmlForest element correctly
+      this.objProcType = new XmlForest(this.crpThis,(JobXq) jobCaller, this.errHandle);
+      // Make sure 
+      this.objProcType.setProcType(ForType.PsdxPerForest);
       // Perform general setup
       if (!super.ExecuteQueriesSetUp()) return false;
       // Perform setup part that is specifically for Xml/Xquery
@@ -92,6 +101,9 @@ public class ExecutePsdxStream extends ExecuteXml {
         // Add the id to the search parameters
         SearchParameters searchXqFpar = new SearchParameters(this.searchMan);
         searchXqFpar.put("crpfileid", Integer.toString(iCrpFileId));
+        // Also add the "query" parameter
+        searchXqFpar.put("query", "{\"crp\": \"" + crpThis.getName() + "\"" +
+                ", \"file\": \"" + fInput.getName() + "\"" + "}");
         // Keep track of the old jobs and make sure not too many are running now
         if (!monitorXqF(this.iMaxParJobs)) {
           // Getting here means that we are UNABLE to wait for the number of jobs
@@ -212,6 +224,7 @@ public class ExecutePsdxStream extends ExecuteXml {
     Parse objParse;             // Functions to parse and get results
     ParseResult oOneParseRes;   // One parse result
     ByRef<XmlNode> ndxForest;   // Forest we are working on
+    ByRef<XmlNode> ndxHeader;   // Header of this file
     ByRef<XmlNode> ndxDbRes;    // Current result
     ByRef<Integer> intForestId; // ID (numerical) of the current <forest>
     ByRef<Integer> intPtc;      // Percentage of where we are
@@ -226,6 +239,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       File fThis = oCrpFile.flThis;
       // Initialisations
       ndxForest = new ByRef(null); ndxDbRes = new ByRef(null);
+      ndxHeader = new ByRef(null);
       strForestFile = fThis.getAbsolutePath();
       intForestId = new ByRef(-1);
       intPtc = new ByRef(0);
@@ -238,8 +252,10 @@ public class ExecutePsdxStream extends ExecuteXml {
       // Start walking through the file...
       // (a) Read the first <forest>, including the <teiHeader>
       // Line: modMain - 2798
-      if (!objProcType.FirstForest(ndxForest, strForestFile)) 
+      if (!objProcType.FirstForest(ndxForest, ndxHeader, strForestFile)) 
         return errHandle.DoError("ExecuteQueriesFile could not process firest forest of " + fThis.getName());
+      // Store the [ndxHeader] in the CrpFile object
+      oCrpFile.ndxHeader = ndxHeader.argValue;
       // Loop through the file in <forest> chunks
       while (ndxForest.argValue != null) {
         // Get the @forestId value of this forest

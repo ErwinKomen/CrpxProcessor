@@ -12,6 +12,7 @@ import java.io.File;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.xq.CrpFile;
 import nl.ru.crpx.xq.Extensions;
+import nl.ru.xmltools.XmlNode;
 import org.w3c.dom.Node;
 
 /**
@@ -24,7 +25,8 @@ public class JobXq extends Job {
   public int intPrecNum;                    // Number of preceding context lines
   public int intFollNum;                    // Number of following context lines
   public int intCurrentQCline = 0;          // The current QC line we are working on
-  public Node ndxCurrentHeader = null;      // XML header of the current XML file
+  // NO: this should be part of CrpFile...
+  // public XmlNode ndxCurrentHeader = null;   // XML header of the current XML file
   public boolean ru_bFileSaveAsk = false;   // Needed for ru:setattrib()
   public boolean bTraceXq = false;          // Trace on XQ processing
   File fInput;                              // The file to be searched

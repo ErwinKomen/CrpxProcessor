@@ -14,6 +14,7 @@ import nl.ru.crpx.dataobject.DataFormat;
 import nl.ru.crpx.dataobject.DataObject;
 import nl.ru.crpx.dataobject.DataObjectPlain;
 import nl.ru.crpx.project.CorpusResearchProject;
+import nl.ru.crpx.project.PrjTypeManager;
 import nl.ru.crpx.search.SearchManager;
 import nl.ru.crpx.search.SearchParameters;
 import nl.ru.crpx.tools.ErrHandle;
@@ -46,8 +47,10 @@ public class CrpxProcessor {
   // private static String userId;
   private static JSONObject config;           // Configuration object
   private static SearchManager searchManager; // The search manager we make
+  private static PrjTypeManager prjTypeManager;
   // =================== Simple getters =======================================
   public SearchManager getSearchManager() {return searchManager;}
+  public PrjTypeManager getPrjTypeManager() { return prjTypeManager;}
   public JSONObject getConfig() { return config;}
   // =================== main code start =====================================
 /* ---------------------------------------------------------------------------
@@ -160,6 +163,9 @@ public class CrpxProcessor {
 
     // Create a new search manager
     searchManager = new SearchManager(config);
+    
+    // Create a new project type manager
+    prjTypeManager = new PrjTypeManager(config);
     
     // Show that we are ready
     logger.info("CrpxProcessor is initialized.");

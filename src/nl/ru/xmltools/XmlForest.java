@@ -16,6 +16,7 @@ import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.search.JobXq;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.util.ByRef;
+import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 // </editor-fold>
@@ -98,6 +99,7 @@ public class XmlForest {
     objErr = oErr;
     crpThis = oCrp;
     objParse = new Parse(oCrp, oErr);
+    this.objJob = oJob;
   }
 // </editor-fold>
 // <editor-fold defaultstate="collapsed" desc="Main">
@@ -110,6 +112,7 @@ public class XmlForest {
   // ----------------------------------------------------------------------------------------------------------
   public final int getProcType() {return loc_Type.getValue();}
   public final void setProcType(int value) {loc_Type = ForType.forValue(value);  }
+  public final void setProcType(ForType value) {loc_Type = value;  }
 
   // ----------------------------------------------------------------------------------------------------------
   // Name :  FirstForest
@@ -118,7 +121,7 @@ public class XmlForest {
   // 14-04-2014  ERK Created
   // 23/apr/2015  ERK Adapted for Java
   // ----------------------------------------------------------------------------------------------------------
-  public final boolean FirstForest(ByRef<XmlNode> ndxForest, String strFile) {
+  public final boolean FirstForest(ByRef<XmlNode> ndxForest, ByRef<XmlNode> ndxHeader, String strFile) {
     try {
       switch (loc_Type) {
         case FoliaPerDiv:
@@ -130,7 +133,7 @@ public class XmlForest {
         case FoliaWholeFile:
           break;
         case PsdxPerForest:
-          return PsdxPerForest_FirstForest(ndxForest, strFile);
+          return PsdxPerForest_FirstForest(ndxForest, ndxHeader, strFile);
         case PsdxPerForgrp:
           break;
         case PsdxWholeFile:
@@ -336,7 +339,7 @@ public class XmlForest {
   // History:
   // 18-03-2014  ERK Created
   // ----------------------------------------------------------------------------------------------------------
-  private boolean PsdxPerForest_FirstForest(ByRef<XmlNode> ndxForest, String strFile) {
+  private boolean PsdxPerForest_FirstForest(ByRef<XmlNode> ndxForest, ByRef<XmlNode> ndxHeader, String strFile) {
     XmlNode ndxWork = null;  // Working node
     File fThis;           // File object of [strFile]
     int intI = 0;         // Counter
@@ -348,7 +351,7 @@ public class XmlForest {
       if (!fThis.exists()) return false;
       // Initialisations
       ndxForest.argValue = null;
-      objJob.ndxCurrentHeader = null;
+      ndxHeader.argValue = null;
       // Fill the arrays
       loc_arPrec = new XmlDocument[objJob.intPrecNum];
       loc_arPrecCnt = new Context[objJob.intPrecNum];
@@ -369,10 +372,13 @@ public class XmlForest {
         objErr.DoError("PsdxPerForest_FirstForest error: cannot find <teiHeader> in file [" + strFile + "]");
         return false;
       }
-      // Load this header 
+      // Load this obligatory teiHeader 
       loc_pdxThis.LoadXml(loc_xrdFile.ReadOuterXml());
       // Set the global parameter
-      objJob.ndxCurrentHeader = loc_pdxThis.SelectSingleNode("./descendant-or-self::teiHeader[1]");
+      Node ndxFirst = loc_pdxThis.getDocument().getFirstChild();
+      ndxWork = loc_pdxThis.SelectSingleNode("//teiHeader");
+      // ndxWork = loc_pdxThis.SelectSingleNode("./descendant-or-self::teiHeader[1]");
+      ndxHeader.argValue =ndxWork;
       // Read the current node + following context
       for (intI = 0; intI <= objJob.intFollNum; intI++) {
         // Move to the first forest

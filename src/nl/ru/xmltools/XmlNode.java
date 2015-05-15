@@ -15,13 +15,14 @@ import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 /**
  *
  * @author Erwin
  */
-public abstract class XmlNode implements Node {
+public abstract class XmlNode implements Node, Element {
   // This class uses a logger
   private static final Logger logger = Logger.getLogger(XmlNode.class);
   // ======================== variables for internal use

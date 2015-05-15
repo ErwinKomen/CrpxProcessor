@@ -75,7 +75,7 @@ public class XmlChunkReader {
     if (reader==null) return false;
     // Keep track of the number of lines that have been read
     strTag = sTag;
-    patStart = Pattern.compile("(<" + sTag + "\\s|<" + sTag + ">)");
+    patStart = Pattern.compile("(\\<" + sTag + "\\s|\\<" + sTag + "\\>)");
     // Check if there is a last line that contains this tag
     
     // Loop through all the lines
@@ -87,7 +87,7 @@ public class XmlChunkReader {
       // Check if this line contains the starting tag
       Matcher m = patStart.matcher(line);
       // Do we have a matching start tag?
-      if (m.matches()) {
+      if (m.find()) {
         // Return positively
         return true;
       }
@@ -121,16 +121,21 @@ public class XmlChunkReader {
     while( ( line = reader.readLine() ) != null ) {
       // Keep track of lines
       iLinesRead++; strLastLine = line;
+      // Store this line
+      sChunk.append(line); sChunk.append(ls);
       // Get approximate file position: number of bytes + 1 for \n (we are lower if \r\n is used)
       lFilePos += line.getBytes().length + 1;
       // Check if this line contains the ending tag
       Matcher m = patEnd.matcher(line);
       // Do we have a matching end tag?
-      if (m.matches()) {
-        // Start storing the line(s)
+      if (m.find()) {
+        /* NO: last line was already read
+        // Store the last line
         sChunk.append(line); sChunk.append(ls);
+              */
         // Return the chunk we have read
-        return sChunk.toString();
+        String sCombi = sChunk.toString();
+        return sCombi;
       }
     }
     // Do note the last line, even if it is empty

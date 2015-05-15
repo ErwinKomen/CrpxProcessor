@@ -80,84 +80,93 @@ public class Execute extends CrpGlobal {
   
   // Initialisation of the Execute class
   public Execute(CorpusResearchProject oProj) {
-    // Set our copy of the corpus research project
-    crpThis = oProj;
-    // Set the rubase
-    ruBase = new RuBase(crpThis);
-    // Set the maximum number of parallel jobs per user
-    iMaxParJobs = 4;    // TODO: this should depend on the number of processors available!
-    // Set the search manager associated with the CRP
-    this.searchMan = crpThis.getSearchManager();
-    // Create a search parameters object
-    this.searchPar = new SearchParameters(this.searchMan);
-    /* ===========
-    // Fill the object with default values
-    for (String name: this.searchMan.getSearchParameterNames()) {
-      // Get the value for this parameter or the Default value...
-    }
-     ============ */
-    // Perform other initialisations
-    String strInput = "";           // Source files
-
-    // Perform class initialisations that are valid for all extended classes
-    this.bKeepGarbage = false;    // Do NOT normally retain temporary files
-    bIsXquery = false; bDoStream = false;
-    bErrors = false; bSrcBuilt = false;
-    bXmlData = false; bShowPsd = false;
-    intWait = 0;
-    // Validate: are there any query lines in here?
-    int arSize = crpThis.getListQCsize();
-    if (arSize == 0) {
-      // Check if there are any queries at all
-      if (crpThis.getListQuerySize() ==0) {
-        // TODO: Go to the [Query] tab page
-        // Me.TabControl1.SelectedTab = Me.tpQuery
-        // Show warning
-        DoError("First create one or more queries and put them in the constructor editor");
-      } else {
-        // TODO: Go to the [QC] tab page
-        //  Me.TabControl1.SelectedTab = Me.tpQCedit
-        // Show warning
-        DoError("First put one or more queries in the constructor editor");
+    try {
+      // Set our copy of the corpus research project
+      crpThis = oProj;
+      // Set the rubase
+      ruBase = new RuBase(crpThis);
+      // Set the maximum number of parallel jobs per user
+      iMaxParJobs = 4;    // TODO: this should depend on the number of processors available!
+      // Set the search manager associated with the CRP
+      this.searchMan = crpThis.getSearchManager();
+      // Create a search parameters object
+      this.searchPar = new SearchParameters(this.searchMan);
+      /* ===========
+      // Fill the object with default values
+      for (String name: this.searchMan.getSearchParameterNames()) {
+        // Get the value for this parameter or the Default value...
       }
-      // We cannot continue - leave
-      // TODO: include PERIOD + PERIODFILE tests or not??
-      return;
-    } 
-    // Verify the QC consistency
-    if (!VerifyQC()) return;
-    // Reset interruption
-    bInterrupt = false;
-    // Reset output file initialisation
-    // TODO: RuInit(false);
-    
-    // Make sure adaptations are processed
-    // TODO: AdaptQnameToQC()
-    
-    // Clear the output tabpage
-    // TODO: Me.tbOutput.Text = ""
-    
-    // Gather the source files and validate the result
-    strInput = crpThis.getSource();   // Usually this is [*.psdx] or something like that
-    if (strInput.isEmpty()) {DoError("First choose input files"); bInterrupt = true; return;}
-    // Make an array of input files, as defined in [strInput]
-    arInput = strInput.split(CrpGlobal.GetDelim(strInput));
-    
-    // Which tab is selected?
-    // TODO: automatically switch to the correct tab
-    
-    // Clear the monitor-log first
-    // TODO: clear monitor log (or do that on the client-side in JS??)
-    
-    // Make a new results object
-    this.objRes = new Result();
-    
-    // Get Qext and Dext
-    strQext = crpThis.getPrjTypeManager().getQext();
-    strDext = crpThis.getPrjTypeManager().getDext();
-    
-    // Get the name of this project
-    strName = crpThis.getName();
+       ============ */
+      // Perform other initialisations
+      String strInput = "";           // Source files
+
+      // Perform class initialisations that are valid for all extended classes
+      this.bKeepGarbage = false;    // Do NOT normally retain temporary files
+      bIsXquery = false; bDoStream = false;
+      bErrors = false; bSrcBuilt = false;
+      bXmlData = false; bShowPsd = false;
+      intWait = 0;
+      // Validate: are there any query lines in here?
+      int arSize = crpThis.getListQCsize();
+      if (arSize == 0) {
+        // Check if there are any queries at all
+        if (crpThis.getListQuerySize() ==0) {
+          // TODO: Go to the [Query] tab page
+          // Me.TabControl1.SelectedTab = Me.tpQuery
+          // Show warning
+          DoError("First create one or more queries and put them in the constructor editor");
+        } else {
+          // TODO: Go to the [QC] tab page
+          //  Me.TabControl1.SelectedTab = Me.tpQCedit
+          // Show warning
+          DoError("First put one or more queries in the constructor editor");
+        }
+        // We cannot continue - leave
+        // TODO: include PERIOD + PERIODFILE tests or not??
+        return;
+      } 
+      // Verify the QC consistency
+      if (!VerifyQC()) return;
+      // Reset interruption
+      bInterrupt = false;
+      // Reset output file initialisation
+      // TODO: RuInit(false);
+
+      // Make sure adaptations are processed
+      // TODO: AdaptQnameToQC()
+
+      // Clear the output tabpage
+      // TODO: Me.tbOutput.Text = ""
+
+      // Gather the source files and validate the result
+      strInput = crpThis.getSource();   // Usually this is [*.psdx] or something like that
+      if (strInput.isEmpty()) {DoError("First choose input files"); bInterrupt = true; return;}
+      // Make an array of input files, as defined in [strInput]
+      arInput = strInput.split(CrpGlobal.GetDelim(strInput));
+
+      // Which tab is selected?
+      // TODO: automatically switch to the correct tab
+
+      // Clear the monitor-log first
+      // TODO: clear monitor log (or do that on the client-side in JS??)
+
+      // Make a new results object
+      this.objRes = new Result();
+
+      // Get Qext and Dext
+      strQext = crpThis.getPrjTypeManager().getQext();
+      strDext = crpThis.getPrjTypeManager().getDext();
+
+      // Get the name of this project
+      strName = crpThis.getName();
+      
+      // Get the name of the user
+      this.userId = crpThis.getUserId();
+    } catch (Exception ex) {
+      // Give an error and set interrupt
+      errHandle.DoError("Problem in Execute.Execute()", ex, Execute.class);
+      errHandle.bInterrupt = true;
+    }
   }
 
   @SuppressWarnings("unused")

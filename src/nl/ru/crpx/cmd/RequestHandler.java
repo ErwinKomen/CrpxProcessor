@@ -40,6 +40,9 @@ public abstract class RequestHandler {
   /** The search manager, which executes and caches our searches */
   SearchManager searchMan;
   
+  /** The servlet */
+  CrpxProcessor servlet;
+  
   /** The corpus research project we are processing */
   CorpusResearchProject prjThis;
   String strProject;
@@ -54,10 +57,15 @@ public abstract class RequestHandler {
       this.searchParam.put("query", crpThis.getName());
       // Get my copy of the project
       this.prjThis = crpThis;
+      // Set the project type manager for the CRP
+      crpThis.setPrjTypeManager(servlet.getPrjTypeManager());
+      crpThis.setSearchManager(this.searchMan);
       // Get the current user/session ID from the system
       this.userId = System.getProperty("user.name");
       // Get the name of the project
       strProject = crpThis.getName();
+      // Take over the calling servlet
+      this.servlet = servlet;
 
       // Set up a Request Argument JSON string, mimicking server processing
       sReqArgument = "{ \"userid\": \"" + userId + "\", " + 

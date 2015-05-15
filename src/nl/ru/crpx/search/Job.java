@@ -155,10 +155,19 @@ public abstract class Job implements Comparable<Job> {
     Job search = null;
     String jobClass = par.getString("jobclass");
     // Check what kind of job this is and call the specific job execution
-    if (jobClass.equals("JobXq")) {
-      search = new JobXq(searchMan, userId, par);
-    } else
-      throw new QueryException("INTERNAL_ERROR", "An internal error occurred. Please contact the administrator. Error code: 1.");
+    switch (jobClass) {
+      case "JobXq":
+        search = new JobXq(searchMan, userId, par);
+        break;
+      case "JobXqF":
+        search = new JobXqF(searchMan, userId, par);
+        break;
+      default:
+        throw new QueryException("INTERNAL_ERROR",
+                "An internal error occurred. Please contact the administrator.\n" +
+                        "Unknown jobClass [" + jobClass + "]\n" +
+                        "Error code: 1.");
+    }
 
     return search;
   }

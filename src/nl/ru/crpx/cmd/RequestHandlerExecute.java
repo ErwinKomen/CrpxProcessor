@@ -9,6 +9,7 @@
 package nl.ru.crpx.cmd;
 
 import nl.ru.crpx.dataobject.DataObject;
+import nl.ru.crpx.dataobject.DataObjectMapElement;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.search.Job;
 
@@ -36,9 +37,26 @@ public class RequestHandlerExecute extends RequestHandler {
       Job search;
       // Initiate the search
       search = searchMan.searchXq(prjThis, userId, searchParam);
+      // Get the @id of the job that has been created
+      String sThisJobId = search.getJobId();
+      String sNow = Job.getCurrentTimeStamp();
+      // Additional debugging to find out where the errors come from
+      errHandle.debug("Xqjob [" + sNow + "] userid=[" + sCurrentUserId + "] jobid=[" + 
+              sThisJobId + "], finished=" + 
+              search.finished() + " status=" + search.getJobStatus() );
       
+      // If search is not done yet, indicate this to the user
+      if (!search.finished()) {
+        return DataObject.statusObject("started", "Searching, please wait...", sCurrentUserId, sThisJobId, 
+                servlet.getSearchManager().getCheckAgainAdviceMinimumMs());
+      }
 
-      return null;
+      // Search is done; Create a JSONObject with the correct status and content parts
+
+      // Assemble all the parts
+      DataObjectMapElement response = new DataObjectMapElement();
+      
+      return response;
     } catch (Exception ex) {
       return null;
     }
