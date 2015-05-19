@@ -14,12 +14,14 @@ package nl.ru.xmltools;
 public class ParseResult {
   // ============= Elements of one item ========================================
   public String treeId;    // Identifier of this element
+  public String forestId;  // The forest id
   public String cat;       // Category for sub=categorization
   public String msg;       // Message associated with this element
   public String db;        // Database results;
   // ============= Creation of one element =====================================
-  public ParseResult(String sTreeId, String sCat, String sMsg, String sDb) {
+  public ParseResult(String sTreeId, String sForestId, String sCat, String sMsg, String sDb) {
     this.treeId = sTreeId;
+    this.forestId = sForestId;
     this.cat = sCat;
     this.msg = sMsg;
     this.db = sDb;

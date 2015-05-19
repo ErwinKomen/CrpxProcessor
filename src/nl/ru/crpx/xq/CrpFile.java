@@ -20,6 +20,8 @@ import nl.ru.xmltools.XmlNode;
  * @author Erwin R. Komen
  */
 public class CrpFile {
+  // ================= Static id counter =======================================
+  static long id=0;
   // ================= Variables readable and writable by others ===============
   public CorpusResearchProject crpThis; // Link to the corpus research project
                                         // ALTERNATIVE: use an index to an array(list) of CRPs??
@@ -51,8 +53,11 @@ public class CrpFile {
       this.objProcType = new XmlForest(this.crpThis, jobCaller, this.errHandle);
       // Make sure 
       this.objProcType.setProcType(XmlForest.ForType.PsdxPerForest);
+      // Set my unique identifier
+      id++;
     } catch (Exception ex) {
       errHandle.DoError("Problem creating a [CrpFile] element", ex, CrpFile.class);
     }
   }
+  public long getId() { return this.id; }
 }

@@ -11,15 +11,20 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.xml.transform.ErrorListener;
 import javax.xml.transform.SourceLocator;
 import javax.xml.transform.TransformerException;
+import net.sf.saxon.Configuration;
 import net.sf.saxon.FeatureKeys;
+import net.sf.saxon.query.StaticQueryContext;
 import net.sf.saxon.s9api.DocumentBuilder;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.XQueryCompiler;
 import net.sf.saxon.trans.StaticError;
+import net.sf.saxon.trans.XPathException;
 import static nl.ru.crpx.tools.FileIO.getFileNameWithoutExtension;
 import static nl.ru.crpx.project.CrpGlobal.Status;
 import nl.ru.util.ByRef;
@@ -46,6 +51,8 @@ public class ExecuteXml extends Execute {
   protected List<String> objExmp;       // Element to collect examples for Html output (for the current QC step)
   protected List<String> objSubCat;     // Element to collect subcagegorisation examples for HTML output
   protected Parse objParseXq;           // Object to parse Xquery
+  protected Configuration xconfig;
+  protected StaticQueryContext sqc;
   // protected Extensions objExt;          // Make the extensions available
   private FileUtil fHandle;             // For processing FileUtil functions
   private XqErr oXq;                    // For using XqErr
@@ -59,9 +66,12 @@ public class ExecuteXml extends Execute {
 
     // Set the saxon processor correctly
     objSaxon = oProj.getSaxProc();
+    xconfig = new Configuration();
+    xconfig.setAllowExternalFunctions(true);
+    sqc = new StaticQueryContext(xconfig);
     // Trace binding of external functions (see definition in CrpGlobal)
     if (bTraceXq) {
-      objSaxon.setConfigurationProperty(FeatureKeys.TRACE_EXTERNAL_FUNCTIONS, true);
+      // objSaxon.setConfigurationProperty(FeatureKeys.TRACE_EXTERNAL_FUNCTIONS, true);
       objSaxon.setConfigurationProperty(FeatureKeys.COMPILE_WITH_TRACING, true);
       objSaxon.setConfigurationProperty(FeatureKeys.LINE_NUMBERING, true);
       objSaxon.setConfigurationProperty(FeatureKeys.VALIDATION_WARNINGS, true);
@@ -224,6 +234,8 @@ public class ExecuteXml extends Execute {
       // Store the query file as string into [objQuery.exe]
       qText = fHandle.readFile(strQfile);
       objQuery.Exe = objCompiler.compile(qText);
+      // Alternative method: XQueryExpression
+      objQuery.Exp = sqc.compileQuery(qText);     
       // Return success
       return true;
     } catch (SaxonApiException ex) {
@@ -257,7 +269,7 @@ public class ExecuteXml extends Execute {
       // Make sure interrupt is set
       bInterrupt = true;
       return false;
-    } catch (RuntimeException ex) {
+    } catch (RuntimeException | XPathException ex) {
       // Show error
       DoError("ExecuteXml/GetExec error: " + ex.getMessage() + "\r\n");
       ex.printStackTrace();

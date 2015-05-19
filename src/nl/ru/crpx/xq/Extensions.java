@@ -6,12 +6,10 @@
 
 package nl.ru.crpx.xq;
 
-import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import javax.xml.xpath.XPathExpressionException;
 import net.sf.saxon.expr.XPathContext;
+import net.sf.saxon.om.NodeInfo;
 import net.sf.saxon.s9api.Axis;
 import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.SaxonApiException;
@@ -20,6 +18,7 @@ import net.sf.saxon.s9api.XdmAtomicValue;
 import net.sf.saxon.s9api.XdmNode;
 import net.sf.saxon.s9api.XdmSequenceIterator;
 import net.sf.saxon.s9api.XdmValue;
+import net.sf.saxon.type.Type;
 import net.sf.saxon.value.AtomicValue;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.project.CorpusResearchProject.ProjType;
@@ -28,7 +27,7 @@ import nl.ru.crpx.tools.FileIO;
 import nl.ru.util.ByRef;
 import nl.ru.xmltools.XmlDocument;
 import nl.ru.xmltools.XmlNode;
-import org.xml.sax.SAXException;
+import org.w3c.dom.Node;
 
 /**
  *
@@ -56,11 +55,12 @@ public class Extensions extends RuBase {
   public Extensions(CorpusResearchProject objPrj) {
     // Make sure the class I extend is initialized
     super(objPrj);
+    // Set my own error handler
+    errHandle = new ErrHandle(Extensions.class);
     // Initialize a list of string arrays to help ru:matches()
     objStore = new PatternStore(errHandle);
-    // loc_intProjType = crpThis.intProjType;
-    // loc_sNodeNameSnt = crpThis.sNodeNameSnt;
-    errHandle = new ErrHandle(Extensions.class);
+    // Set my base
+    // objBase = new RuBase(objPrj);
   }
 // <editor-fold defaultstate="collapsed" desc="ru:back">
   // ------------------------------------------------------------------------------------
@@ -436,19 +436,35 @@ public class Extensions extends RuBase {
   // 12-02-2014  ERK Added variant with[strType]
   // 29/apr/2015 ERK Ported to Java
   // ----------------------------------------------------------------------------------------------------------
-  /*
-  public static XdmValue NodeText(XPathContext objXp, XdmValue valSax) {
-    return NodeText(objXp, valSax, "");
-  } */
-  public static XdmValue NodeText(XPathContext objXp, XdmNode ndSax) {
+  public static String NodeText(XPathContext objXp, NodeInfo node) {
+    return NodeText(objXp, node, "");
+  }
+    private static String NodeText(XPathContext objXp, NodeInfo node, String strType) {
+    // XmlDocument docThis = new XmlDocument(); // Where we store it
+    XdmNode ndSax;    // Myself, if I am a proper node
+    String sResult;   // Resulting value
+    int nodeKind;     // The kind of object getting passed as argument
+
     try {
-      XdmValue ndVal = ndSax.getTypedValue();
-      return NodeText(objXp, ndVal, "");
-    } catch (SaxonApiException ex) {
+      // Validate
+      if (node == null) return "";
+      nodeKind = node.getNodeKind();
+      if (nodeKind != Type.ELEMENT) return "";
+      // Get the XdmNode representation of the node
+      ndSax = objSaxDoc.wrap(node);      
+      // Convert to text
+      sResult = RuNodeText(objXp, ndSax, strType);
+      // Return the result
+      return sResult;
+    } catch (IllegalArgumentException ex) {
+      // Show error
       logger.error("Extensions/NodeText error: " + ex.getMessage() + "\r\n");
-      return null;
+      // Return failure
+      return "";
     }
   }
+
+  /*
   public static XdmValue NodeText(XPathContext objXp, XdmValue valSax, AtomicValue strType) {
     return NodeText(objXp, valSax, strType.getStringValue());
   }
@@ -476,7 +492,7 @@ public class Extensions extends RuBase {
       // Return failure
       return loc_EmptyString;
     }
-  }
+  } */
 // </editor-fold>
 
 // <editor-fold defaultstate="collapsed" desc="Private functions">

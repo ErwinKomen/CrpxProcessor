@@ -327,13 +327,17 @@ public class ExecutePsdxStream extends ExecuteXml {
                 bParsed = false;
                 for (int m=0;m<ndxDbList.size(); m++) {
                   // Perform a parse that only resets the collection when m==0
-                  if (objParseXq.DoParseXq(arQuery[k].Name, arQuery[k].Qeval, objSaxDoc, 
-                        arQuery[k].QueryFile,  arQuery[k].Qstring, ndxDbList.get(m).getNode(), colParseRes, (m==0))) bParsed = true;
+                  if (objParseXq.DoParseXq(arQuery[k], objSaxDoc, this.xconfig, oCrpFile,
+                        ndxDbList.get(m), colParseRes, (m==0))) bParsed = true;
                 }
               } else {
                 // Parse this forest
+                /*
                 bParsed = objParseXq.DoParseXq(arQuery[k].Name, arQuery[k].Qeval, objSaxDoc, 
                       arQuery[k].QueryFile,  arQuery[k].Qstring, ndxForest.argValue.getNode(), colParseRes, true);
+                        */
+                bParsed = objParseXq.DoParseXq(arQuery[k], objSaxDoc, this.xconfig, oCrpFile, 
+                        ndxForest.argValue, colParseRes, true);
               }
               // Now is the time to execute stack movement for colRuStack
               // TODO: RuStackExecute()

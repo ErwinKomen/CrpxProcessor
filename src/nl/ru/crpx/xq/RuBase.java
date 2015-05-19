@@ -8,29 +8,22 @@ package nl.ru.crpx.xq;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathExpression;
-import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
-import javax.xml.xpath.XPathFactoryConfigurationException;
-import javax.xml.xpath.XPathVariableResolver;
 import net.sf.saxon.expr.XPathContext;
-import net.sf.saxon.om.NamespaceConstant;
 import net.sf.saxon.s9api.DocumentBuilder;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.QName;
+import net.sf.saxon.s9api.SaxonApiException;
+import net.sf.saxon.s9api.XPathCompiler;
+import net.sf.saxon.s9api.XPathSelector;
+import net.sf.saxon.s9api.XdmItem;
 import net.sf.saxon.s9api.XdmNode;
+import net.sf.saxon.s9api.XdmValue;
 import nl.ru.crpx.project.CorpusResearchProject;
-import nl.ru.crpx.project.ExecuteXml;
 import nl.ru.crpx.tools.ErrHandle;
 import static nl.ru.crpx.xq.English.VernToEnglish;
-import nl.ru.util.StringUtil;
 import nl.ru.util.json.JSONObject;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 
 /**
  *
@@ -48,14 +41,15 @@ public class RuBase /* extends Job */ {
   // ==================== local variables ======================================
   private String strRuLexFile;  // Location of the ru:lex file
   private XPath xpath;
+  private XPathCompiler xpComp;        // My own xpath compiler (Xdm, saxon)
   static Processor objSaxon;           // The processor above the document builder
   static DocumentBuilder objSaxDoc;    // Internal copy of the document-builder to be used
   // ===================== local constant stuff ================================
   private static ErrHandle errHandle;
-  private static XPathExpression ru_xpNodeText_Psdx;   // Search expression for ProjPsdx
-  private static XPathExpression ru_xpNodeText_Folia;  // Search expression for ProjFolia
-  private static XPathExpression ru_xpNodeText_Negra;  // Search expression for ProjNegra
-  private static XPathExpression ru_xpNodeText_Alp;    // Search expression for ProjAlp
+  private static XPathSelector ru_xpeNodeText_Psdx;   // Search expression for ProjPsdx
+  private static XPathSelector ru_xpeNodeText_Folia;  // Search expression for ProjFolia
+  private static XPathSelector ru_xpeNodeText_Negra;  // Search expression for ProjNegra
+  private static XPathSelector ru_xpeNodeText_Alp;    // Search expression for ProjAlp  
   // ===================== public constants ====================================
   public static final QName ru_qnETreeId = new QName("", "", "Id");      // Id feature name of an <eTree> element
   public static final QName ru_qnTreeId = new QName("", "", "TreeId");   // TreeId feature name
@@ -63,6 +57,7 @@ public class RuBase /* extends Job */ {
   public static final QName ru_qnCat = new QName("", "", "Cat");         // Cat feature name
   public static final QName ru_qnFile = new QName("", "", "File");       // File feature name
   public static final QName ru_qnForId = new QName("", "", "forestId");  // forestId feature name
+  public static final QName ru_qnText = new QName("", "", "Text");   // TextId feature name
   public static final QName ru_qnTextId = new QName("", "", "TextId");   // TextId feature name
   public static final QName ru_qnLoc = new QName("", "", "Location");    // Location feature name
   public static final QName ru_qnNegraLoc = new QName("", "", "id");     // location in negra <s> node
@@ -71,6 +66,7 @@ public class RuBase /* extends Job */ {
   public static final QName ru_qnFoliaId = new QName("", "", "id");      // Id of negra <s> or <t> node
   public static final QName ru_qnResultLoc = new QName("", "", "Search");
   public static final QName ru_qnEleaf = new QName("", "", "eLeaf");     // Nodename for <eLeaf> nodes
+  public static final QName ru_qnWord = new QName("", "", "word");        // The @word attribute
 
   // =========================== Local constants ===============================
   private final String RU_LEX = "-Lex";
@@ -99,24 +95,16 @@ public class RuBase /* extends Job */ {
     try {
       // this.xpath = XPathFactory.newInstance(NamespaceConstant.OBJECT_MODEL_SAXON).newXPath();
       this.xpath = XPathFactory.newInstance().newXPath();
-      /* =============
-      // Make sure the class I extend is initialized
-      super(objPrj);
-      ================= */
-      try {
-        // Get the processor
-        this.objSaxon = objPrj.getSaxProc();
-        // Create a document builder
-        this.objSaxDoc = this.objSaxon.newDocumentBuilder();
-        ru_xpNodeText_Psdx = xpath.compile("./descendant::eLeaf[@Type = 'Vern' or @Type = 'Punct']");
-        ru_xpNodeText_Folia = xpath.compile("./descendant::w/child::t");
-        ru_xpNodeText_Alp = xpath.compile("./descendant::node[count(@word)>0]");
-        errHandle = new ErrHandle(RuBase.class);
-        // Create an empty list of CRP callers that use me
-        lCrpCaller = new ArrayList<>();
-      } catch (XPathExpressionException ex) {
-        logger.error("RuBase initialisation error", ex);
-      } 
+      this.objSaxon = objPrj.getSaxProc();
+      this.objSaxDoc = this.objSaxon.newDocumentBuilder();
+      errHandle = new ErrHandle(RuBase.class);
+      lCrpCaller = new ArrayList<>();
+      // Set up the compiler
+      this.xpComp = this.objSaxon.newXPathCompiler();
+      ru_xpeNodeText_Psdx = xpComp.compile("./descendant::eLeaf[@Type = 'Vern' or @Type = 'Punct']").load();
+      ru_xpeNodeText_Folia = xpComp.compile("./descendant::w/child::t").load();
+      ru_xpeNodeText_Alp = xpComp.compile("./descendant::node[count(@word)>0]").load();
+      ru_xpeNodeText_Negra = xpComp.compile("TODO: figure out").load();
     } catch (Exception ex) {
         logger.error("RuBase initialisation error", ex);
     }
@@ -347,6 +335,21 @@ public class RuBase /* extends Job */ {
       return "";
     }
   }
+  
+  // ------------------------------------------------------------------------------------
+  // Name:   getCrpFile
+  // Goal:   Get the correct CrpFile object for the indicated context
+  // History:
+  // 19/may/2015  ERK Created for Java
+  // ------------------------------------------------------------------------------------
+  static CrpFile getCrpFile(XPathContext objXp) {
+    try {
+      return (CrpFile) objXp.getController().getParameter("crpfile");
+    } catch (Exception ex) {
+      errHandle.DoError("RuBase/getCrpFile error", ex, RuBase.class);
+      return null;
+    }
+  }
 
   // ------------------------------------------------------------------------------------
   // Name:   RuNodeText
@@ -356,62 +359,67 @@ public class RuBase /* extends Job */ {
   // 12-02-2014  ERK Added [strType]
   // 29/apr/2015 ERK Implemented for Java
   // ------------------------------------------------------------------------------------
-  public String RuNodeText(XPathContext objXp, XdmNode ndStart) {
+  static String RuNodeText(XPathContext objXp, XdmNode ndStart) {
     // Call the generalized NodeText function
     return RuNodeText(objXp, ndStart, "");
   }
-  public String RuNodeText(XPathContext objXp, XdmNode ndStart, String strType) {
-    NodeList ndList;                // Result of looking for the end-nodes
-    String[] arSent;                // The whole sentence
+  static String RuNodeText(XPathContext objXp, XdmNode ndXdm, String strType) {
+    XdmValue ndList;                // Result of looking for the end-nodes
+    String sBack;                   // Resulting string
     CorpusResearchProject crpThis;  // The CRP we are working with/for
+    XPathSelector selectXp;           // The actual selector we are using
+    StringBuilder sBuild;
     
     try {
       // Validate
-      if (ndStart == null) return "";
+      if (ndXdm == null) return "";
       // Default value for array
-      arSent = null;
+      selectXp = null; sBuild = new StringBuilder();
       // Determine which CRP this is
-      crpThis = ((CrpFile) objXp.getController().getUserData("CrpFile", "CrpFile")).crpThis;
+      CrpFile oCF = getCrpFile(objXp);
       // Action depends on the kind of xml project we have
-      switch(crpThis.intProjType) {
+      switch(oCF.crpThis.intProjType) {
         case ProjPsdx:
           // Make a list of all <eLeaf> nodes
-          ndList = (NodeList) ru_xpNodeText_Psdx.evaluate(ndStart, XPathConstants.NODESET);
-          arSent = new String[ndList.getLength()];
-          for (int i=0;i<ndList.getLength();i++) {
-            Node ndThis = ndList.item(i);
-            arSent[i] = ndThis.getAttributes().getNamedItem("Text").getNodeValue();
+          selectXp = ru_xpeNodeText_Psdx;
+          selectXp.setContextItem(ndXdm);
+          // Go through all the items
+          for (XdmItem item : selectXp) {
+            // Get the @Text attribute values
+            sBuild.append(((XdmNode) item).getAttributeValue(ru_qnText)).append(" ");
           }
           break;
         case ProjFolia:
           // Make a list of all <t> nodes that have a <w> parent
-          ndList = (NodeList) ru_xpNodeText_Folia.evaluate(ndStart, XPathConstants.NODESET);
-          arSent = new String[ndList.getLength()];
-          for (int i=0;i<ndList.getLength();i++) {
-            Node ndThis = ndList.item(i);
-            // Combine the innertext values of the <t> nodes
-            arSent[i] = ndThis.getNodeValue();
+          selectXp = ru_xpeNodeText_Folia;
+          selectXp.setContextItem(ndXdm);
+          // Go through all the items
+          for (XdmItem item : selectXp) {
+            // Get the text value of the node
+            sBuild.append(((XdmNode) item).getStringValue()).append(" ");
           }
           break;
         case ProjAlp:
           // Make a list of all end nodes; Alpino only uses <node> tags
-          ndList = (NodeList) ru_xpNodeText_Alp.evaluate(ndStart, XPathConstants.NODESET);
-          arSent = new String[ndList.getLength()];
-          for (int i=0;i<ndList.getLength();i++) {
-            Node ndThis = ndList.item(i);
-            // combine the @word attribute values
-            arSent[i] = ndThis.getAttributes().getNamedItem("word").getNodeValue();
+          selectXp = ru_xpeNodeText_Alp;
+          selectXp.setContextItem(ndXdm);
+          // Go through all the items
+          for (XdmItem item : selectXp) {
+            // Get the @word attribute values
+            sBuild.append(((XdmNode) item).getAttributeValue(ru_qnWord)).append(" ");
           }
           break;
         case ProjNegra:
           // TODO: implement
           break;
         default:
-          errHandle.DoError("RuNodeText: cannot process type " + crpThis.getProjectType(), RuBase.class);
+          errHandle.DoError("RuNodeText: cannot process type " + oCF.crpThis.getProjectType(), RuBase.class);
       }
+      // Combine the result
+      sBack = sBuild.toString();
       // Build a string from the array
-      return StringUtil.join(arSent, " ");
-    } catch (RuntimeException | XPathExpressionException ex) {
+      return sBack;
+    } catch (RuntimeException | SaxonApiException ex) {
       // Warn user
       errHandle.DoError("RuBase/RuNodeText error", ex, RuBase.class);
       // Return failure
