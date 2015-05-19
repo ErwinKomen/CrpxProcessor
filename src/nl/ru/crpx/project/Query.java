@@ -35,6 +35,7 @@ public class Query {
   String[][] CatExamp;    // Collection of subcategories in this QC step
   XQueryExecutable Exe;   // The executable query
   XQueryEvaluator Qeval;  // Query evaluator
+  String Qstring;         // The whole query as string
 }
 
 

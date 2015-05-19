@@ -203,8 +203,9 @@ public class CrpxProcessor {
       CrpxProcessor caller = new CrpxProcessor();
       // Elicit a response
       response = RequestHandler.handle(caller, indexName, prjThis);
-      // Determine response output type
-      DataFormat outputType = response.getOverrideType(); // some responses override the user's request (i.e. article XML)
+      // Set the response's output type: we'll experiment with JSON
+      DataFormat outputType = DataFormat.JSON;
+      // DataFormat outputType = response.getOverrideType(); // some responses override the user's request (i.e. article XML)
 
       String rootEl = "crpxResponse";
       // TODO: handle DataObjectPlain

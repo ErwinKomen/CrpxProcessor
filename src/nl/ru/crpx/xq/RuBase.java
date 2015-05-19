@@ -8,15 +8,23 @@ package nl.ru.crpx.xq;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
+import javax.xml.xpath.XPathFactoryConfigurationException;
+import javax.xml.xpath.XPathVariableResolver;
 import net.sf.saxon.expr.XPathContext;
+import net.sf.saxon.om.NamespaceConstant;
+import net.sf.saxon.s9api.DocumentBuilder;
+import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.XdmNode;
 import nl.ru.crpx.project.CorpusResearchProject;
+import nl.ru.crpx.project.ExecuteXml;
 import nl.ru.crpx.tools.ErrHandle;
 import static nl.ru.crpx.xq.English.VernToEnglish;
 import nl.ru.util.StringUtil;
@@ -38,9 +46,11 @@ public class RuBase /* extends Job */ {
   // ==================== static list of all CRPs that are using me ============
   private static List<CrpFile> lCrpCaller;
   // ==================== local variables ======================================
-  // private CrpGlobal objGen;
   private String strRuLexFile;  // Location of the ru:lex file
-  private XPath xpath = XPathFactory.newInstance().newXPath();
+  private XPath xpath;
+  static Processor objSaxon;           // The processor above the document builder
+  static DocumentBuilder objSaxDoc;    // Internal copy of the document-builder to be used
+  // ===================== local constant stuff ================================
   private static ErrHandle errHandle;
   private static XPathExpression ru_xpNodeText_Psdx;   // Search expression for ProjPsdx
   private static XPathExpression ru_xpNodeText_Folia;  // Search expression for ProjFolia
@@ -86,19 +96,29 @@ public class RuBase /* extends Job */ {
 
   // =========================== instantiate the class =========================
   public RuBase(CorpusResearchProject objPrj) {
-    /* =============
-    // Make sure the class I extend is initialized
-    super(objPrj); 
-    ================= */
     try {
-      ru_xpNodeText_Psdx = xpath.compile("./descendant::eLeaf[@Type = 'Vern' or @Type = 'Punct']");
-      ru_xpNodeText_Folia = xpath.compile("./descendant::w/child::t");
-      ru_xpNodeText_Alp = xpath.compile("./descendant::node[count(@word)>0]");
-      errHandle = new ErrHandle(RuBase.class);
-      // Create an empty list of CRP callers that use me
-      lCrpCaller = new ArrayList<>();
-    } catch (XPathExpressionException ex) {
-      logger.error("RuBase initialisation error", ex);
+      // this.xpath = XPathFactory.newInstance(NamespaceConstant.OBJECT_MODEL_SAXON).newXPath();
+      this.xpath = XPathFactory.newInstance().newXPath();
+      /* =============
+      // Make sure the class I extend is initialized
+      super(objPrj);
+      ================= */
+      try {
+        // Get the processor
+        this.objSaxon = objPrj.getSaxProc();
+        // Create a document builder
+        this.objSaxDoc = this.objSaxon.newDocumentBuilder();
+        ru_xpNodeText_Psdx = xpath.compile("./descendant::eLeaf[@Type = 'Vern' or @Type = 'Punct']");
+        ru_xpNodeText_Folia = xpath.compile("./descendant::w/child::t");
+        ru_xpNodeText_Alp = xpath.compile("./descendant::node[count(@word)>0]");
+        errHandle = new ErrHandle(RuBase.class);
+        // Create an empty list of CRP callers that use me
+        lCrpCaller = new ArrayList<>();
+      } catch (XPathExpressionException ex) {
+        logger.error("RuBase initialisation error", ex);
+      } 
+    } catch (Exception ex) {
+        logger.error("RuBase initialisation error", ex);
     }
   }
 // <editor-fold defaultstate="collapsed" desc="Handling of the CrpCaller list">

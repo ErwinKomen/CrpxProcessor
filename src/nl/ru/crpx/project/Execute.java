@@ -68,7 +68,7 @@ public class Execute extends CrpGlobal {
   protected String strQtemp;        // Prefix to query file to indicate it is temporary
   protected String strOtemp;        // Name of temporary output file
   protected String strCtemp;        // Name of temporary complement file
-  protected XmlForest objProcType;  // Provides functions, depending on processing type in [XmlForest]
+  // protected XmlForest objProcType;  // Provides functions, depending on processing type in [XmlForest]
   protected Job objSearchJob;
   // =============== local constants ===========================================
   // in .NET: String strRuDef = "declare namespace ru = 'clitype:CorpusStudio.RuXqExt.RU?asm=CorpusStudio';\r\n";
@@ -86,7 +86,7 @@ public class Execute extends CrpGlobal {
       // Set the rubase
       ruBase = new RuBase(crpThis);
       // Set the maximum number of parallel jobs per user
-      iMaxParJobs = 4;    // TODO: this should depend on the number of processors available!
+      iMaxParJobs = 1;    // TODO: this should depend on the number of processors available!
       // Set the search manager associated with the CRP
       this.searchMan = crpThis.getSearchManager();
       // Create a search parameters object
@@ -193,149 +193,153 @@ public class Execute extends CrpGlobal {
     int iSize = 0;                // Size of a table
     boolean bResult = true;       // The result of execution
     
-    // Validate
-    if (this.crpThis == null) return false;
-    // Initialisations
-    strQtemp = "temp_";                     // Prefix to temporary file
-    intWait = 500;                          // TODO: Waiting time for...
-    bInterrupt = false;                     // Clear interrupt flag
-    bDoStream = this.crpThis.getStream();   // Execute streaming mode or not
-    this.setCurrentPsdx("");                // Indicate that there is no currently loaded file
-    
-    // Initialise syntax error dataset
-    // TODO: InitXqErr()
-    
-    // Combine all source files into one List
-    lSources = new ArrayList<>();
-    for (String strInp : this.arInput) {
-      // Check if this is not empty
-      if (!strInp.trim().equals("")) {
-        // Add this to the list of sources
-        lSources.add(strInp.trim());
-      }
-    }
-    
-    // Start with overviewline 0
-    intOviewLine = 0;
-    Status("Checking query lines...");
-    // Position the QC items into the [arQuery] element
-    // Note: the array has already been sorted through "VerifyQC" which is called
-    //       from the creator of class Execute
-    iSize = this.crpThis.getListQCsize();
-    // Make room for the arQuery structure
-    arQuery = new Query[iSize];
-    // Walk all rows
-    for (int i=0;i<iSize;i++) {
-      // Get this element from the QC
-      JSONObject oThis = this.crpThis.getListQCitem(i);
-      // Get this element from [arQuery]
-      Query oQuery = new Query(); // arQuery[i];
-      // Note the name of the query
-      oQuery.Name = getJsonString(oThis, "Query");
-      // Set the error log file
-      oQuery.ErrorFile = FileUtil.nameNormalize(this.crpThis.getDstDir().getAbsolutePath() + 
-              "/ErrorLogStep" + (i + 1) + ".txt");
-      // Note the line of this query
-      oQuery.Line = Integer.parseInt(getJsonString(oThis, "QCid"));
-      // Derive the output file
-      oQuery.OutputFile = getJsonString(oThis, "Output"); 
-      if (oQuery.OutputFile.equals("")) {
-        // Make an output file (without proper extension still)
-        oQuery.OutputFile = TEMP_FILE + String.valueOf(i + 1);
-        // Do NOT increment the overview line
-        // Instead, indicate that this row does not have overview output
-        oQuery.OviewLine = -1;
-      } else {
-        // Indicate what the overview line is
-        oQuery.OviewLine = intOviewLine;
-        // DO increment the overview line
-        intOviewLine++;
-      }
-      // Add the path to the output file
-      oQuery.OutputFile = this.crpThis.getDstDir().getAbsolutePath() + 
-              "/" + oQuery.OutputFile;
-      // Does a complement need to be produced?
-      oQuery.Cmp = (getJsonString(oThis, "Cmp").equals("True"));
-      // Do we need to keep the output and/or complement?
-      oQuery.Mother = (getJsonString(oThis, "Mother").equals("True"));
-      // What about includeing examples or not?
-      oQuery.NoExmp = (getJsonString(oThis, "NoExmp").equals("True"));
-      // Get the description
-      oQuery.Descr = getJsonString(oThis, "Result");
-      // Calculate the input file
-      strInput = getJsonString(oThis, "Input");
-      // Divide the name into two parts
-      arInput = strInput.split("[/]", -1);
-      // Find out what to do
-      switch (arInput[0]) {
-        case "s":
-        case "S":
-        case "Src":
-        case "src":
-        case "Source":
-        case "source":
-          // Set the InputLine
-          oQuery.InputLine = 0;
-          oQuery.InputCmp = false;
-          // Check the list of source files
-          if (lSources.isEmpty()) {
-            // Warn user
-            Status("No input file is defined - finished");
-            // Exit 
-            return false;
-          }
-          // Take the original source names into a semi-list
-          strInput = StringUtil.join(lSources, ";");
-          break;
-        default:
-          // Set the input line
-          oQuery.InputLine = Integer.parseInt(arInput[0]);
-          oQuery.InputCmp = (arInput[1].equalsIgnoreCase("cmp"));
-          // Get the input file name from the output we refer to
-          strInput = GetOutput(Integer.parseInt(arInput[0]));
-          // Add the extension
-          strInput += "." + arInput[1];
-          break;
-      }
-      // Set the input file(s)
-      oQuery.InputFile = strInput;  // These are bare names; do not normalize them
-      // Set the name of the query file
-      oQuery.QueryFile = FileUtil.nameNormalize(this.crpThis.getDstDir().getAbsolutePath() + 
-              "/" + strQtemp + getJsonString(oThis, "Query") + strQext);
-      // Store the query object into arQuery
-      arQuery[i] = oQuery;
-    }
+    try {
+      // Validate
+      if (this.crpThis == null) return false;
+      // Initialisations
+      strQtemp = "temp_";                     // Prefix to temporary file
+      intWait = 500;                          // TODO: Waiting time for...
+      bInterrupt = false;                     // Clear interrupt flag
+      bDoStream = this.crpThis.getStream();   // Execute streaming mode or not
+      this.setCurrentPsdx("");                // Indicate that there is no currently loaded file
 
-    // Place all the query files in the output directory (temporarily?)
-    if (!ExtractFiles("Query", strQtemp, strQext)) return false;
-    // Place all the definition files in the output directory (temporarily?)
-    if (!ExtractFiles("Definition", "", strDext)) return false;
-    // If this is Xquery, then the definition files need to be "included" in the query files
-    if (crpThis.getPrjTypeManager().getEngine().toLowerCase().contains("xquery")) {
-      if (!IncludeDefInQueries("Query", strQtemp, strQext, "Definition", "", strDext))
-        return false;
+      // Initialise syntax error dataset
+      // TODO: InitXqErr()
+
+      // Combine all source files into one List
+      lSources = new ArrayList<>();
+      for (String strInp : this.arInput) {
+        // Check if this is not empty
+        if (!strInp.trim().equals("")) {
+          // Add this to the list of sources
+          lSources.add(strInp.trim());
+        }
+      }
+
+      // Start with overviewline 0
+      intOviewLine = 0;
+      Status("Checking query lines...");
+      // Position the QC items into the [arQuery] element
+      // Note: the array has already been sorted through "VerifyQC" which is called
+      //       from the creator of class Execute
+      iSize = this.crpThis.getListQCsize();
+      // Make room for the arQuery structure
+      arQuery = new Query[iSize];
+      // Walk all rows
+      for (int i=0;i<iSize;i++) {
+        // Get this element from the QC
+        JSONObject oThis = this.crpThis.getListQCitem(i);
+        // Get this element from [arQuery]
+        Query oQuery = new Query(); // arQuery[i];
+        // Note the name of the query
+        oQuery.Name = getJsonString(oThis, "Query");
+        // Set the error log file
+        oQuery.ErrorFile = FileUtil.nameNormalize(this.crpThis.getDstDir().getAbsolutePath() + 
+                "/ErrorLogStep" + (i + 1) + ".txt");
+        // Note the line of this query
+        oQuery.Line = Integer.parseInt(getJsonString(oThis, "QCid"));
+        // Derive the output file
+        oQuery.OutputFile = getJsonString(oThis, "Output"); 
+        if (oQuery.OutputFile.equals("")) {
+          // Make an output file (without proper extension still)
+          oQuery.OutputFile = TEMP_FILE + String.valueOf(i + 1);
+          // Do NOT increment the overview line
+          // Instead, indicate that this row does not have overview output
+          oQuery.OviewLine = -1;
+        } else {
+          // Indicate what the overview line is
+          oQuery.OviewLine = intOviewLine;
+          // DO increment the overview line
+          intOviewLine++;
+        }
+        // Add the path to the output file
+        oQuery.OutputFile = this.crpThis.getDstDir().getAbsolutePath() + 
+                "/" + oQuery.OutputFile;
+        // Does a complement need to be produced?
+        oQuery.Cmp = (getJsonString(oThis, "Cmp").equals("True"));
+        // Do we need to keep the output and/or complement?
+        oQuery.Mother = (getJsonString(oThis, "Mother").equals("True"));
+        // What about includeing examples or not?
+        oQuery.NoExmp = (getJsonString(oThis, "NoExmp").equals("True"));
+        // Get the description
+        oQuery.Descr = getJsonString(oThis, "Result");
+        // Calculate the input file
+        strInput = getJsonString(oThis, "Input");
+        // Divide the name into two parts
+        arInput = strInput.split("[/]", -1);
+        // Find out what to do
+        switch (arInput[0]) {
+          case "s":
+          case "S":
+          case "Src":
+          case "src":
+          case "Source":
+          case "source":
+            // Set the InputLine
+            oQuery.InputLine = 0;
+            oQuery.InputCmp = false;
+            // Check the list of source files
+            if (lSources.isEmpty()) {
+              // Warn user
+              Status("No input file is defined - finished");
+              // Exit 
+              return false;
+            }
+            // Take the original source names into a semi-list
+            strInput = StringUtil.join(lSources, ";");
+            break;
+          default:
+            // Set the input line
+            oQuery.InputLine = Integer.parseInt(arInput[0]);
+            oQuery.InputCmp = (arInput[1].equalsIgnoreCase("cmp"));
+            // Get the input file name from the output we refer to
+            strInput = GetOutput(Integer.parseInt(arInput[0]));
+            // Add the extension
+            strInput += "." + arInput[1];
+            break;
+        }
+        // Set the input file(s)
+        oQuery.InputFile = strInput;  // These are bare names; do not normalize them
+        // Set the name of the query file
+        oQuery.QueryFile = FileUtil.nameNormalize(this.crpThis.getDstDir().getAbsolutePath() + 
+                "/" + strQtemp + getJsonString(oThis, "Query") + strQext);
+        // Store the query object into arQuery
+        arQuery[i] = oQuery;
+      }
+
+      // Place all the query files in the output directory (temporarily?)
+      if (!ExtractFiles("Query", strQtemp, strQext)) return false;
+      // Place all the definition files in the output directory (temporarily?)
+      if (!ExtractFiles("Definition", "", strDext)) return false;
+      // If this is Xquery, then the definition files need to be "included" in the query files
+      if (crpThis.getPrjTypeManager().getEngine().toLowerCase().contains("xquery")) {
+        if (!IncludeDefInQueries("Query", strQtemp, strQext, "Definition", "", strDext))
+          return false;
+      }
+
+      // Set the working directory to the OUTPUT directory
+
+      // Initialisations on variables for all classes that extend "Execute"
+      strOtemp = FileUtil.nameNormalize(crpThis.getDstDir() + "/XqOut.xml");
+      strCtemp = FileUtil.nameNormalize(crpThis.getDstDir() + "/XqCmp.xml");
+      // Initialise the Out and Cmp arrays
+      arOutExists = new boolean[arQuery.length + 2];
+      arCmpExists = new boolean[arQuery.length + 2];
+      arSource = new String[1]; // TODO: can be taken away when [lSource] is fully operational
+      lSource = new ArrayList<>();
+
+      // Determine the correct names of the corpus result files
+      strHtmlFile = FileUtil.nameNormalize(crpThis.getDstDir() + "/" + strName + "-results.html");
+      strJsonFile = FileUtil.nameNormalize(crpThis.getDstDir() + "/" + strName + "-results.json");
+
+      // Indicate that we are starting execution of a CRP query series
+      Status("Starting execution of queries at: " + getCurrentTimeStamp());
+
+      // Return the result of this operation
+      return bResult;
+    } catch (Exception ex) {
+      return errHandle.DoError("ExecuteQueriesSetUp failed: ", ex, Execute.class);
     }
-    
-    // Set the working directory to the OUTPUT directory
-    
-    // Initialisations on variables for all classes that extend "Execute"
-    strOtemp = FileUtil.nameNormalize(crpThis.getDstDir() + "/XqOut.xml");
-    strCtemp = FileUtil.nameNormalize(crpThis.getDstDir() + "/XqCmp.xml");
-    // Initialise the Out and Cmp arrays
-    arOutExists = new boolean[arQuery.length + 2];
-    arCmpExists = new boolean[arQuery.length + 2];
-    arSource = new String[1]; // TODO: can be taken away when [lSource] is fully operational
-    lSource = new ArrayList<>();
-    
-    // Determine the correct names of the corpus result files
-    strHtmlFile = FileUtil.nameNormalize(crpThis.getDstDir() + "/" + strName + "-results.html");
-    strJsonFile = FileUtil.nameNormalize(crpThis.getDstDir() + "/" + strName + "-results.json");
-    
-    // Indicate that we are starting execution of a CRP query series
-    Status("Starting execution of queries at: " + getCurrentTimeStamp());
-    
-    // Return the result of this operation
-    return bResult;
   }
   
   /* ---------------------------------------------------------------------------

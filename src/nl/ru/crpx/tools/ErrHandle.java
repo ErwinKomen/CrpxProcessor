@@ -43,6 +43,8 @@ public class ErrHandle {
       oThis.put("cls", cls.getName());
     // Add the object to the static stack
     lErrStack.add(oThis);
+    // DEBUGGING: also show it in the error logger
+    logger.error(msg, ex);
     // Return failure
     return false;
   }

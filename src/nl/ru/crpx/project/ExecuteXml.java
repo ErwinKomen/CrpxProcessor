@@ -25,7 +25,6 @@ import static nl.ru.crpx.project.CrpGlobal.Status;
 import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
 import nl.ru.xmltools.Parse;
-import nl.ru.xmltools.XmlNode;
 import nl.ru.xmltools.XqErr;
 // </editor-fold>
 
@@ -58,8 +57,8 @@ public class ExecuteXml extends Execute {
     // For work with Saxon Xquery see the 9.1.0.1 documentation:
     //  D:/DownLoad/XML/saxon-resources9-1-0-1/doc/using-xquery/api-query/s9api-query.html
 
-    // Create a processor that is NOT schema-aware (so we use Saxon-B 9.1.0.8)
-    objSaxon = new Processor(false);
+    // Set the saxon processor correctly
+    objSaxon = oProj.getSaxProc();
     // Trace binding of external functions (see definition in CrpGlobal)
     if (bTraceXq) {
       objSaxon.setConfigurationProperty(FeatureKeys.TRACE_EXTERNAL_FUNCTIONS, true);
@@ -78,6 +77,7 @@ public class ExecuteXml extends Execute {
     // Create a compiler and a document builder
     objCompiler = objSaxon.newXQueryCompiler();
     objCompiler.setCompileWithTracing(true);
+    
     objSaxDoc = objSaxon.newDocumentBuilder();
     // objExt = new Extensions();
     objParseXq = new Parse(oProj, errHandle);
@@ -121,6 +121,7 @@ public class ExecuteXml extends Execute {
         qThis.CatNum = 0;
         // Load the executable into a query evaluate
         qThis.Qeval = qThis.Exe.load();
+        qThis.Qstring = FileUtil.readFile(qThis.QueryFile);
         // make room for examples
         qThis.Examp = new ArrayList<>();
         // Determine HTML filename for this step

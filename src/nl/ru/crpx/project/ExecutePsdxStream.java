@@ -8,6 +8,10 @@ package nl.ru.crpx.project;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.xml.xpath.XPathExpressionException;
+import net.sf.saxon.s9api.QName;
 import nl.ru.crpx.search.Job;
 import nl.ru.crpx.search.JobXq;
 import nl.ru.crpx.search.JobXqF;
@@ -40,6 +44,10 @@ public class ExecutePsdxStream extends ExecuteXml {
   // ============ Local variables for "Xq" =====================================
   List<JobXqF> arJob = new ArrayList<>(); // A list of all the current XqF jobs running
   List<String> arRes = new ArrayList<>(); // The results of each job
+  // ========== constants ======================================================
+  private static final QName loc_xq_EtreeId = new QName("", "", "TreeId");
+  private static final QName loc_xq_Section = new QName("", "", "Section");
+  private static final QName loc_xq_Location = new QName("", "", "Location");
 
   // ============ Local variables for "XqF" ====================================
   
@@ -62,7 +70,7 @@ public class ExecutePsdxStream extends ExecuteXml {
     // TODO: make sure we provide [intCurrentQCline] with the correct value!!
   }
 
-// <editor-fold desc="XqF">
+// <editor-fold desc="Part 1: Xq">
   /* ---------------------------------------------------------------------------
      Name:    ExecuteQueries
      Goal:    Execute the queries in the given order for Xquery type processing
@@ -77,10 +85,12 @@ public class ExecutePsdxStream extends ExecuteXml {
     try {
       // Set the job for global access within Execute > ExecuteXml > ExecutePsdxStream
       this.objSearchJob = jobCaller;
+      /* ========= Should not be here
       // Set the XmlForest element correctly
       this.objProcType = new XmlForest(this.crpThis,(JobXq) jobCaller, this.errHandle);
       // Make sure 
       this.objProcType.setProcType(ForType.PsdxPerForest);
+      ========================== */
       // Perform general setup
       if (!super.ExecuteQueriesSetUp()) return false;
       // Perform setup part that is specifically for Xml/Xquery
@@ -94,7 +104,7 @@ public class ExecutePsdxStream extends ExecuteXml {
         // Take this input file
         File fInput = new File(lSource.get(i));
         // Add the combination of File/CRP to the stack
-        CrpFile oCrpFile = new CrpFile(this.crpThis, fInput);
+        CrpFile oCrpFile = new CrpFile(this.crpThis, fInput, objSaxon, (JobXq) jobCaller);
         RuBase.setCrpCaller(oCrpFile);
         // Get the @id of this combination
         iCrpFileId = RuBase.getCrpCaller(oCrpFile);
@@ -163,7 +173,7 @@ public class ExecutePsdxStream extends ExecuteXml {
   private boolean monitorXqF(int iUntil) {
     try {
       // Loop while the number of jobs is larger than the maximum
-      while (arJob.size() > iUntil) {
+      while (arJob.size() >= iUntil) {
         // Visit all jobs
         for (int i = 0; i<arJob.size(); i++ ) {
           // Get this XqF job
@@ -188,7 +198,7 @@ public class ExecutePsdxStream extends ExecuteXml {
   }
 // </editor-fold>
 
-// <editor-fold desc="XqF">
+// <editor-fold desc="Part 2: XqF">
   /** 
    * ExecuteQueriesFile - Execute all the queries in [arQuery] on one file
    * 
@@ -218,6 +228,7 @@ public class ExecutePsdxStream extends ExecuteXml {
     String strEtreeMsg;         // Message attached to the found result
     String strEtreeCat;         // Subcategorization attached to found result
     String strEtreeDb;          // Database values attached to found result
+    String sSeg;                // DEBUGGING
     List<XmlNode> ndxDbList;    // All nodes for current text/forest combination
     XmlNode ndxDbPrev;          // Previous database location
     XmlNode ndxForestBack;      // Forest inside which the resulting [eTree] resides
@@ -229,6 +240,7 @@ public class ExecutePsdxStream extends ExecuteXml {
     ByRef<Integer> intForestId; // ID (numerical) of the current <forest>
     ByRef<Integer> intPtc;      // Percentage of where we are
     List<ParseResult> colParseRes;  // Results of one parse (values of @eTree etc)
+    XmlForest objProcType;      // Access to the XmlForest object allocated to me
     JSONArray arXqf;
     
     // Note: this uses [objProcType, which is a 'protected' variable from [Execute]
@@ -238,6 +250,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       // Get the file
       File fThis = oCrpFile.flThis;
       // Initialisations
+      objProcType = oCrpFile.objProcType;
       ndxForest = new ByRef(null); ndxDbRes = new ByRef(null);
       ndxHeader = new ByRef(null);
       strForestFile = fThis.getAbsolutePath();
@@ -258,6 +271,10 @@ public class ExecutePsdxStream extends ExecuteXml {
       oCrpFile.ndxHeader = ndxHeader.argValue;
       // Loop through the file in <forest> chunks
       while (ndxForest.argValue != null) {
+        // ============ DEBUG ==================
+        sSeg = ndxForest.argValue.SelectSingleNode("./child::div[@lang='org']/child::seg").getNodeValue();
+        logger.debug("PsdxStream seg = [" + sSeg + "]");
+        // =====================================
         // Get the @forestId value of this forest
         if (!objProcType.GetForestId(ndxForest, intForestId)) return errHandle.DoError("Could not obtain @forestId");
         // Get a percentage of where we are
@@ -282,9 +299,9 @@ public class ExecutePsdxStream extends ExecuteXml {
           // Always process
           bDoForest = true;
           // Check if this <forest> node contains a start-of-section marker
-          if (ndxForest.argValue.getLocalName().equals("forest")) {
+          if (ndxForest.argValue.getNodeName().getLocalName().equals("forest")) {
             // Try get tyhe "Section" attribute
-            Node attrS = ndxForest.argValue.Attributes("Section");
+            String attrS = ndxForest.argValue.getAttributeValue(loc_xq_Section);
             if (attrS != null) {
               // Clear the stack for colRuStack
               // TODO: implement
@@ -311,12 +328,12 @@ public class ExecutePsdxStream extends ExecuteXml {
                 for (int m=0;m<ndxDbList.size(); m++) {
                   // Perform a parse that only resets the collection when m==0
                   if (objParseXq.DoParseXq(arQuery[k].Name, arQuery[k].Qeval, objSaxDoc, 
-                          ndxDbList.get(m), colParseRes, (m==0))) bParsed = true;
+                        arQuery[k].QueryFile,  arQuery[k].Qstring, ndxDbList.get(m).getNode(), colParseRes, (m==0))) bParsed = true;
                 }
               } else {
                 // Parse this forest
                 bParsed = objParseXq.DoParseXq(arQuery[k].Name, arQuery[k].Qeval, objSaxDoc, 
-                        ndxForest.argValue, colParseRes, true);
+                      arQuery[k].QueryFile,  arQuery[k].Qstring, ndxForest.argValue.getNode(), colParseRes, true);
               }
               // Now is the time to execute stack movement for colRuStack
               // TODO: RuStackExecute()
@@ -361,11 +378,13 @@ public class ExecutePsdxStream extends ExecuteXml {
                       // Is this a new QCline/Subcat combination?
                       intCatLine = 0;
                     }
+                    // Get the location string
+                    String sLoc = ndxForestBack.getAttributeValue(loc_xq_Location);
                     // Create output for this line
                     JSONObject oXqfRes = new JSONObject();
                     oXqfRes.put("oview", intOviewLine);
                     oXqfRes.put("file", fThis.getName());
-                    oXqfRes.put("search", ndxForestBack.Attributes("Location").getNodeValue());
+                    oXqfRes.put("search", sLoc);
                     oXqfRes.put("forestId", String.valueOf(intForestId));
                     oXqfRes.put("eTreeId", strTreeId);
                     oXqfRes.put("Cat", strEtreeCat);
@@ -398,7 +417,12 @@ public class ExecutePsdxStream extends ExecuteXml {
       return true;
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("ExecutePsdxStream/ExecuteQueriesFile error: " + ex.getMessage() + "\r\n");
+      DoError("ExecutePsdxStream/ExecuteQueriesFile runtime error: " + ex.getMessage() + "\r\n");
+      // Return failure
+      return false;
+    } catch (XPathExpressionException ex) {
+      // Warn user
+      DoError("ExecutePsdxStream/ExecuteQueriesFile xpath error: " + ex.getMessage() + "\r\n");
       // Return failure
       return false;
     }

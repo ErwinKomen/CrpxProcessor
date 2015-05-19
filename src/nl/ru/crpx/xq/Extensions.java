@@ -7,12 +7,16 @@
 package nl.ru.crpx.xq;
 
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import javax.xml.xpath.XPathExpressionException;
 import net.sf.saxon.expr.XPathContext;
 import net.sf.saxon.s9api.Axis;
 import net.sf.saxon.s9api.QName;
+import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.SaxonApiUncheckedException;
+import net.sf.saxon.s9api.XdmAtomicValue;
 import net.sf.saxon.s9api.XdmNode;
 import net.sf.saxon.s9api.XdmSequenceIterator;
 import net.sf.saxon.s9api.XdmValue;
@@ -36,6 +40,7 @@ public class Extensions extends RuBase {
   // ============== Variables associated with the *class* "Extensions" =========
   private static PatternStore objStore;
   private static RuBase objBase;
+  private static final XdmValue loc_EmptyString = new XdmAtomicValue("");
   // ============== Variables local to me ======================================
   // private static CorpusResearchProject prjThis;
   private static ProjType loc_intProjType;
@@ -86,13 +91,14 @@ public class Extensions extends RuBase {
               " forestId=\"" + strForestId.argValue + "\"" + 
               " TreeId=\"" + strTreeId.argValue + "\"" + 
               "/>";
-      pdxThis = new XmlDocument();
+      
+      pdxThis = new XmlDocument(objSaxDoc, objSaxon);
       pdxThis.LoadXml(sNode);
       ndxFor = pdxThis.SelectSingleNode("//forest");
 
       // Return positively
       return ndxFor;
-    } catch (RuntimeException | XPathExpressionException | IOException | SAXException ex) {
+    } catch (RuntimeException | XPathExpressionException | SaxonApiException ex) {
       // Warn user
       errHandle.DoError("Extensions/back() error", ex, Extensions.class);
       // Return failure
@@ -126,13 +132,13 @@ public class Extensions extends RuBase {
               " TreeId=\"" + strTreeId.argValue + "\"" + 
               " Msg=\"" + strMsg + "\"" + 
               "/>";
-      pdxThis = new XmlDocument();
+      pdxThis = new XmlDocument(objSaxDoc, objSaxon);
       pdxThis.LoadXml(sNode);
       ndxFor = pdxThis.SelectSingleNode("//forest");
       
       // Return positively
       return ndxFor;
-    } catch (RuntimeException | XPathExpressionException | IOException | SAXException ex) {
+    } catch (RuntimeException | XPathExpressionException | SaxonApiException ex) {
       // Warn user
       errHandle.DoError("Extensions/back() error", ex, Extensions.class);
       // Return failure
@@ -169,13 +175,13 @@ public class Extensions extends RuBase {
               " Msg=\"" + strMsg + "\"" + 
               " Cat=\"" + strCat + "\"" + 
               "/>";
-      pdxThis = new XmlDocument();
+      pdxThis = new XmlDocument(objSaxDoc, objSaxon);
       pdxThis.LoadXml(sNode);
       ndxFor = pdxThis.SelectSingleNode("//forest");
       
       // Return positively
       return ndxFor;
-    } catch (RuntimeException | XPathExpressionException | IOException | SAXException ex) {
+    } catch (RuntimeException | XPathExpressionException | SaxonApiException ex) {
       // Warn user
       errHandle.DoError("Extensions/back() error", ex, Extensions.class);
       // Return failure
@@ -430,30 +436,45 @@ public class Extensions extends RuBase {
   // 12-02-2014  ERK Added variant with[strType]
   // 29/apr/2015 ERK Ported to Java
   // ----------------------------------------------------------------------------------------------------------
-  public static String NodeText(XPathContext objXp, XdmValue valSax) {
+  /*
+  public static XdmValue NodeText(XPathContext objXp, XdmValue valSax) {
     return NodeText(objXp, valSax, "");
+  } */
+  public static XdmValue NodeText(XPathContext objXp, XdmNode ndSax) {
+    try {
+      XdmValue ndVal = ndSax.getTypedValue();
+      return NodeText(objXp, ndVal, "");
+    } catch (SaxonApiException ex) {
+      logger.error("Extensions/NodeText error: " + ex.getMessage() + "\r\n");
+      return null;
+    }
   }
-  public static String NodeText(XPathContext objXp, XdmValue valSax, AtomicValue strType) {
+  public static XdmValue NodeText(XPathContext objXp, XdmValue valSax, AtomicValue strType) {
     return NodeText(objXp, valSax, strType.getStringValue());
   }
-  private static String NodeText(XPathContext objXp, XdmValue valSax, String strType) {
+  private static XdmValue NodeText(XPathContext objXp, XdmValue valSax, String strType) {
     // XmlDocument docThis = new XmlDocument(); // Where we store it
     XdmNode ndSax = null; // Myself, if I am a proper node
+    String sResult = "";  // Resulting value
+    XdmValue oBack;
 
     try {
       // Validate
-      ndSax = getNodeValue(valSax); if (ndSax==null) return "";
+      ndSax = getNodeValue(valSax); 
+      if (ndSax==null) return loc_EmptyString;
       // Transform to XML document
       // docThis.LoadXml(ndSax.OuterXml);
       
       // Convert to text
       // return GetNodeText(docThis.FirstChild, strType);
-      return objBase.RuNodeText(objXp, ndSax, strType);
+      sResult = objBase.RuNodeText(objXp, ndSax, strType);
+      oBack = new XdmAtomicValue(sResult);
+      return oBack;
     } catch (RuntimeException ex) {
       // Show error
       logger.error("Extensions/NodeText error: " + ex.getMessage() + "\r\n");
       // Return failure
-      return "";
+      return loc_EmptyString;
     }
   }
 // </editor-fold>
