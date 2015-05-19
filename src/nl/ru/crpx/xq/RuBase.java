@@ -101,11 +101,11 @@ public class RuBase /* extends Job */ {
       lCrpCaller = new ArrayList<>();
       // Set up the compiler
       this.xpComp = this.objSaxon.newXPathCompiler();
-      ru_xpeNodeText_Psdx = xpComp.compile("./descendant::eLeaf[@Type = 'Vern' or @Type = 'Punct']").load();
-      ru_xpeNodeText_Folia = xpComp.compile("./descendant::w/child::t").load();
-      ru_xpeNodeText_Alp = xpComp.compile("./descendant::node[count(@word)>0]").load();
-      ru_xpeNodeText_Negra = xpComp.compile("TODO: figure out").load();
-    } catch (Exception ex) {
+      ru_xpeNodeText_Psdx = xpComp.compile("./descendant-or-self::eLeaf[@Type = 'Vern' or @Type = 'Punct']").load();
+      ru_xpeNodeText_Folia = xpComp.compile("./descendant-or-self::w/child::t").load();
+      ru_xpeNodeText_Alp = xpComp.compile("./descendant-or-self::node[count(@word)>0]").load();
+      ru_xpeNodeText_Negra = xpComp.compile("./descendant-or-self::t").load();
+    } catch (SaxonApiException ex) {
         logger.error("RuBase initialisation error", ex);
     }
   }
@@ -363,16 +363,14 @@ public class RuBase /* extends Job */ {
     // Call the generalized NodeText function
     return RuNodeText(objXp, ndStart, "");
   }
-  static String RuNodeText(XPathContext objXp, XdmNode ndXdm, String strType) {
-    XdmValue ndList;                // Result of looking for the end-nodes
-    String sBack;                   // Resulting string
-    CorpusResearchProject crpThis;  // The CRP we are working with/for
-    XPathSelector selectXp;           // The actual selector we are using
-    StringBuilder sBuild;
+  static String RuNodeText(XPathContext objXp, XdmNode ndStart, String strType) {
+    String sBack;           // Resulting string
+    XPathSelector selectXp; // The actual selector we are using
+    StringBuilder sBuild;   // Resulting string that is being built
     
     try {
       // Validate
-      if (ndXdm == null) return "";
+      if (ndStart == null) return "";
       // Default value for array
       selectXp = null; sBuild = new StringBuilder();
       // Determine which CRP this is
@@ -380,19 +378,33 @@ public class RuBase /* extends Job */ {
       // Action depends on the kind of xml project we have
       switch(oCF.crpThis.intProjType) {
         case ProjPsdx:
-          // Make a list of all <eLeaf> nodes
-          selectXp = ru_xpeNodeText_Psdx;
-          selectXp.setContextItem(ndXdm);
-          // Go through all the items
-          for (XdmItem item : selectXp) {
-            // Get the @Text attribute values
-            sBuild.append(((XdmNode) item).getAttributeValue(ru_qnText)).append(" ");
+          // Validate: this should be a <forest> or <eTree> node
+          switch(ndStart.getNodeName().getLocalName()) {
+            case "eTree": case "forest": case "eLeaf":
+              // Make a list of all <eLeaf> nodes
+              selectXp = ru_xpeNodeText_Psdx;
+              selectXp.setContextItem(ndStart);
+              // Go through all the items
+              for (XdmItem item : selectXp) {
+                // Get the @Text attribute values
+                sBuild.append(((XdmNode) item).getAttributeValue(ru_qnText)).append(" ");
+              }
+              break;
+            default:
+              // Default behaviour: get the string value of this node
+              String sValue = ndStart.getStringValue();
+              sBuild.append(sValue);
+              if (sValue.isEmpty()) {
+                // Warn the user
+                errHandle.debug("RuNodeText: empty node [" + 
+                        ndStart.getNodeName().getLocalName() + "]");
+              }
           }
           break;
         case ProjFolia:
           // Make a list of all <t> nodes that have a <w> parent
           selectXp = ru_xpeNodeText_Folia;
-          selectXp.setContextItem(ndXdm);
+          selectXp.setContextItem(ndStart);
           // Go through all the items
           for (XdmItem item : selectXp) {
             // Get the text value of the node
@@ -402,7 +414,7 @@ public class RuBase /* extends Job */ {
         case ProjAlp:
           // Make a list of all end nodes; Alpino only uses <node> tags
           selectXp = ru_xpeNodeText_Alp;
-          selectXp.setContextItem(ndXdm);
+          selectXp.setContextItem(ndStart);
           // Go through all the items
           for (XdmItem item : selectXp) {
             // Get the @word attribute values
@@ -410,7 +422,14 @@ public class RuBase /* extends Job */ {
           }
           break;
         case ProjNegra:
-          // TODO: implement
+          // Make a list of all end nodes; Negra has them under <terminals> as <t> items
+          selectXp = ru_xpeNodeText_Negra;
+          selectXp.setContextItem(ndStart);
+          // Go through all the items
+          for (XdmItem item : selectXp) {
+            // Get the @word attribute values
+            sBuild.append(((XdmNode) item).getAttributeValue(ru_qnWord)).append(" ");
+          }
           break;
         default:
           errHandle.DoError("RuNodeText: cannot process type " + oCF.crpThis.getProjectType(), RuBase.class);

@@ -145,10 +145,11 @@ public class Extensions extends RuBase {
       return null;
     }
   }
+  /*
   public static XmlNode back(XPathContext objXp, XdmValue valSax, AtomicValue strMsg, AtomicValue strCat) {
     return back(objXp, valSax, strMsg.getStringValue(), strCat.getStringValue());
-  }
-  public static XmlNode back(XPathContext objXp, XdmValue valSax, String strMsg, String strCat) {
+  } */
+  public static XmlNode back(XPathContext objXp, NodeInfo node, String strMsg, String strCat) {
     XdmNode ndSax;                            // The actual node
     XmlNode ndxFor = null;                    // The new forest node we make
     ByRef<String> strLoc = new ByRef("");     // Location feature
@@ -156,11 +157,16 @@ public class Extensions extends RuBase {
     ByRef<String> strTreeId =new ByRef("");   // TreeId feature
     ByRef<String> strForestId =new ByRef(""); // ForestId feature
     XmlDocument pdxThis;                      // Where we provide the feedback
+    int nodeKind;     // The kind of object getting passed as argument
     
     try {
       // Validate
-      ndSax = getNodeValue(valSax);
-      if (ndSax == null) return null;
+      if (node == null) return null;
+      nodeKind = node.getNodeKind();
+      if (nodeKind != Type.ELEMENT) return null;
+      // Get the XdmNode representation of the node
+      ndSax = objSaxDoc.wrap(node);      
+
       // ProjPsdx preparations: get appropriate values for each of the <forest> elements
       if (!PrepareBack(objXp, ndSax,strLoc, strFile, strForestId, strTreeId)) return null;
       // Make sure the message is okay
@@ -463,36 +469,6 @@ public class Extensions extends RuBase {
       return "";
     }
   }
-
-  /*
-  public static XdmValue NodeText(XPathContext objXp, XdmValue valSax, AtomicValue strType) {
-    return NodeText(objXp, valSax, strType.getStringValue());
-  }
-  private static XdmValue NodeText(XPathContext objXp, XdmValue valSax, String strType) {
-    // XmlDocument docThis = new XmlDocument(); // Where we store it
-    XdmNode ndSax = null; // Myself, if I am a proper node
-    String sResult = "";  // Resulting value
-    XdmValue oBack;
-
-    try {
-      // Validate
-      ndSax = getNodeValue(valSax); 
-      if (ndSax==null) return loc_EmptyString;
-      // Transform to XML document
-      // docThis.LoadXml(ndSax.OuterXml);
-      
-      // Convert to text
-      // return GetNodeText(docThis.FirstChild, strType);
-      sResult = objBase.RuNodeText(objXp, ndSax, strType);
-      oBack = new XdmAtomicValue(sResult);
-      return oBack;
-    } catch (RuntimeException ex) {
-      // Show error
-      logger.error("Extensions/NodeText error: " + ex.getMessage() + "\r\n");
-      // Return failure
-      return loc_EmptyString;
-    }
-  } */
 // </editor-fold>
 
 // <editor-fold defaultstate="collapsed" desc="Private functions">
@@ -564,7 +540,8 @@ public class Extensions extends RuBase {
           return false;
       }
       // Get the id value
-      strTreeId.argValue = objBase.GetRefId(objXp, ndSax);
+      // strTreeId.argValue = objBase.GetRefId(objXp, ndSax);
+      strTreeId.argValue = GetRefId(objXp, ndSax);
       // Action depends on the kind of node I am
       switch(ndSax.getNodeName().getLocalName()) {
         case "Result":
