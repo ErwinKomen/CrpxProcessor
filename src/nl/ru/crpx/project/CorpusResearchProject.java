@@ -332,6 +332,10 @@ public class CorpusResearchProject {
     if (objEx == null) return false;
     // Execute the queries using the chosen method
     bFlag = objEx.ExecuteQueries(jobCaller);
+    // ========= Debugging =========
+    // Get the job's result
+    String sResult = jobCaller.getJobResult();
+    // =============================
     // Check if the query-execution resulted in an interrupt
     if (!bFlag || objEx.bInterrupt) { errHandle.bInterrupt = true; return false; }
     // Is this a corpussearch project?

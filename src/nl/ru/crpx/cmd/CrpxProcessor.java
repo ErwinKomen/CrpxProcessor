@@ -40,11 +40,6 @@ public class CrpxProcessor {
   public static File flProject = null;    // The project we are working with
   public static File dirInput = null;     // Main directory where the psdx files are located
   // =================== instance variables ==================================
-  // private CorpusResearchProject prjTmp = new CorpusResearchProject();
-  // private static CrpGlobal objGen = new CrpGlobal();         // This is a local copy
-  // private static CorpusResearchProject prjThis = objGen.getCrpx();
-  // private static CorpusResearchProject prjThis;
-  // private static String userId;
   private static JSONObject config;           // Configuration object
   private static SearchManager searchManager; // The search manager we make
   private static PrjTypeManager prjTypeManager;
@@ -123,6 +118,8 @@ public class CrpxProcessor {
             
       // Handle the request
       if (!processRequest(indexName, strProject))  { logger.error("Could not process request"); return; }
+      
+      // Check on the progress of the 
 
       // Exit program normally
       logger.debug("Ready!");

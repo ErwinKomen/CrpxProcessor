@@ -112,6 +112,20 @@ public class XmlDocument {
   // 18/may/2015  ERK Bare bone
   // ----------------------------------------------------------------------------------------------------------
   public XmlNode CreateNode(XmlNodeType ndType, String sName, String sNameSpaceURI) {
-    return null;
+    try {
+      // Check if at least one node is there
+      if (this.docxdm ==null) {
+        /*
+        // Create a root node
+        NodeInfo node = new NodeInfo();
+        this.docxdm = new XdmNode();
+                */
+        
+      }
+      return null;
+    } catch (Exception ex) {
+      logger.error("XmlDocument/CreateNode", ex);
+      return null;
+    }
   }
 }

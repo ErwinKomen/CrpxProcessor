@@ -12,6 +12,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.xpath.XPathExpressionException;
 import net.sf.saxon.s9api.QName;
+import net.sf.saxon.s9api.SaxonApiException;
 import nl.ru.crpx.search.Job;
 import nl.ru.crpx.search.JobXq;
 import nl.ru.crpx.search.JobXqF;
@@ -143,7 +144,7 @@ public class ExecutePsdxStream extends ExecuteXml {
         arJob.add(search);
       }
       // Monitor the end of the jobs
-      if (!monitorXqF(0)) return false;
+      if (!monitorXqF(1)) return false;
       
       // TODO: combine the results of the queries
       // Combine [arRes] into a result string (JSON)
@@ -228,6 +229,7 @@ public class ExecutePsdxStream extends ExecuteXml {
     String strEtreeMsg;         // Message attached to the found result
     String strEtreeCat;         // Subcategorization attached to found result
     String strEtreeDb;          // Database values attached to found result
+    String strForestId;         // String representation of the forest id
     String sSeg;                // DEBUGGING
     List<XmlNode> ndxDbList;    // All nodes for current text/forest combination
     XmlNode ndxDbPrev;          // Previous database location
@@ -240,6 +242,7 @@ public class ExecutePsdxStream extends ExecuteXml {
     ByRef<Integer> intForestId; // ID (numerical) of the current <forest>
     ByRef<Integer> intPtc;      // Percentage of where we are
     List<ParseResult> colParseRes;  // Results of one parse (values of @eTree etc)
+    JSONArray colParseJson;     // Array with json results
     XmlForest objProcType;      // Access to the XmlForest object allocated to me
     JSONArray arXqf;
     
@@ -260,6 +263,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       objParse = new Parse(crpThis,errHandle);
       colParseRes = new ArrayList<>();
       arXqf = new JSONArray();
+      colParseJson = new JSONArray();
       // Validate existence of file
       if (!fThis.exists()) { DoError("File not found: " + strForestFile); return false; }
       // Start walking through the file...
@@ -272,15 +276,19 @@ public class ExecutePsdxStream extends ExecuteXml {
       // Loop through the file in <forest> chunks
       while (ndxForest.argValue != null) {
         // ============ DEBUG ==================
-        sSeg = ndxForest.argValue.SelectSingleNode("./child::div[@lang='org']/child::seg").getNodeValue();
-        logger.debug("PsdxStream seg = [" + sSeg + "]");
+        // sSeg = ndxForest.argValue.SelectSingleNode("./child::div[@lang='org']/child::seg").getNodeValue();
+        // logger.debug("PsdxStream seg = [" + sSeg + "]");
         // =====================================
         // Get the @forestId value of this forest
         if (!objProcType.GetForestId(ndxForest, intForestId)) return errHandle.DoError("Could not obtain @forestId");
         // Get a percentage of where we are
         if (!objProcType.Percentage(intPtc)) return errHandle.DoError("Could not find out where we are");
+        
+        // ======= DEBUG =========== not needed for real work ==========
         // Show where we are in the status
-        errHandle.debug("file [" + fThis.getName() + "] " + intPtc.argValue + "%");
+        // errHandle.debug("file [" + fThis.getName() + "] " + intPtc.argValue + "%");
+        // =========================
+        
         // TODO: convey the status to a global status gathering object for this Execute object??
         
         // Initialize the firest elements of arOut and arCmp
@@ -321,6 +329,9 @@ public class ExecutePsdxStream extends ExecuteXml {
             bHasInput = (arQuery[k].InputCmp) ? arCmpExists[iInputLine] : arOutExists[iInputLine];
             // Okay, is there any input?
             if (bHasInput) {
+              // Reset the parse results
+              colParseRes.clear();
+              colParseJson = new JSONArray();
               // Parsing depends on Dbase too
               if (bIsDbase && ndxDbList.size() > 0) {
                 // Parse all the <Result> elements within this forestId
@@ -328,7 +339,7 @@ public class ExecutePsdxStream extends ExecuteXml {
                 for (int m=0;m<ndxDbList.size(); m++) {
                   // Perform a parse that only resets the collection when m==0
                   if (objParseXq.DoParseXq(arQuery[k], objSaxDoc, this.xconfig, oCrpFile,
-                        ndxDbList.get(m), colParseRes, (m==0))) bParsed = true;
+                        ndxDbList.get(m), colParseRes, colParseJson, (m==0))) bParsed = true;
                 }
               } else {
                 // Parse this forest
@@ -337,7 +348,7 @@ public class ExecutePsdxStream extends ExecuteXml {
                       arQuery[k].QueryFile,  arQuery[k].Qstring, ndxForest.argValue.getNode(), colParseRes, true);
                         */
                 bParsed = objParseXq.DoParseXq(arQuery[k], objSaxDoc, this.xconfig, oCrpFile, 
-                        ndxForest.argValue, colParseRes, true);
+                        ndxForest.argValue, colParseRes, colParseJson, true);
               }
               // Now is the time to execute stack movement for colRuStack
               // TODO: RuStackExecute()
@@ -353,55 +364,76 @@ public class ExecutePsdxStream extends ExecuteXml {
                   // Determine the sentence node (the <forest>) within the current file
                   // For the stream-processing, this is the current forest
                   ndxForestBack = ndxForest.argValue;
-                } else ndxForestBack = null;
-                // Walk all the results
-                for (int L = 0; L < intInstances; L++) {
-                  // Validate - double check
-                  if (ndxForestBack == null) return false;
-                  // Keep track of the total number of hits
-                  intHitsTotal++; // TODO: show this number in the status line
-                  // Treat the result
-                  oOneParseRes = colParseRes.get(L);
-                  strTreeId = oOneParseRes.treeId;
-                  strEtreeMsg = oOneParseRes.msg;
-                  strEtreeCat = oOneParseRes.cat;
-                  strEtreeDb = oOneParseRes.db;
-                  // Signal that we have output here
-                  arCmpExists[k+1] = true;
-                  // Signal that there is no complement
-                  if (arQuery[k].Cmp) arCmpExists[k+1] = false;
+                  // Walk all the results
+                  for (int L = 0; L < intInstances; L++) {
+                    // Validate - double check
+                    if (ndxForestBack == null) return false;
+                    // Keep track of the total number of hits
+                    intHitsTotal++; // TODO: show this number in the status line
+                    // Treat the result
+                    oOneParseRes = colParseRes.get(L);
+                    strTreeId = oOneParseRes.treeId;
+                    strEtreeMsg = oOneParseRes.msg;
+                    strEtreeCat = oOneParseRes.cat;
+                    strEtreeDb = oOneParseRes.db;
+                    strForestId = oOneParseRes.forestId;
+                    // Signal that we have output here
+                    arCmpExists[k+1] = true;
+                    // Signal that there is no complement
+                    if (arQuery[k].Cmp) arCmpExists[k+1] = false;
+                    // Get the oview line 
+                    intOviewLine = arQuery[k].OviewLine;
+                    if (intOviewLine >=0) {
+                      // TODO: Convert the oview line to an OviewId (see modMain:3035)
+                      // Do we have subcategorization?
+                      if (strEtreeCat.isEmpty()) {
+                        // Make sure the intCatLine is negative
+                        intCatLine = -1;
+                      } else {
+                        // Is this a new QCline/Subcat combination?
+                        intCatLine = 0;
+                      }
+                      // Get the location string
+                      String sLoc = ndxForestBack.getAttributeValue(loc_xq_Location);
+                      // Create output for this line
+                      JSONObject oXqfRes = new JSONObject();
+                      oXqfRes.put("oview", intOviewLine);
+                      oXqfRes.put("file", fThis.getName());
+                      oXqfRes.put("search", sLoc);
+                      oXqfRes.put("forestId", strForestId);
+                      oXqfRes.put("eTreeId", strTreeId);
+                      oXqfRes.put("Cat", strEtreeCat);
+                      oXqfRes.put("Msg", strEtreeMsg);
+                      // TODO: add "db" list/collection
+
+                      // Add this object to the JSONArray with the objects for this Crp/File combination
+                      arXqf.put(oXqfRes);
+                    }
+                    // TODO: check in modMain:3110 and further wat hier precies gedaan moet worden; code is onduidelijk.
+                    // Should we put output in the complement?
+                    if (arQuery[k].Cmp) arCmpExists[k+1] = false;
+                  }
+                } else if (colParseJson.length()>0) {
+                  // The results are passed back through [colParseJson]:
+                  // For the stream-processing, this is the current forest
+                  ndxForestBack = ndxForest.argValue;
+                  // Get the location string
+                  String sLoc = ndxForestBack.getAttributeValue(loc_xq_Location);
                   // Get the oview line 
                   intOviewLine = arQuery[k].OviewLine;
-                  if (intOviewLine >=0) {
-                    // TODO: Convert the oview line to an OviewId (see modMain:3035)
-                    // Do we have subcategorization?
-                    if (strEtreeCat.isEmpty()) {
-                      // Make sure the intCatLine is negative
-                      intCatLine = -1;
-                    } else {
-                      // Is this a new QCline/Subcat combination?
-                      intCatLine = 0;
-                    }
-                    // Get the location string
-                    String sLoc = ndxForestBack.getAttributeValue(loc_xq_Location);
-                    // Create output for this line
-                    JSONObject oXqfRes = new JSONObject();
+                  // Walk the results and add necessary details
+                  for (int L=0;L< colParseJson.length();L++) {
+                    JSONObject oXqfRes = colParseJson.getJSONObject(L);
                     oXqfRes.put("oview", intOviewLine);
                     oXqfRes.put("file", fThis.getName());
                     oXqfRes.put("search", sLoc);
-                    oXqfRes.put("forestId", String.valueOf(intForestId));
-                    oXqfRes.put("eTreeId", strTreeId);
-                    oXqfRes.put("Cat", strEtreeCat);
-                    oXqfRes.put("Msg", strEtreeMsg);
-                    // TODO: add "db" list/collection
-                    
-                    // Add this object to the JSONArray with the objects for this Crp/File combination
+                    // Add this object to the JSONArray with the objects for this 
+                    //  combination of Crp/File
                     arXqf.put(oXqfRes);
                   }
-                  // TODO: check in modMain:3110 and further wat hier precies gedaan moet worden; code is onduidelijk.
                   // Should we put output in the complement?
                   if (arQuery[k].Cmp) arCmpExists[k+1] = false;
-                }
+                } else ndxForestBack = null;
               }
             }
           }
@@ -413,23 +445,27 @@ public class ExecutePsdxStream extends ExecuteXml {
       }
       
       // TODO: combine the results of the queries
-      // Combine [arRes] into a result string (JSON)
-      String sCombiJson = "{" + StringUtil.join(arRes, ",") + "}";
-      jobCaller.setJobResult(sCombiJson);
+      JSONObject oCombi = new JSONObject();
+      oCombi.put("file",fThis.getName());
+      oCombi.put("count", arXqf.length());
+      oCombi.put("results", arXqf);
+      // String sCombiJson = "{" + arXqf.join(",\n") + "}\n";
+      // jobCaller.setJobResult(sCombiJson);
+      jobCaller.setJobResult(oCombi.toString());
 
       // Return positively
       return true;
-    } catch (RuntimeException ex) {
+    } catch (RuntimeException | SaxonApiException ex) {
       // Warn user
       DoError("ExecutePsdxStream/ExecuteQueriesFile runtime error: " + ex.getMessage() + "\r\n");
       // Return failure
       return false;
-    } catch (XPathExpressionException ex) {
+    } /* catch (XPathExpressionException ex) {
       // Warn user
       DoError("ExecutePsdxStream/ExecuteQueriesFile xpath error: " + ex.getMessage() + "\r\n");
       // Return failure
       return false;
-    }
+    } */
   }
 // </editor-fold>  
 

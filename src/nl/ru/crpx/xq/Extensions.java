@@ -6,7 +6,12 @@
 
 package nl.ru.crpx.xq;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPathExpressionException;
 import net.sf.saxon.expr.XPathContext;
 import net.sf.saxon.om.NodeInfo;
@@ -25,8 +30,12 @@ import nl.ru.crpx.project.CorpusResearchProject.ProjType;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.crpx.tools.FileIO;
 import nl.ru.util.ByRef;
+import nl.ru.util.json.JSONObject;
+import nl.ru.util.json.XML;
 import nl.ru.xmltools.XmlDocument;
 import nl.ru.xmltools.XmlNode;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 /**
@@ -43,8 +52,10 @@ public class Extensions extends RuBase {
   // ============== Variables local to me ======================================
   // private static CorpusResearchProject prjThis;
   private static ProjType loc_intProjType;
-  private static String loc_sNodeNameSnt;
   private static ErrHandle errHandle;
+  // ============== DOM document building for ru:back() ========================
+  private static DocumentBuilderFactory dfactory = DocumentBuilderFactory.newInstance();
+  private static DocumentBuilder dbuilder;
   // ============== Local constants ============================================
   private static final QName loc_qnName = new QName("", "", "name");
   private static final QName loc_qnValue = new QName("", "", "value");
@@ -55,12 +66,18 @@ public class Extensions extends RuBase {
   public Extensions(CorpusResearchProject objPrj) {
     // Make sure the class I extend is initialized
     super(objPrj);
-    // Set my own error handler
-    errHandle = new ErrHandle(Extensions.class);
-    // Initialize a list of string arrays to help ru:matches()
-    objStore = new PatternStore(errHandle);
-    // Set my base
-    // objBase = new RuBase(objPrj);
+    try {
+      // Set my own error handler
+      errHandle = new ErrHandle(Extensions.class);
+      // Initialize a list of string arrays to help ru:matches()
+      objStore = new PatternStore(errHandle);
+      // Set my base
+      // objBase = new RuBase(objPrj);
+      // Initialise the document builder stuff
+      dbuilder = dfactory.newDocumentBuilder();
+    } catch (ParserConfigurationException ex) {
+      errHandle.DoError("Could not initialise Extensions: ", ex, Extensions.class);
+    }
   }
 // <editor-fold defaultstate="collapsed" desc="ru:back">
   // ------------------------------------------------------------------------------------
@@ -149,7 +166,7 @@ public class Extensions extends RuBase {
   public static XmlNode back(XPathContext objXp, XdmValue valSax, AtomicValue strMsg, AtomicValue strCat) {
     return back(objXp, valSax, strMsg.getStringValue(), strCat.getStringValue());
   } */
-  public static XmlNode back(XPathContext objXp, NodeInfo node, String strMsg, String strCat) {
+  public static String /* Node */ back(XPathContext objXp, NodeInfo node, String strMsg, String strCat) {
     XdmNode ndSax;                            // The actual node
     XmlNode ndxFor = null;                    // The new forest node we make
     ByRef<String> strLoc = new ByRef("");     // Location feature
@@ -169,25 +186,55 @@ public class Extensions extends RuBase {
 
       // ProjPsdx preparations: get appropriate values for each of the <forest> elements
       if (!PrepareBack(objXp, ndSax,strLoc, strFile, strForestId, strTreeId)) return null;
+      /* === using XML.escape makes this no longer necessary?
       // Make sure the message is okay
       strMsg = strMsg.replace("'", "''");
       // Make sure the CAT is okay
       strCat = strCat.replace("'", "''");
+         ================= */
+      /*
+      // Create a <forest> node with the right attributes
+      String sNode = "<forest Location='' File='' forestId='' TreeId='' Msg='' Cat='' />";
+      */
+      /*
       // Add a <forest> node
-      String sNode = "<forest Location=\"" + strLoc.argValue + "\"" + 
-              " File=\"" + strFile.argValue + "\"" + 
+      String sNode = "<forest Location=\"" + XML.escape(strLoc.argValue) + "\"" + 
+              " File=\"" + XML.escape(strFile.argValue) + "\"" + 
               " forestId=\"" + strForestId.argValue + "\"" + 
               " TreeId=\"" + strTreeId.argValue + "\"" + 
-              " Msg=\"" + strMsg + "\"" + 
-              " Cat=\"" + strCat + "\"" + 
-              "/>";
+              " Msg=\"" + XML.escape(strMsg) + "\"" + 
+              " Cat=\"" + XML.escape(strCat) + "\"" + 
+              " />";
+      
       pdxThis = new XmlDocument(objSaxDoc, objSaxon);
       pdxThis.LoadXml(sNode);
       ndxFor = pdxThis.SelectSingleNode("//forest");
+      */
       
-      // Return positively
-      return ndxFor;
-    } catch (RuntimeException | XPathExpressionException | SaxonApiException ex) {
+      // Alternative way: via the DOM model
+      Document doc = dbuilder.newDocument();
+      Element mainRootElement = doc.createElement("forest");
+      doc.appendChild(mainRootElement);
+      // Create and set attributes
+      mainRootElement.setAttribute("TreeId", strTreeId.argValue);
+      mainRootElement.setAttribute("Location", strLoc.argValue);
+      mainRootElement.setAttribute("File", strFile.argValue);
+      mainRootElement.setAttribute("forestId", strForestId.argValue);
+      mainRootElement.setAttribute("Msg", strMsg);
+      mainRootElement.setAttribute("Cat", strCat);
+      
+      // Alternatief #4: creeer meteen een JSONObject
+      JSONObject jsBack = new JSONObject();
+      jsBack.put("file", strFile.argValue);
+      jsBack.put("forestId", strForestId.argValue);
+      jsBack.put("eTreeId", strTreeId.argValue);
+      jsBack.put("Cat", strCat);
+      jsBack.put("Msg", strMsg);
+      
+      // Return the <forest> element, which will be packed into <TEI></TEI>
+      // return mainRootElement.cloneNode(true);
+      return jsBack.toString();
+    } catch (RuntimeException ex) {
       // Warn user
       errHandle.DoError("Extensions/back() error", ex, Extensions.class);
       // Return failure
@@ -514,10 +561,15 @@ public class Extensions extends RuBase {
   // ------------------------------------------------------------------------------------
   private static boolean PrepareBack(XPathContext objXp, XdmNode ndSax, ByRef<String> strLoc, ByRef<String> strFile,
           ByRef<String> strForestId, ByRef<String> strTreeId) {
-    XdmNode ndFor;    // The forest I am part of
-    XmlNode ndxFor;   // The <forest> node in the document
+    XdmNode ndFor;        // The forest I am part of
+    XmlNode ndxFor;       // The <forest> node in the document
+    String sNodeNameSnt;  // The name of the sentence node (Psdx: <forest>)
+    CrpFile oCrpFile;     // Current crp file
     
     try {
+      // Determine which CrpFile I am
+      oCrpFile = getCrpFile(objXp);
+      sNodeNameSnt = oCrpFile.crpThis.sNodeNameSnt;
       // Action depends on the element we get element
       switch(ndSax.getNodeName().getLocalName()) {
         case "eTree": case "nt": case "t": case "Result":
@@ -553,29 +605,29 @@ public class Extensions extends RuBase {
           strLoc.argValue = ndSax.getAttributeValue(RuBase.ru_qnResultLoc);
           break;
         default:
-          // Determine the forest I am part of
+          // Determine the Sentence I am part of (this is project-dependant through [sNodeNameSnt])
           ndFor = ndSax; strForestId.argValue = ""; strFile.argValue = ""; strLoc.argValue = "";
-          while (!ndSax.getClass().getName().equals("XdmEmptySequence")) {
-            String sNodeName = ndSax.getNodeName().getLocalName();
+          while (!ndFor.getClass().getName().contains("XdmEmptySequence")) {
+            String sNodeName = ndFor.getNodeName().getLocalName();
             // Make sure this is not the highest element that can occur, given the proejct
-            if (sNodeName.equals(loc_sNodeNameSnt)) break;
+            if (sNodeName.equals(sNodeNameSnt)) break;
             // Step to the parent
             ndFor = ndFor.getParent();
           }
           // Check the result
-          if (ndFor == null || ndFor.getClass().getName().equals("XdmEmptySequence")) return false;
+          if (ndFor == null || ndFor.getClass().getName().contains("XdmEmptySequence")) return false;
           // Get the values of all the features we need
-          switch (loc_intProjType) {
+          switch (oCrpFile.crpThis.intProjType) {
             case ProjPsdx:
-              strLoc.argValue = ndSax.getAttributeValue(RuBase.ru_qnLoc);
-              strFile.argValue = ndSax.getAttributeValue(RuBase.ru_qnFile);
-              strForestId.argValue = ndSax.getAttributeValue(RuBase.ru_qnForId);
+              strLoc.argValue = ndFor.getAttributeValue(RuBase.ru_qnLoc);
+              strFile.argValue = ndFor.getAttributeValue(RuBase.ru_qnFile);
+              strForestId.argValue = ndFor.getAttributeValue(RuBase.ru_qnForId);
               break;
             case ProjFolia:
               // TODO: check and implement correctly for folia
-              strLoc.argValue = ndSax.getAttributeValue(RuBase.ru_qnFoliaId);
-              strFile.argValue = ndSax.getAttributeValue(RuBase.ru_qnFile);
-              strForestId.argValue = ndSax.getAttributeValue(RuBase.ru_qnFoliaId);
+              strLoc.argValue = ndFor.getAttributeValue(RuBase.ru_qnFoliaId);
+              strFile.argValue = ndFor.getAttributeValue(RuBase.ru_qnFile);
+              strForestId.argValue = ndFor.getAttributeValue(RuBase.ru_qnFoliaId);
               break;
             case ProjNegra:
               // TODO: check and implement correctly for negra

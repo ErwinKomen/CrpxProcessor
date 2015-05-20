@@ -14,6 +14,7 @@ import nl.ru.crpx.search.Job;
 import nl.ru.crpx.search.SearchManager;
 import nl.ru.crpx.search.SearchParameters;
 import nl.ru.crpx.tools.ErrHandle;
+import nl.ru.crpx.xq.Extensions;
 import nl.ru.crpx.xq.RuBase;
 import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
@@ -40,7 +41,7 @@ public class Execute extends CrpGlobal {
   protected String userId;                // ID of the user for this execution
   protected SearchManager searchMan;      // The manager for this search
   protected SearchParameters searchPar;   // The parameters for this search
-  protected RuBase ruBase;                // The base used by me
+  protected Extensions ruExtensions;      // The extensions need to be initialized here
   protected int iMaxParJobs;              // Maximum number of parallel jobs per user
   // ===================== The elements of an execution object =================
   protected Query[] arQuery;        // Array of queries to be executed (so this is the constructor) 
@@ -84,9 +85,9 @@ public class Execute extends CrpGlobal {
       // Set our copy of the corpus research project
       crpThis = oProj;
       // Set the rubase
-      ruBase = new RuBase(crpThis);
+      ruExtensions = new Extensions(crpThis);
       // Set the maximum number of parallel jobs per user
-      iMaxParJobs = 1;    // TODO: this should depend on the number of processors available!
+      iMaxParJobs = 2;    // TODO: this should depend on the number of processors available!
       // Set the search manager associated with the CRP
       this.searchMan = crpThis.getSearchManager();
       // Create a search parameters object

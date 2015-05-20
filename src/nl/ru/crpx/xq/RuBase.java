@@ -51,21 +51,22 @@ public class RuBase /* extends Job */ {
   private static XPathSelector ru_xpeNodeText_Negra;  // Search expression for ProjNegra
   private static XPathSelector ru_xpeNodeText_Alp;    // Search expression for ProjAlp  
   // ===================== public constants ====================================
-  public static final QName ru_qnETreeId = new QName("", "", "Id");      // Id feature name of an <eTree> element
-  public static final QName ru_qnTreeId = new QName("", "", "TreeId");   // TreeId feature name
-  public static final QName ru_qnMsg = new QName("", "", "Msg");         // Message feature name
-  public static final QName ru_qnCat = new QName("", "", "Cat");         // Cat feature name
-  public static final QName ru_qnFile = new QName("", "", "File");       // File feature name
-  public static final QName ru_qnForId = new QName("", "", "forestId");  // forestId feature name
-  public static final QName ru_qnText = new QName("", "", "Text");   // TextId feature name
-  public static final QName ru_qnTextId = new QName("", "", "TextId");   // TextId feature name
-  public static final QName ru_qnLoc = new QName("", "", "Location");    // Location feature name
-  public static final QName ru_qnNegraLoc = new QName("", "", "id");     // location in negra <s> node
-  public static final QName ru_qnNegraId = new QName("", "", "id");      // Id of negra <s> or <t> node
+  public static final QName ru_qnETreeId = new QName("", "", "Id");       // Id feature name of an <eTree> element
+  public static final QName ru_qnTreeId = new QName("", "", "TreeId");    // TreeId feature name
+  public static final QName ru_qnMsg = new QName("", "", "Msg");          // Message feature name
+  public static final QName ru_qnCat = new QName("", "", "Cat");          // Cat feature name
+  public static final QName ru_qnFile = new QName("", "", "File");        // File feature name
+  public static final QName ru_qnForId = new QName("", "", "forestId");   // forestId feature name
+  public static final QName ru_qnText = new QName("", "", "Text");        // TextId feature name
+  public static final QName ru_qnTextId = new QName("", "", "TextId");    // TextId feature name
+  public static final QName ru_qnLoc = new QName("", "", "Location");     // Location feature name
+  public static final QName ru_qnNegraLoc = new QName("", "", "id");      // location in negra <s> node
+  public static final QName ru_qnNegraId = new QName("", "", "id");       // Id of negra <s> or <t> node
   public static final QName ru_qnNegraEdgeId = new QName("", "", "refid");// Id of negra <edge> node
-  public static final QName ru_qnFoliaId = new QName("", "", "id");      // Id of negra <s> or <t> node
+  public static final QName ru_qnFoliaId = new QName("", "", "id");       // Id of negra <s> or <t> node
+  public static final QName ru_qnAlpinoId = new QName("", "", "id");      // Identifier for Alpinoa <node> elements
   public static final QName ru_qnResultLoc = new QName("", "", "Search");
-  public static final QName ru_qnEleaf = new QName("", "", "eLeaf");     // Nodename for <eLeaf> nodes
+  public static final QName ru_qnEleaf = new QName("", "", "eLeaf");      // Nodename for <eLeaf> nodes
   public static final QName ru_qnWord = new QName("", "", "word");        // The @word attribute
 
   // =========================== Local constants ===============================
@@ -335,21 +336,6 @@ public class RuBase /* extends Job */ {
       return "";
     }
   }
-  
-  // ------------------------------------------------------------------------------------
-  // Name:   getCrpFile
-  // Goal:   Get the correct CrpFile object for the indicated context
-  // History:
-  // 19/may/2015  ERK Created for Java
-  // ------------------------------------------------------------------------------------
-  static CrpFile getCrpFile(XPathContext objXp) {
-    try {
-      return (CrpFile) objXp.getController().getParameter("crpfile");
-    } catch (Exception ex) {
-      errHandle.DoError("RuBase/getCrpFile error", ex, RuBase.class);
-      return null;
-    }
-  }
 
   // ------------------------------------------------------------------------------------
   // Name:   RuNodeText
@@ -456,19 +442,19 @@ public class RuBase /* extends Job */ {
   // 18-12-2012  ERK Added capabilities to process <CrpOview> --> <Result>
   // 29/apr/2015 ERK Ported to Java
   // ------------------------------------------------------------------------------------
-  public final String GetRefId(XPathContext objXp, XdmNode ndSax) {
-    String strRef = "";             // The ID of the second node
-    String sNodeName;
-    CorpusResearchProject crpThis;  // Current corpus research project
+  static String GetRefId(XPathContext objXp, XdmNode ndSax) {
+    String strRef = "";   // The ID of the second node
+    String sNodeName;     // Name of the node [ndSax]
+    CrpFile oCrpFile;     // Current CRP/File object
 
     try {
       // Validate
       if (ndSax == null) return "";
-      // Determine which CRP this is
-      crpThis = ((CrpFile) objXp.getController().getUserData("CrpFile", "CrpFile")).crpThis;
+      // Determine which CRP/File this is
+      oCrpFile = getCrpFile(objXp);
       // Initialize values
       sNodeName = ndSax.getNodeName().getLocalName();
-      switch (crpThis.intProjType) {
+      switch (oCrpFile.crpThis.intProjType) {
         case ProjNegra:
           // Get the ID of the node in [ndSax]
           switch (sNodeName) {
@@ -510,6 +496,10 @@ public class RuBase /* extends Job */ {
           // Nodes in folia have the same kind of identifier: [xml:id]
           strRef = ndSax.getAttributeValue(ru_qnFoliaId);
           break;
+        case ProjAlp:
+          // The identifier for the alpino <node> elements is @id, but it is only unique within one sentence (apparently)
+          strRef = ndSax.getAttributeValue(ru_qnAlpinoId);
+          break;
         default:
       }
       // Return the reference string we found
@@ -519,6 +509,20 @@ public class RuBase /* extends Job */ {
       errHandle.DoError("RuBase/GetRefId error", ex, RuBase.class);
       // Return failure
       return "";
+    }
+  }
+  // ------------------------------------------------------------------------------------
+  // Name:   getCrpFile
+  // Goal:   Get the correct CrpFile object for the indicated context
+  // History:
+  // 19/may/2015  ERK Created for Java
+  // ------------------------------------------------------------------------------------
+  static CrpFile getCrpFile(XPathContext objXp) {
+    try {
+      return (CrpFile) objXp.getController().getParameter("crpfile");
+    } catch (Exception ex) {
+      errHandle.DoError("RuBase/getCrpFile error", ex, RuBase.class);
+      return null;
     }
   }
 
