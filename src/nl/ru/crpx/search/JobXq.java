@@ -50,12 +50,13 @@ public class JobXq extends Job {
       if (crpThis.Execute(this, this.userId)) {
         // Check for interrupt
         if (errHandle.bInterrupt) {
-          errHandle.DoError("The program has been interrupted");
+          errHandle.DoError("JobXq: The program has been interrupted");
         } else {
-          errHandle.debug("performSearch: ready handling job");
+          // There is no need to say anything here
+          errHandle.debug("JobXq: performSearch: ready handling job");
         }
       } else {
-        errHandle.DoError("The queries could not be executed");
+        errHandle.DoError("JobXq: The queries could not be executed");
       }
       
     } catch (Exception ex) {

@@ -15,12 +15,10 @@ import nl.ru.crpx.search.SearchManager;
 import nl.ru.crpx.search.SearchParameters;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.crpx.xq.Extensions;
-import nl.ru.crpx.xq.RuBase;
 import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
 import nl.ru.util.StringUtil;
 import nl.ru.util.json.JSONObject;
-import nl.ru.xmltools.XmlForest;
 import org.apache.log4j.Logger;
 
 /**
@@ -62,8 +60,6 @@ public class Execute extends CrpGlobal {
   protected boolean bXmlData;       // Whether this is XML data (from Xquery) or Treebank
   protected boolean bShowPsd;       // Whether PSD should be shown or not
   // ============== elements that are usable for all classes extending "Execute"
-  protected boolean[] arOutExists;  // Array signalling that output on step i exists
-  protected boolean[] arCmpExists;  // Array signalling that output on step i exists
   protected String[] arSource;      // Array of source files for a query using "source" as input with *.psdx
   protected List<String> lSource;   // List of source files for a query using "source" as input with e.g. *.psdx
   protected String strQtemp;        // Prefix to query file to indicate it is temporary
@@ -87,7 +83,7 @@ public class Execute extends CrpGlobal {
       // Set the rubase
       ruExtensions = new Extensions(crpThis);
       // Set the maximum number of parallel jobs per user
-      iMaxParJobs = 2;    // TODO: this should depend on the number of processors available!
+      iMaxParJobs = 4;    // TODO: this should depend on the number of processors available!
       // Set the search manager associated with the CRP
       this.searchMan = crpThis.getSearchManager();
       // Create a search parameters object
@@ -323,9 +319,6 @@ public class Execute extends CrpGlobal {
       // Initialisations on variables for all classes that extend "Execute"
       strOtemp = FileUtil.nameNormalize(crpThis.getDstDir() + "/XqOut.xml");
       strCtemp = FileUtil.nameNormalize(crpThis.getDstDir() + "/XqCmp.xml");
-      // Initialise the Out and Cmp arrays
-      arOutExists = new boolean[arQuery.length + 2];
-      arCmpExists = new boolean[arQuery.length + 2];
       arSource = new String[1]; // TODO: can be taken away when [lSource] is fully operational
       lSource = new ArrayList<>();
 

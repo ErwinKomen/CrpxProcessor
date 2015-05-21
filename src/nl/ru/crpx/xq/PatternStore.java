@@ -60,13 +60,14 @@ public class PatternStore  {
       // Get and set the key
       key = sPatterns;
       // Get the patterns into an array
-      value = sPatterns.split("|");
+      value = sPatterns.split("\\|");
       // Make room for the patterns
       patt = new Pattern[value.length];
       // Convert each of the patterns
       for (int i=0;i < value.length;i++) {
         // Turn the string into a regular expression
-        String sThis = Pattern.quote(value[i]);
+        // String sThis = Pattern.quote(value[i]);
+        String sThis = value[i];
         sThis = "^" + sThis.replace("*", ".*").replace("?", ".") + "$";
         patt[i] = Pattern.compile(sThis);
       }

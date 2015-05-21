@@ -61,12 +61,12 @@ public class JobXqF extends Job {
       if (this.objEx.ExecuteQueriesFile(this, intCrpFileId)) {
         // Check for interrupt
         if (errHandle.bInterrupt) {
-          errHandle.DoError("The program has been interrupted");
+          errHandle.DoError("JobXqF: The program has been interrupted");
         } else {
-          errHandle.debug("performSearch: ready handling job");
+          errHandle.debug("JobXqF: performSearch: ready handling job");
         }
       } else {
-        errHandle.DoError("The queries could not be executed");
+        errHandle.DoError("JobXqF: The queries could not be executed");
       }
 
       // Get the current file we are searching
@@ -75,7 +75,7 @@ public class JobXqF extends Job {
       
     } catch (Exception ex) {
       // Show the error
-      errHandle.DoError("Could not perform search", ex, JobXq.class);
+      errHandle.DoError("JobXqF: Could not perform search", ex, JobXq.class);
     }
   }
 }

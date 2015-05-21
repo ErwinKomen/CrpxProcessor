@@ -25,7 +25,6 @@ import nl.ru.util.StringUtil;
 import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
 import nl.ru.xmltools.Parse;
-import nl.ru.xmltools.ParseResult;
 import nl.ru.xmltools.XmlForest;
 import nl.ru.xmltools.XmlForest.ForType;
 import nl.ru.xmltools.XmlNode;
@@ -45,6 +44,7 @@ public class ExecutePsdxStream extends ExecuteXml {
   // ============ Local variables for "Xq" =====================================
   List<JobXqF> arJob = new ArrayList<>(); // A list of all the current XqF jobs running
   List<String> arRes = new ArrayList<>(); // The results of each job
+  JSONArray arCount = new JSONArray();    // Array with the counts per file
   // ========== constants ======================================================
   private static final QName loc_xq_EtreeId = new QName("", "", "TreeId");
   private static final QName loc_xq_Section = new QName("", "", "Section");
@@ -151,6 +151,10 @@ public class ExecutePsdxStream extends ExecuteXml {
       String sCombiJson = "[" + StringUtil.join(arRes, ",") + "]";
       jobCaller.setJobResult(sCombiJson);
 
+      // Also combine the job count results
+      JSONObject oCount = new JSONObject();
+      oCount.put("counts", arCount);
+      jobCaller.setJobCount(oCount);
       
       // Return positively
       return true;
@@ -185,6 +189,7 @@ public class ExecutePsdxStream extends ExecuteXml {
             String sResultXqF = jThis.getJobResult();
             // Process the job results
             arRes.add(sResultXqF);
+            arCount.put(jThis.getJobCount());
             // We have its results, so take it away from our job list
             arJob.remove(jThis);
           }
@@ -231,20 +236,20 @@ public class ExecutePsdxStream extends ExecuteXml {
     String strEtreeDb;          // Database values attached to found result
     String strForestId;         // String representation of the forest id
     String sSeg;                // DEBUGGING
+    boolean[] arOutExists;      // Array signalling that output on step i exists
+    boolean[] arCmpExists;      // Array signalling that output on step i exists
     List<XmlNode> ndxDbList;    // All nodes for current text/forest combination
     XmlNode ndxDbPrev;          // Previous database location
     XmlNode ndxForestBack;      // Forest inside which the resulting [eTree] resides
     Parse objParse;             // Functions to parse and get results
-    ParseResult oOneParseRes;   // One parse result
     ByRef<XmlNode> ndxForest;   // Forest we are working on
     ByRef<XmlNode> ndxHeader;   // Header of this file
     ByRef<XmlNode> ndxDbRes;    // Current result
     ByRef<Integer> intForestId; // ID (numerical) of the current <forest>
     ByRef<Integer> intPtc;      // Percentage of where we are
-    List<ParseResult> colParseRes;  // Results of one parse (values of @eTree etc)
     JSONArray colParseJson;     // Array with json results
     XmlForest objProcType;      // Access to the XmlForest object allocated to me
-    JSONArray arXqf;
+    JSONArray[] arXqf;          // An array of JSONArray results for each QC item
     
     // Note: this uses [objProcType, which is a 'protected' variable from [Execute]
     try {
@@ -261,9 +266,13 @@ public class ExecutePsdxStream extends ExecuteXml {
       intPtc = new ByRef(0);
       ndxDbList = new ArrayList<>();
       objParse = new Parse(crpThis,errHandle);
-      colParseRes = new ArrayList<>();
-      arXqf = new JSONArray();
       colParseJson = new JSONArray();
+      // Initialise the Out and Cmp arrays
+      arOutExists = new boolean[arQuery.length + 2];
+      arCmpExists = new boolean[arQuery.length + 2];
+      // Initialise the array of JSONArray results
+      arXqf = new JSONArray[arQuery.length];
+      for (int i=0; i< arXqf.length; i++) arXqf[i] = new JSONArray();
       // Validate existence of file
       if (!fThis.exists()) { DoError("File not found: " + strForestFile); return false; }
       // Start walking through the file...
@@ -318,7 +327,7 @@ public class ExecutePsdxStream extends ExecuteXml {
         }
         // Should this forest be processed? (modMain 2937)
         if (bDoForest) {
-          // Yest, start processing this <forest> for all queries in [arQuery]
+          // Yes, start processing this <forest> for all queries in [arQuery]
           for (int k=0;k<this.arQuery.length;k++) {
             // Make the QC line number available
             oCrpFile.QCcurrentLine = k+1;
@@ -328,9 +337,13 @@ public class ExecutePsdxStream extends ExecuteXml {
             int iInputLine = arQuery[k].InputLine;
             bHasInput = (arQuery[k].InputCmp) ? arCmpExists[iInputLine] : arOutExists[iInputLine];
             // Okay, is there any input?
-            if (bHasInput) {
+            if (!bHasInput) {
+              // There is neither output nor complement, since there is no input
+              arOutExists[k+1] = false;
+              // Signal that there is no complement
+              if (arQuery[k].Cmp) arCmpExists[k+1] = false;
+            } else {
               // Reset the parse results
-              colParseRes.clear();
               colParseJson = new JSONArray();
               // Parsing depends on Dbase too
               if (bIsDbase && ndxDbList.size() > 0) {
@@ -339,48 +352,62 @@ public class ExecutePsdxStream extends ExecuteXml {
                 for (int m=0;m<ndxDbList.size(); m++) {
                   // Perform a parse that only resets the collection when m==0
                   if (objParseXq.DoParseXq(arQuery[k], objSaxDoc, this.xconfig, oCrpFile,
-                        ndxDbList.get(m), colParseRes, colParseJson, (m==0))) bParsed = true;
+                        ndxDbList.get(m), colParseJson, (m==0))) bParsed = true;
                 }
               } else {
                 // Parse this forest
-                /*
-                bParsed = objParseXq.DoParseXq(arQuery[k].Name, arQuery[k].Qeval, objSaxDoc, 
-                      arQuery[k].QueryFile,  arQuery[k].Qstring, ndxForest.argValue.getNode(), colParseRes, true);
-                        */
                 bParsed = objParseXq.DoParseXq(arQuery[k], objSaxDoc, this.xconfig, oCrpFile, 
-                        ndxForest.argValue, colParseRes, colParseJson, true);
+                        ndxForest.argValue, colParseJson, true);
               }
+              
               // Now is the time to execute stack movement for colRuStack
               // TODO: RuStackExecute()
               
               // Do we have result(s)?
-              if (bParsed) {
-                // Check how manuy results there are for this sentence/forest
-                int intInstances = colParseRes.size();
+              if (!bParsed) {
+                // Make sure the output of this line (=k+1) is signalled as empty
+                arOutExists[k+1] = false;
+                // Signal that the complement node is *not* empty 
+                //   (since it is the complement of the output)
+                if (arQuery[k].Cmp) arCmpExists[k+1] = true;
+              } else {
+                // Check how many results there are for this sentence/forest
+                int intInstances = colParseJson.length();
+                // ======== DEBUG =========
+                if (intInstances > 1) {
+                  int iWatch = intInstances;
+                }
+                // ========================
                 // Validate
-                if (intInstances > 0) {
-                  // Get the @id of the first result node
-                  strTreeId = colParseRes.get(0).treeId;
+                if (intInstances == 0) {
+                  // There is no output, so there must be a complement
+                  arOutExists[k+1] = false;
+                  // Signal that there is no complement
+                  if (arQuery[k].Cmp) arCmpExists[k+1] = true;
+                } else {
+                  // Signal that this output DOES exist
+                  arOutExists[k+1] = true;
+                  // Signal that there is no complement
+                  if (arQuery[k].Cmp) arCmpExists[k+1] = false;
                   // Determine the sentence node (the <forest>) within the current file
                   // For the stream-processing, this is the current forest
+                  //
+                  // NOTE: for other processing this forest may not be the same as [ndxForest]
+                  //       since the Query may result in an <eTree> node that is located
+                  //       in another <forest> in the document
                   ndxForestBack = ndxForest.argValue;
-                  // Walk all the results
+                  // Check if the result is usable
+                  if (ndxForestBack == null) return false;
+                  // Walk all the results that come from the parsing
+                  // Note: there may be multiple *hits* within one <forest>, each
+                  //       returning its own <eTree> node (that's the general idea)
                   for (int L = 0; L < intInstances; L++) {
-                    // Validate - double check
-                    if (ndxForestBack == null) return false;
-                    // Keep track of the total number of hits
-                    intHitsTotal++; // TODO: show this number in the status line
-                    // Treat the result
-                    oOneParseRes = colParseRes.get(L);
-                    strTreeId = oOneParseRes.treeId;
-                    strEtreeMsg = oOneParseRes.msg;
-                    strEtreeCat = oOneParseRes.cat;
-                    strEtreeDb = oOneParseRes.db;
-                    strForestId = oOneParseRes.forestId;
-                    // Signal that we have output here
-                    arCmpExists[k+1] = true;
-                    // Signal that there is no complement
-                    if (arQuery[k].Cmp) arCmpExists[k+1] = false;
+                    // Consider this result
+                    JSONObject oThisRes = (JSONObject) colParseJson.getJSONObject(L);
+                    
+                    // Determine possible subcategorisation of *this* result
+                    strEtreeCat = (oThisRes.has("Cat")) ? oThisRes.getString("Cat") : "";
+                    
                     // Get the oview line 
                     intOviewLine = arQuery[k].OviewLine;
                     if (intOviewLine >=0) {
@@ -392,66 +419,45 @@ public class ExecutePsdxStream extends ExecuteXml {
                       } else {
                         // Is this a new QCline/Subcat combination?
                         intCatLine = 0;
+                        // TODO: calculate correct numbers for the sub-categorization...
                       }
-                      // Get the location string
-                      String sLoc = ndxForestBack.getAttributeValue(loc_xq_Location);
-                      // Create output for this line
-                      JSONObject oXqfRes = new JSONObject();
-                      oXqfRes.put("oview", intOviewLine);
-                      oXqfRes.put("file", fThis.getName());
-                      oXqfRes.put("search", sLoc);
-                      oXqfRes.put("forestId", strForestId);
-                      oXqfRes.put("eTreeId", strTreeId);
-                      oXqfRes.put("Cat", strEtreeCat);
-                      oXqfRes.put("Msg", strEtreeMsg);
-                      // TODO: add "db" list/collection
-
-                      // Add this object to the JSONArray with the objects for this Crp/File combination
-                      arXqf.put(oXqfRes);
                     }
-                    // TODO: check in modMain:3110 and further wat hier precies gedaan moet worden; code is onduidelijk.
-                    // Should we put output in the complement?
-                    if (arQuery[k].Cmp) arCmpExists[k+1] = false;
-                  }
-                } else if (colParseJson.length()>0) {
-                  // The results are passed back through [colParseJson]:
-                  // For the stream-processing, this is the current forest
-                  ndxForestBack = ndxForest.argValue;
-                  // Get the location string
-                  String sLoc = ndxForestBack.getAttributeValue(loc_xq_Location);
-                  // Get the oview line 
-                  intOviewLine = arQuery[k].OviewLine;
-                  // Walk the results and add necessary details
-                  for (int L=0;L< colParseJson.length();L++) {
-                    JSONObject oXqfRes = colParseJson.getJSONObject(L);
-                    oXqfRes.put("oview", intOviewLine);
-                    oXqfRes.put("file", fThis.getName());
-                    oXqfRes.put("search", sLoc);
+                    // Add information to this result
+                    oThisRes.put("oview", intOviewLine);
+                    oThisRes.put("file", fThis.getName());
+
                     // Add this object to the JSONArray with the objects for this 
                     //  combination of Crp/File
-                    arXqf.put(oXqfRes);
+                    arXqf[k].put(oThisRes);
                   }
-                  // Should we put output in the complement?
-                  if (arQuery[k].Cmp) arCmpExists[k+1] = false;
-                } else ndxForestBack = null;
+                }
               }
             }
           }
         }
-        
-        
         // Go to the next forest chunk
         if (!objProcType.NextForest(ndxForest)) return errHandle.DoError("Could not read <forest>");
       }
       
       // TODO: combine the results of the queries
       JSONObject oCombi = new JSONObject();
-      oCombi.put("file",fThis.getName());
-      oCombi.put("count", arXqf.length());
-      oCombi.put("results", arXqf);
-      // String sCombiJson = "{" + arXqf.join(",\n") + "}\n";
-      // jobCaller.setJobResult(sCombiJson);
+      for (int k=0;k<arQuery.length;k++) {
+        oCombi.put("file",fThis.getName());
+        oCombi.put("qc", k+1);
+        oCombi.put("count", arXqf[k].length());
+        oCombi.put("results", arXqf[k]);
+      }
       jobCaller.setJobResult(oCombi.toString());
+
+      // Pass on the number of hits for this XqF job
+      JSONObject oCount = new JSONObject();
+      for (int k=0;k<arQuery.length;k++) {
+        oCount.put("file", fThis.getName());
+        oCount.put("qc", k+1);
+        oCount.put("count", arXqf[k].length());
+      }
+      jobCaller.setJobCount(oCount);
+
 
       // Return positively
       return true;

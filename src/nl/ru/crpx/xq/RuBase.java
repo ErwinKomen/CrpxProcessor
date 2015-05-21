@@ -19,7 +19,6 @@ import net.sf.saxon.s9api.XPathCompiler;
 import net.sf.saxon.s9api.XPathSelector;
 import net.sf.saxon.s9api.XdmItem;
 import net.sf.saxon.s9api.XdmNode;
-import net.sf.saxon.s9api.XdmValue;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.tools.ErrHandle;
 import static nl.ru.crpx.xq.English.VernToEnglish;
@@ -75,20 +74,6 @@ public class RuBase /* extends Job */ {
   private final String RU_DISTRI = "-Distri";
   private final String RU_TIMBL = "-Timbl";
 
-  /* ========= replaced by "public static final" ones above ===================
-  private final QName qnIdField = new QName("", "", "id");
-  private final QName qnIdRefField = new QName("", "", "idref");
-  private final QName qnIdPsdx = new QName("", "", "Id");
-  private final QName qnIdResult = new QName("", "", "eTreeId");
-  private final QName qnForestIdPsdx = new QName("", "", "forestId");
-  private final QName qnIdFoliaAll = new QName("", "", "id");
-
-  */
-  // ========= Needed for referencing from static contexts =====================
-  // private static CorpusResearchProject prjThis;
-  
-  // ========= 
-  
 // </editor-fold>
 
   // =========================== instantiate the class =========================
@@ -231,7 +216,7 @@ public class RuBase /* extends Job */ {
   // 03-10-2013  ERK Created for .NET
   // ??/??/2015  ERK Adapted for Java
   // ------------------------------------------------------------------------------------
-  public boolean RuInitLex(boolean bForce) {
+  static boolean RuInitLex(boolean bForce) {
 
     try {
       // TODO: implement
@@ -245,7 +230,7 @@ public class RuBase /* extends Job */ {
       return false;
     }
   }
-  public boolean RuInitLex() {
+  static boolean RuInitLex() {
     return RuInitLex(false);
   }
 // </editor-fold>
@@ -258,7 +243,7 @@ public class RuBase /* extends Job */ {
   // 03-10-2013  ERK Created for .NET
   // 29/apr/2015 ERK Implemented for Java
   // ------------------------------------------------------------------------------------
-  public boolean RuAddLex(XPathContext objXp, String strLexeme, String strPos, int intQC) {
+  static boolean RuAddLex(XPathContext objXp, String strLexeme, String strPos, int intQC) {
     String strFile;     // Which file to use
     String strOut;      // What we append
     
@@ -266,7 +251,7 @@ public class RuBase /* extends Job */ {
       // Try initialize
       if (!RuInitLex()) return false;
       // Determine file name
-      strFile = strRuLexFile + "_QC" + intQC + ".xml";
+      // strFile = strRuLexFile + "_QC" + intQC + ".xml";
       // TODO:  Check if we need a preamble
       
       // Return positively
@@ -278,7 +263,7 @@ public class RuBase /* extends Job */ {
       return false;
     }
   }
-  public boolean RuAddLex(XPathContext objXp, String strLexeme, String strPos) {
+  static boolean RuAddLex(XPathContext objXp, String strLexeme, String strPos) {
     int intCurrentQCline = (int) objXp.getController().getUserData("QCline", "QCline");
     return RuAddLex(objXp, strLexeme, strPos, intCurrentQCline);
   }
@@ -289,7 +274,7 @@ public class RuBase /* extends Job */ {
   // 21-04-2014  ERK Created for .NET 
   // 30/apr/2015 ERK Ported to Java
   // ----------------------------------------------------------------------------------------------------------
-  public String RuConv(String strIn, String strType) {
+  static String RuConv(String strIn, String strType) {
     String strOut = strIn;  // What we return
     String[] arType;        // Array of types
     
@@ -297,7 +282,7 @@ public class RuBase /* extends Job */ {
       // Trim the result
       strOut = strOut.trim();
       // Get all operations
-      arType = strType.split("+");
+      arType = strType.split("\\+");
       for (String sTypeThis : arType) {
         switch(sTypeThis.toLowerCase()) {
           case "clean":
@@ -379,12 +364,8 @@ public class RuBase /* extends Job */ {
             default:
               // Default behaviour: get the string value of this node
               String sValue = ndStart.getStringValue();
-              sBuild.append(sValue);
-              if (sValue.isEmpty()) {
-                // Warn the user
-                errHandle.debug("RuNodeText: empty node [" + 
-                        ndStart.getNodeName().getLocalName() + "]");
-              }
+              // Only add it if it is not empty
+              if (!sValue.isEmpty()) sBuild.append(sValue);
           }
           break;
         case ProjFolia:

@@ -320,7 +320,7 @@ public class SearchManager {
       search.rethrowException();
     }
 
-    logger.debug("Search done");
+    logger.debug("Search done. jobId=" + search.getJobId() + " type=" + searchParameters.getString("jobclass"));
     return search;
   }
 

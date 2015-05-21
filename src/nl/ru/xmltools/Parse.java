@@ -35,8 +35,10 @@ import nl.ru.crpx.xq.CrpFile;
 import nl.ru.util.Json;
 import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONException;
+import nl.ru.util.json.JSONObject;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
@@ -130,17 +132,10 @@ public class Parse {
   // 13/may/2015 ERK Re-written for JAVA
   // ----------------------------------------------------------------------------------------------------------
   public boolean DoParseXq(Query qThis, DocumentBuilder objSaxDoc, Configuration xconfig, CrpFile oCrpThis,
-        XmlNode ndxThis, List<ParseResult> colBack, JSONArray colBackJson, boolean bReset) throws SaxonApiException {
+        XmlNode ndxThis, JSONArray colBackJson, boolean bReset) throws SaxonApiException {
     String strQname = "(empty)";    // Initialize the query name
     XQueryEvaluator objQuery;
     XdmDestination oDest;           // Query output object
-    XdmSequenceIterator objForest;  // To iterate through the children
-    XdmNode ndForDest;
-    String strEtreeId;
-    String strForestId;
-    String strCat;
-    String strMsg;
-    String strDb;
     
     try {
       // Validate
@@ -149,8 +144,12 @@ public class Parse {
       strQname = qThis.Name;
       objQuery = qThis.Qeval;
       
-      // Possibly initialize the [colBack] object
-      if (bReset) {colBack.clear();}
+      /* NO!!! discontinue this...
+      // Possibly initialize the [colBackJson] object
+      if (bReset) {
+        colBackJson = new JSONArray();
+      }
+      */
       
       // The context for the query is the node in [ndxThis]
       objQuery.setContextItem(ndxThis);
@@ -158,7 +157,7 @@ public class Parse {
       DynamicQueryContext dqc = objQuery.getUnderlyingQueryContext();
       dqc.setParameter("crpfile", oCrpThis);
       
-      boolean bMethodJSON = true;
+      boolean bMethodJSON = false;
       if (bMethodJSON) {
         // Alternative: try out receiving JSONObject as string back
         oDest = new XdmDestination();
@@ -177,16 +176,29 @@ public class Parse {
         // Try out DOM destination
         Document pdxDoc = dbuilder.newDocument();
         objQuery.run(new DOMDestination(pdxDoc));
-        /* Unnecessary to wrap it up!
-        // Wrap it into an XdmNode
-        ndForDest = objSaxDoc.wrap(dom);
-        */
-        /* === OLD method: XdmDestination
-        // Run the query to this output
-        oDest = new XdmDestination();      
-        objQuery.run(oDest);
-        ndForDest = oDest.getXdmNode();   
-         */
+        // Convert the *lowest* node into a JSONObject
+        NodeList ndList = pdxDoc.getElementsByTagName("forest");
+        for (int i=0; i< ndList.getLength(); i++) {
+          // Get access to that node
+          Node ndDeep = ndList.item(i);
+          NamedNodeMap attrList = ndDeep.getAttributes();
+          // Creeer een JSONObject
+          JSONObject jsBack = new JSONObject();
+          jsBack.put("file", attrList.getNamedItem("File").getNodeValue());
+          jsBack.put("forestId", attrList.getNamedItem("forestId").getNodeValue());
+          jsBack.put("eTreeId", attrList.getNamedItem("eTreeId").getNodeValue());
+          jsBack.put("Loc", attrList.getNamedItem("Location").getNodeValue());
+          // The following are only added if they actually are defined
+          if (attrList.getNamedItem("Cat") != null)
+            jsBack.put("Cat", attrList.getNamedItem("Cat").getNodeValue());
+          if (attrList.getNamedItem("Msg") != null)
+            jsBack.put("Msg", attrList.getNamedItem("Msg").getNodeValue());
+          // Add the object to what we return
+          colBackJson.put(jsBack);
+        }
+        return (colBackJson.length() > 0);
+
+        /*
         // Check the results for something valuable
         switch (this.crpThis.intProjType) {
           case ProjAlp:
@@ -236,39 +248,6 @@ public class Parse {
                 }
               }
             }
-
-            /* ======== OLD: XdmNode base ========
-            // Walk the resulting XdmNode
-            if (ndForDest != null) {            
-              objForest = ndForDest.axisIterator(Axis.CHILD);
-              while (objForest.hasNext()) {
-                // Reset values
-                strCat=""; strMsg="";strDb="";strEtreeId="";strForestId="";
-                // Get this node
-                XdmNode ndF = (XdmNode) objForest.next();
-                // Extract the correct attribute values
-                // (1) the @TreeId value: this must be present
-                strEtreeId = ndF.getAttributeValue(loc_xq_EtreeId);
-                // Validate reply
-                // TODO: if we unite the different project replies, then at least
-                //       differentiate here at the error-handling level.
-                strForestId = ndxThis.getAttributeValue(loc_xq_forestId);
-                if (strEtreeId.isEmpty()) { 
-                  errHandle.DoError("Cannot find @TreeId value in forest [" + 
-                          strForestId + "]:\n" +
-                          objForest.toString()); 
-                  errHandle.bInterrupt = true; 
-                  return false;
-                }        
-                // (2) the @Msg value - optional
-                strMsg = ndF.getAttributeValue(loc_xq_Msg).replace("''", "'");
-                // (3) the @Cat value - also optional
-                strCat = ndF.getAttributeValue(loc_xq_Cat).replace("''", "'");
-                // (4) the @Db value - also optional
-                strDb = ndF.getAttributeValue(loc_xq_Db).replace("''", "'");
-             }            
-            }
-            =========== */
             break;
           case ProjPsd:
             // This should not run
@@ -277,12 +256,10 @@ public class Parse {
             // Provide warning?
             break;
         }
-        /* } */
-  // </editor-fold>       
-
-
         // Return positively - provided there are results
         return (colBack.size() > 0);
+        */
+  // </editor-fold>       
       }
       /* SaxonApiException | SaxonApiUncheckedException | ParserConfigurationException | */
     } catch ( RuntimeException | IOException ex) {

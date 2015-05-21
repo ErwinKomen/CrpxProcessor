@@ -10,6 +10,7 @@ import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.crpx.xq.Extensions;
 import nl.ru.util.ExUtil;
+import nl.ru.util.json.JSONObject;
 // </editor-fold>
 /*
  * This software has been developed at the "Meertens Instituut"
@@ -48,6 +49,7 @@ public abstract class Job implements Comparable<Job> {
   protected SearchParameters par;           // Parameters specified for this particular search
   protected String userId;                  // ID of user attached to this job
   protected String jobResult;               // String representation of the result of this job
+  protected JSONObject jobCount;            // Counts for this job
   protected String jobStatus;               // Status returned by this job
 
 // </editor-fold>
@@ -63,6 +65,8 @@ public abstract class Job implements Comparable<Job> {
     this.userId = userId;
     // Set my copy of the search parameters
     this.par = par;
+    // Initialize results
+    jobResult = ""; jobCount = new JSONObject(); jobStatus = "initialized";
   }
   // ============= Performing a search 'template' ==============================
   @SuppressWarnings("unused")
@@ -269,6 +273,8 @@ public abstract class Job implements Comparable<Job> {
   public String getJobId() {return String.valueOf(id);}
   public String getJobResult() {return jobResult;}
   public void setJobResult(String sData) { jobResult = sData;}
+  public JSONObject getJobCount() { return jobCount;}
+  public void setJobCount(JSONObject oCount) { jobCount = oCount;}
   public String getJobStatus() {return jobStatus;}
   private String shortUserId() {return userId.substring(0, 6);}
   @Override

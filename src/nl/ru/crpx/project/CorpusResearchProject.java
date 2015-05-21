@@ -8,7 +8,6 @@ package nl.ru.crpx.project;
 // The external libraries that I need
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -18,13 +17,11 @@ import java.util.Map;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.parsers.*;
 import javax.xml.xpath.*;
-import net.sf.saxon.FeatureKeys;
 import net.sf.saxon.s9api.Processor;
 import nl.ru.crpx.search.Job;
 import nl.ru.crpx.search.SearchManager;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.util.FileUtil;
-import nl.ru.util.Json;
 import nl.ru.util.json.JSONObject;
 import static nl.ru.xmltools.XmlIO.WriteXml;
 import org.apache.log4j.Logger;
@@ -333,9 +330,19 @@ public class CorpusResearchProject {
     // Execute the queries using the chosen method
     bFlag = objEx.ExecuteQueries(jobCaller);
     // ========= Debugging =========
-    // Get the job's result
+    // Get the job's OVERALL results
     String sResult = jobCaller.getJobResult();
+    File fResultOut = new File (this.DstDir + "/" + this.Name + ".results.json");
+    FileUtil.writeFile(fResultOut, sResult);
+    // Show where this is written
+    logger.debug("Results are in: " + fResultOut.getAbsolutePath());
     // =============================
+    // Get the counting results
+    String sCount = jobCaller.getJobCount().toString();
+    File fCountOut = new File(this.DstDir + "/" + this.Name + ".count.json");
+    FileUtil.writeFile(fCountOut, sCount);
+    // Show where this is written
+    logger.debug("Counts are in: " + fCountOut.getAbsolutePath());
     // Check if the query-execution resulted in an interrupt
     if (!bFlag || objEx.bInterrupt) { errHandle.bInterrupt = true; return false; }
     // Is this a corpussearch project?

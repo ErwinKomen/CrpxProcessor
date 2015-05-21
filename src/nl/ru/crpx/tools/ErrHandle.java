@@ -44,7 +44,8 @@ public class ErrHandle {
     // Add the object to the static stack
     lErrStack.add(oThis);
     // DEBUGGING: also show it in the error logger
-    logger.error(msg, ex);
+    // logger.error(msg, ex);
+    Logger.getLogger(this.clsDefault).error(msg, ex);
     // Return failure
     return false;
   }
@@ -55,7 +56,8 @@ public class ErrHandle {
     return DoError(msg, null, clsDefault);
   }
   public void debug(String msg) {
-    logger.debug(msg);
+    Logger.getLogger(this.clsDefault).debug(msg);
+    // logger.debug(msg);
   }
   // ========== Allow others to see that there are errors ===========
   public boolean hasErr() {
