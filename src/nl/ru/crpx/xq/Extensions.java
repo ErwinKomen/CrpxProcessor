@@ -6,8 +6,6 @@
 
 package nl.ru.crpx.xq;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -26,7 +24,6 @@ import net.sf.saxon.type.Type;
 import net.sf.saxon.value.AtomicValue;
 import net.sf.saxon.value.Value;
 import nl.ru.crpx.project.CorpusResearchProject;
-import nl.ru.crpx.project.CorpusResearchProject.ProjType;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.crpx.tools.FileIO;
 import nl.ru.util.ByRef;
@@ -373,16 +370,6 @@ public class Extensions extends RuBase {
       return false;
     }
   }
-  /*
-  public static boolean matches(XdmValue varText, String strPattern, String strPatternNo) {
-    String strText;       // The string value we are matching
-    
-    // Validate: look what kind of Xdm we receive
-    if (!hasStringValue(varText)) return false;
-    strText = getStringValue(varText);
-    // Execute the main function
-    return matches(strText, strPattern, strPatternNo);
-  } */
   public static boolean matches(Value varText, Value strPattern, Value strPatternNo) {
     try {
       // Execute the main function
@@ -443,7 +430,7 @@ public class Extensions extends RuBase {
   public static String NodeText(XPathContext objXp, NodeInfo node) {
     return NodeText(objXp, node, "");
   }
-    private static String NodeText(XPathContext objXp, NodeInfo node, String strType) {
+  public static String NodeText(XPathContext objXp, NodeInfo node, String strType) {
     // XmlDocument docThis = new XmlDocument(); // Where we store it
     XdmNode ndSax;    // Myself, if I am a proper node
     String sResult;   // Resulting value
@@ -467,6 +454,50 @@ public class Extensions extends RuBase {
       return "";
     }
   }
+// </editor-fold>
+    
+// <editor-fold desc="ru:line">
+    // ------------------------------------------------------------------------------------
+    // Name:   line
+    // Goal:   Return a following or preceding line
+    // History:
+    // 15-05-2012  ERK Created for .NET
+    // 24-09-2013  ERK Added line with only 1 argument
+    // 21/May/2015 ERK Started adaptation for Java
+    // ------------------------------------------------------------------------------------
+    public static Node line(XPathContext objXp, NodeInfo node, int intLines) {
+      XdmNode ndSax;    // Myself, if I am a proper node
+      int nodeKind;     // The kind of object getting passed as argument
+
+      try {
+        // Validate
+        if (node == null) return null;
+        nodeKind = node.getNodeKind();
+        if (nodeKind != Type.ELEMENT) return null;
+        // Get the XdmNode representation of the node
+        ndSax = objSaxDoc.wrap(node);      
+        
+        return null;
+      } catch (Exception ex) {
+        // Show error
+        logger.error("Extensions/line: " + ex.getMessage());
+        // Return failure
+        return null;
+      }
+    }
+    public static Node line(XPathContext objXp, int intLines) {
+
+      try {
+        // Validate
+        
+        return null;
+      } catch (Exception ex) {
+        // Show error
+        logger.error("Extensions/line: " + ex.getMessage());
+        // Return failure
+        return null;
+      }
+    }
 // </editor-fold>
 
 // <editor-fold defaultstate="collapsed" desc="Private functions">

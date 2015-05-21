@@ -440,22 +440,30 @@ public class ExecutePsdxStream extends ExecuteXml {
       }
       
       // TODO: combine the results of the queries
-      JSONObject oCombi = new JSONObject();
+      JSONObject oCombi;
+      JSONArray arCombi = new JSONArray();
       for (int k=0;k<arQuery.length;k++) {
+        oCombi = new JSONObject();
         oCombi.put("file",fThis.getName());
         oCombi.put("qc", k+1);
         oCombi.put("count", arXqf[k].length());
         oCombi.put("results", arXqf[k]);
+        arCombi.put(oCombi);
       }
-      jobCaller.setJobResult(oCombi.toString());
+      jobCaller.setJobResult(arCombi.toString());
 
       // Pass on the number of hits for this XqF job
-      JSONObject oCount = new JSONObject();
+      JSONArray arCount = new JSONArray();
+      JSONObject oCount;
       for (int k=0;k<arQuery.length;k++) {
+        oCount = new JSONObject();
         oCount.put("file", fThis.getName());
         oCount.put("qc", k+1);
         oCount.put("count", arXqf[k].length());
+        arCount.put(oCount);
       }
+      oCount = new JSONObject();
+      oCount.put("stats", arCount);
       jobCaller.setJobCount(oCount);
 
 
