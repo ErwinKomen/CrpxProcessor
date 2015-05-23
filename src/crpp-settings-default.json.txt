@@ -14,6 +14,9 @@
     "0:0:0:0:0:0:0:1" // IPv6 localhost
   ],
 
+  // Specify the maximum number of "XqF" jobs allowed
+  "maxparjobs": 4,
+
   // A list of possible Engines, with the default engine identified
   "pinfo": {
     "ProjectType": "Xquery-psdx",

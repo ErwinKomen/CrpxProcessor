@@ -295,6 +295,8 @@ public class CorpusResearchProject {
   public boolean Execute(Job jobCaller, String sCallingUser) {
     boolean bFlag = true; // Flag with execution result
     
+    // Set the starting time
+    long startTime = System.currentTimeMillis();
     // Set the userid
     this.userId = sCallingUser;
     // Create an execution object instance
@@ -329,6 +331,11 @@ public class CorpusResearchProject {
     if (objEx == null) return false;
     // Execute the queries using the chosen method
     bFlag = objEx.ExecuteQueries(jobCaller);
+    // Note finish time
+    long stopTime = System.currentTimeMillis();
+    long elapsedTime = stopTime - startTime; 
+    // Log the time
+    logger.debug("Query time: " + elapsedTime + " (ms)");
     // ========= Debugging =========
     // Get the job's OVERALL results
     String sResult = jobCaller.getJobResult();

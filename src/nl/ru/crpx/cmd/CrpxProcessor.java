@@ -58,6 +58,7 @@ public class CrpxProcessor {
     public static void main(String[] args) throws Exception {
       String indexName = "";    // The request that is being made
       String strProject = "";   // Name of the project to execute
+      int iMaxParJobs=0;        // Max number of parallel XqF jobs
       
       // Try to configure
       try {
@@ -98,6 +99,17 @@ public class CrpxProcessor {
                 }
               }
               break;
+            case "maxparjobs":  // define the maximum number of XqF jobs in parallel
+              // The number should follow
+              i++;
+              if (i>args.length-1) {
+                logger.error("Option --maxparjobs should be followed by a number");
+                usage(); return;
+              } else {
+                // Get the number
+                iMaxParJobs = Integer.parseInt(args[i]);
+              }
+              break;
             case "help":
               usage(); return;
             default:
@@ -115,6 +127,11 @@ public class CrpxProcessor {
       
       // Initialize
       if (!init()) { logger.error("Could not initialize"); return; }
+      
+      // Possibly adapt the max number of parallel jobs
+      if (iMaxParJobs>0) {
+        prjTypeManager.setMaxParJobs(iMaxParJobs);
+      }
             
       // Handle the request
       if (!processRequest(indexName, strProject))  { logger.error("Could not process request"); return; }
@@ -196,6 +213,8 @@ public class CrpxProcessor {
       // Show the project has been loaded
       errHandle.debug("Successfully loaded project " + 
               prjThis.getName() + " (type=" + prjThis.getProjectType() + ")");
+      // Show the number of parallel jobs
+      errHandle.debug("Maxparjobs = " + prjTypeManager.getMaxParJobs());
       // Get an object of the CrpxProcessor
       CrpxProcessor caller = new CrpxProcessor();
       // Elicit a response

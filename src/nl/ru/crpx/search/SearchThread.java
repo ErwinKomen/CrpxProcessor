@@ -41,6 +41,7 @@ final class SearchThread extends Thread implements Thread.UncaughtExceptionHandl
       // Note when the search has finished
       search.finishedAt = System.currentTimeMillis();
     } catch (Throwable ex) {
+      logger.error("Running the project results in error: ", ex);
       thrownException = ex;
     }
   }

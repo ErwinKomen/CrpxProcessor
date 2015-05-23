@@ -25,6 +25,7 @@ public class PrjTypeManager {
   private String sDefaultPerFile; // Default period file
   private String sDefaultDefFile; // Default definition file
   private String sDefaultQuery;   // Default query
+  private int iMaxParJobs;        // Maximum number of jobs XqF in parallel
   /** Which project type is this? That determines locations of files */
   private String sProjType;
   
@@ -46,6 +47,7 @@ public class PrjTypeManager {
     sDefaultDefFile = pInfoCurrent.getString("DefaultDefFile");
     // The default query is an array of strings, and should be joined into one string
     sDefaultQuery = pInfoCurrent.getJSONArray("DefaultQuery").join("\n");
+    iMaxParJobs = properties.getInt("maxparjobs");
   }
   
   // ============= Get and Set functions for our local copies
@@ -60,5 +62,7 @@ public class PrjTypeManager {
   public String getDefaultPerFile() { return sDefaultPerFile; }
   public String getDefaultDefFile() { return sDefaultDefFile; }
   public String getDefaultQuery() { return sDefaultQuery; }
+  public int getMaxParJobs() { return iMaxParJobs;}
+  public void setMaxParJobs(int iValue) { iMaxParJobs = iValue;}
   
 }

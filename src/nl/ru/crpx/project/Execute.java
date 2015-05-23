@@ -82,8 +82,8 @@ public class Execute extends CrpGlobal {
       crpThis = oProj;
       // Set the rubase
       ruExtensions = new Extensions(crpThis);
-      // Set the maximum number of parallel jobs per user
-      iMaxParJobs = 4;    // TODO: this should depend on the number of processors available!
+      // Set the maximum number of parallel XqF jobs
+      iMaxParJobs = crpThis.getPrjTypeManager().getMaxParJobs();
       // Set the search manager associated with the CRP
       this.searchMan = crpThis.getSearchManager();
       // Create a search parameters object
