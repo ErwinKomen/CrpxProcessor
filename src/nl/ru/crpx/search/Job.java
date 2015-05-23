@@ -67,6 +67,8 @@ public abstract class Job implements Comparable<Job> {
     this.par = par;
     // Initialize results
     jobResult = ""; jobCount = new JSONObject(); jobStatus = "initialized";
+    // Make sure the finishing time is initialized correctly
+    finishedAt = -1;
   }
   // ============= Performing a search 'template' ==============================
   @SuppressWarnings("unused")
