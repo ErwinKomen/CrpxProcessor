@@ -39,6 +39,8 @@ public class CrpxProcessor {
   // public static String strProject = "";   // Short name of the project to execute
   public static File flProject = null;    // The project we are working with
   public static File dirInput = null;     // Main directory where the psdx files are located
+  public static File dirOutput = null;    // Directory where the output of this query will be put
+  public static File dirQuery = null;     // Directory where the queries (temporarily) are put
   // =================== instance variables ==================================
   private static JSONObject config;           // Configuration object
   private static SearchManager searchManager; // The search manager we make
@@ -73,8 +75,12 @@ public class CrpxProcessor {
         System.err.println("Passing parameter to CrpxProcessor: argument needed!");
         usage(); return;
       }
+      // Initialise
+      dirOutput = null; dirInput = null; dirQuery = null;
       // Parse the input parameters
       for (int i = 0; i < args.length; i++) {
+        // Debugging
+        logger.debug("Argument #" + i + " = [" + args[i].trim() + "]");
         // Isolate and trim this argument
         String arg = args[i].trim();
         if (i > 0 && arg.startsWith("--")) {
@@ -95,6 +101,40 @@ public class CrpxProcessor {
                 if (!dirInput.exists()) {
                 // The project cannot be read/opened
                 logger.error("Cannot open input directory: " + dirInput);
+                usage(); return;
+                }
+              }
+              break;
+            case "outputdir":
+              // We next expect the actual directory to follow
+              i++;
+              if (i>args.length-1) {
+                logger.error("Option --outputdir should be followed by a directory");
+                usage(); return;
+              } else {
+                // Get the input directory
+                dirOutput = new File(args[i]);
+                // Check it up
+                if (!dirOutput.exists()) {
+                // The project cannot be read/opened
+                logger.error("Cannot open output directory: " + dirOutput);
+                usage(); return;
+                }
+              }
+              break;
+            case "querydir":
+              // We next expect the actual directory to follow
+              i++;
+              if (i>args.length-1) {
+                logger.error("Option --querydir should be followed by a directory");
+                usage(); return;
+              } else {
+                // Get the input directory
+                dirQuery = new File(args[i]);
+                // Check it up
+                if (!dirQuery.exists()) {
+                // The project cannot be read/opened
+                logger.error("Cannot open query directory: " + dirQuery);
                 usage(); return;
                 }
               }
@@ -198,12 +238,22 @@ public class CrpxProcessor {
     DataObject response;  // The response of this program
     boolean prettyPrint = true;
     String callbackFunction = "";
+    String sInputDir;
+    String sOutputDir;
+    String sQueryDir;
 
     try {
       // Create room for the project
       CorpusResearchProject prjThis = new CorpusResearchProject();
+      // Initialize directories
+      sInputDir = (dirInput == null) ? "" : dirInput.getAbsolutePath();
+      sOutputDir = (dirOutput == null) ? "" : dirOutput.getAbsolutePath();
+      sQueryDir = (dirQuery == null) ? "" : dirQuery.getAbsolutePath();
+      errHandle.debug("inputdir=[" + sInputDir + "]");
+      errHandle.debug("outputdir=[" + sOutputDir + "]");
+      errHandle.debug("queryputdir=[" + sQueryDir + "]");
       // Load the project
-      if (!prjThis.Load(strProject)) {
+      if (!prjThis.Load(strProject, sInputDir, sOutputDir, sQueryDir)) {
         errHandle.DoError("Could not load project " + strProject);
         // Try to show the list of errors, if there is one
         String sMsg = prjThis.errHandle.getErrList().toString();
@@ -249,12 +299,14 @@ public class CrpxProcessor {
    17/10/2014   ERK Created
    --------------------------------------------------------------------------- */
   private static void usage() {
-    System.out
-    .println("Usage:\n"
+    System.out.println("Usage:\n"
       + "  CrpxProcessor project [options]\n"
       + "\n"
       + "Options:\n"
+      + "  --maxparjobs <n>   maximum number of parallel XqF jobs\n"
       + "  --inputdir <dir>   directory where psdx input files are located\n"
+      + "  --outputdir <dir>  directory where psdx output files are put\n"
+      + "  --querydir <dir>   directory where intermediate query files are kept\n"
       + "  --help             this help information\n");
   }
   /**

@@ -28,6 +28,7 @@ import net.sf.saxon.s9api.XQueryEvaluator;
 import net.sf.saxon.s9api.XdmDestination;
 import net.sf.saxon.s9api.XdmNode;
 import net.sf.saxon.s9api.XdmSequenceIterator;
+import net.sf.saxon.s9api.XdmValue;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.project.Query;
 import nl.ru.crpx.tools.ErrHandle;

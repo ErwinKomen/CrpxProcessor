@@ -130,7 +130,7 @@ public class CorpusResearchProject {
    History:
    17/10/2014   ERK Created
    --------------------------------------------------------------------------- */
-  public boolean Load() {
+  public boolean Load(String sSrcDir, String sDstDir, String sQueryDir) {
       try {
       // Validate crucial settings ---------------------------------
       if (this.Location.equals("")) return(false);
@@ -196,10 +196,14 @@ public class CorpusResearchProject {
         default:
           this.bXmlData = true;
       }
+      // Possibly adapt the setting directories
+      if (sSrcDir.isEmpty()) sSrcDir = getSetting("SrcDir");
+      if (sDstDir.isEmpty()) sDstDir = getSetting("DstDir");
+      if (sQueryDir.isEmpty()) sQueryDir = getSetting("QueryDir");
       // Load the settings: directories
-      this.QueryDir = new File(FileUtil.nameNormalize(getSetting("QueryDir")));
-      this.DstDir = new File(FileUtil.nameNormalize(getSetting("DstDir")));
-      this.SrcDir = new File(FileUtil.nameNormalize(getSetting("SrcDir")));
+      this.QueryDir = new File(FileUtil.nameNormalize(sQueryDir));
+      this.DstDir = new File(FileUtil.nameNormalize(sDstDir));
+      this.SrcDir = new File(FileUtil.nameNormalize(sSrcDir));
       // Load the list of definitions
       ReadCrpList(lDefList, "./descendant::DefList/child::Definition", 
                   "DefId;Name;File;Goal;Comment;Created;Changed", "Text");
@@ -270,9 +274,9 @@ public class CorpusResearchProject {
       return false;
     }
   }
-  public boolean Load(String loc) {
+  public boolean Load(String loc, String sSrcDir, String sDstDir, String sQueryDir) {
     this.Location = loc;
-    return(Load());
+    return(Load(sSrcDir, sDstDir, sQueryDir));
   }
   
   /* ---------------------------------------------------------------------------
