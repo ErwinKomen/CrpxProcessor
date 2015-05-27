@@ -15,7 +15,7 @@
   ],
 
   // Specify the maximum number of "XqF" jobs allowed
-  "maxparjobs": 4,
+  "maxparjobs": 1,
 
   // A list of possible Engines, with the default engine identified
   "pinfo": {
