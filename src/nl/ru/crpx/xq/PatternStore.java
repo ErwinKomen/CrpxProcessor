@@ -20,35 +20,49 @@ public class PatternStore  {
   // =============== Locally needed variables ==================================
   private List<MatchHelp> lMatchHelp;
   private ErrHandle objErr;
+  private boolean bBusy;
   // ============== CLASS initialization =======================================
   public PatternStore(ErrHandle oErr) {
     // Initialize a list of string arrays to help ru:matches()
     lMatchHelp = new ArrayList<>();
     // Set the correct error handler
     objErr = oErr;
+    // I am not busy
+    bBusy = false;
   }
   
   // Find a string-array of regular expressions derived from @sPatterns
   //   and implementing the "like" operator
   public Pattern[] getMatchHelp(String sPatterns) {
-    try {
-      for (int i=0;i<lMatchHelp.size(); i++) {
-        // Check if this matches the pattern
-        if (lMatchHelp.get(i).key.equals(sPatterns)) {
-          // We found the correct pattern: return the array
-          return lMatchHelp.get(i).patt;
+    // Make sure no one else is playing around with lMatchHelp
+    synchronized(lMatchHelp) {
+      try {
+        for (int i=0;i<lMatchHelp.size(); i++) {
+          // Check if this matches the pattern
+          if (lMatchHelp.get(i).key.equals(sPatterns)) {
+            // We found the correct pattern: return the array
+            return lMatchHelp.get(i).patt;
+          }
         }
+        // The pattern is not yet known: implement it
+        MatchHelp oNew = new MatchHelp(sPatterns);
+        /*
+        // Make sure we are not interrupted
+        while (bBusy) {
+          int i = 1;
+        }
+        bBusy = true;
+                */
+        lMatchHelp.add(oNew);
+        /* bBusy = false; */
+        // Return this new pattern
+        return oNew.patt;
+      } catch (RuntimeException ex) {
+        // Warn user
+        objErr.DoError("PatternStore/getMatchHelp error", ex, PatternStore.class);
+        // Return failure
+        return null;
       }
-      // The pattern is not yet known: implement it
-      MatchHelp oNew = new MatchHelp(sPatterns);
-      lMatchHelp.add(oNew);
-      // Return this new pattern
-      return oNew.patt;
-    } catch (RuntimeException ex) {
-      // Warn user
-      objErr.DoError("PatternStore/getMatchHelp error", ex, PatternStore.class);
-      // Return failure
-      return null;
     }
   }
   private class MatchHelp {

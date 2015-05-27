@@ -9,10 +9,7 @@
 package nl.ru.crpx.search;
 
 import java.io.File;
-import nl.ru.crpx.project.Execute;
 import nl.ru.crpx.project.ExecutePsdxStream;
-import nl.ru.crpx.xq.CrpFile;
-import nl.ru.crpx.xq.RuBase;
 import org.w3c.dom.Node;
 
 /**
@@ -58,7 +55,7 @@ public class JobXqF extends Job {
       // Validate
       if (crpThis==null) { errHandle.DoError("There is no CRP"); return;}
       // Perform the queries on the selected CrpFile object
-      if (this.objEx.ExecuteQueriesFile(this, intCrpFileId)) {
+      if (objEx.ExecuteQueriesFile(this, intCrpFileId)) {
         // Check for interrupt
         if (errHandle.bInterrupt) {
           errHandle.DoError("JobXqF: The program has been interrupted");

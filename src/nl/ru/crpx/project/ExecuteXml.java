@@ -11,8 +11,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.xml.transform.ErrorListener;
 import javax.xml.transform.SourceLocator;
 import javax.xml.transform.TransformerException;
@@ -45,8 +43,8 @@ public class ExecuteXml extends Execute {
   protected Processor objSaxon;         // A saxon Processor object to host Xquery
   protected XQueryCompiler objCompiler; // Saxon query compiler
   protected DocumentBuilder objSaxDoc;  // Saxon document builder
-  protected boolean bIsDbase;           // Whether this is a database or not
   protected Dbase oDbase;               // Database pointer
+  protected boolean bIsDbase;           // Whether this is a database or not
   protected List<String> objBack;       // Element to collect Html output
   protected List<String> objExmp;       // Element to collect examples for Html output (for the current QC step)
   protected List<String> objSubCat;     // Element to collect subcagegorisation examples for HTML output
@@ -54,8 +52,11 @@ public class ExecuteXml extends Execute {
   protected Configuration xconfig;
   protected StaticQueryContext sqc;
   // protected Extensions objExt;          // Make the extensions available
+  // =========== Local variables ===============================================
   private FileUtil fHandle;             // For processing FileUtil functions
   private XqErr oXq;                    // For using XqErr
+  // =========== Accessible variables ==========================================
+  // public boolean bIsDbase;           // Whether this is a database or not
 // </editor-fold>
   // ============= Class initializer ==========================================
   public ExecuteXml(CorpusResearchProject oProj) {
@@ -213,7 +214,7 @@ public class ExecuteXml extends Execute {
   // 13-09-2010  ERK Created
   // ----------------------------------------------------------------------------------------------------------
   private boolean GetExec(String strQfile, Query objQuery) {
-    StaticError objErr;               //  To try and figure out static errors
+    // StaticError objErr;               //  To try and figure out static errors
     String strError;                  // String rep of error
     List<Exception> errorList;        // List of errors
     TransformerException exThis;      // Exceptions in the transformation process
@@ -235,7 +236,7 @@ public class ExecuteXml extends Execute {
       qText = fHandle.readFile(strQfile);
       objQuery.Exe = objCompiler.compile(qText);
       // Alternative method: XQueryExpression
-      objQuery.Exp = sqc.compileQuery(qText);     
+      // objQuery.Exp = sqc.compileQuery(qText);     
       // Return success
       return true;
     } catch (SaxonApiException ex) {
@@ -269,7 +270,7 @@ public class ExecuteXml extends Execute {
       // Make sure interrupt is set
       bInterrupt = true;
       return false;
-    } catch (RuntimeException | XPathException ex) {
+    } catch (RuntimeException ex) {
       // Show error
       DoError("ExecuteXml/GetExec error: " + ex.getMessage() + "\r\n");
       ex.printStackTrace();

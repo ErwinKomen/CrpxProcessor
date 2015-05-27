@@ -6,6 +6,7 @@
 package nl.ru.crpx.project;
 
 import java.io.File;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -13,6 +14,7 @@ import java.util.logging.Logger;
 import javax.xml.xpath.XPathExpressionException;
 import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.SaxonApiException;
+import net.sf.saxon.s9api.XQueryEvaluator;
 import nl.ru.crpx.search.Job;
 import nl.ru.crpx.search.JobXq;
 import nl.ru.crpx.search.JobXqF;
@@ -21,6 +23,7 @@ import nl.ru.crpx.search.SearchParameters;
 import nl.ru.crpx.xq.CrpFile;
 import nl.ru.crpx.xq.RuBase;
 import nl.ru.util.ByRef;
+import nl.ru.util.FileUtil;
 import nl.ru.util.StringUtil;
 import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
@@ -203,7 +206,7 @@ public class ExecutePsdxStream extends ExecuteXml {
     }
   }
 // </editor-fold>
-
+  
 // <editor-fold desc="Part 2: XqF">
   /** 
    * ExecuteQueriesFile - Execute all the queries in [arQuery] on one file
@@ -212,13 +215,13 @@ public class ExecutePsdxStream extends ExecuteXml {
    *              the file is in a 'local' place (local HD)
    * 
    * Note: communication with extended functions ("Extensions") goes
-   *       via the [oCrpFile] objectß
+   *       via the [oCrpFile] object
    * 
    * @param jobCaller
    * @param iCrpFileIdx
    * @return 
    */
-  public boolean ExecuteQueriesFile(Job jobCaller, int iCrpFileIdx) {
+  public boolean ExecuteQueriesFile( Job jobCaller, int iCrpFileIdx ) {
     int intNumForest=0;         // Forest number we are processing
     int intLastId;              // 
     int intHitsTotal = 0;       // Total number of hits so far
@@ -241,7 +244,6 @@ public class ExecutePsdxStream extends ExecuteXml {
     List<XmlNode> ndxDbList;    // All nodes for current text/forest combination
     XmlNode ndxDbPrev;          // Previous database location
     XmlNode ndxForestBack;      // Forest inside which the resulting [eTree] resides
-    Parse objParse;             // Functions to parse and get results
     ByRef<XmlNode> ndxForest;   // Forest we are working on
     ByRef<XmlNode> ndxHeader;   // Header of this file
     ByRef<XmlNode> ndxDbRes;    // Current result
@@ -250,6 +252,7 @@ public class ExecutePsdxStream extends ExecuteXml {
     JSONArray colParseJson;     // Array with json results
     XmlForest objProcType;      // Access to the XmlForest object allocated to me
     JSONArray[] arXqf;          // An array of JSONArray results for each QC item
+    XQueryEvaluator[] arQeval;   // Our own query evaluators
     
     // Note: this uses [objProcType, which is a 'protected' variable from [Execute]
     try {
@@ -265,39 +268,40 @@ public class ExecutePsdxStream extends ExecuteXml {
       intForestId = new ByRef(-1);
       intPtc = new ByRef(0);
       ndxDbList = new ArrayList<>();
-      objParse = new Parse(crpThis,errHandle);
       colParseJson = new JSONArray();
       // Initialise the Out and Cmp arrays
       arOutExists = new boolean[arQuery.length + 2];
       arCmpExists = new boolean[arQuery.length + 2];
       // Initialise the array of JSONArray results
       arXqf = new JSONArray[arQuery.length];
-      for (int i=0; i< arXqf.length; i++) arXqf[i] = new JSONArray();
+      arQeval = new XQueryEvaluator[arQuery.length];
+      for (int i=0; i< arXqf.length; i++) { 
+        // Initialise the JSON array for this query
+        arXqf[i] = new JSONArray(); 
+        // Set a new XQueryEvaluator for this combination of Query / File
+        arQeval[i] = arQuery[i].Exe.load();
+      }
+      
       // Validate existence of file
-      if (!fThis.exists()) { DoError("File not found: " + strForestFile); return false; }
+      if (!fThis.exists()) { errHandle.DoError("File not found: " + strForestFile); return false; }
+      
+      // === Debugging: Get the name of this file
+      // String sCurrentFile = this.sFile;
+      
       // Start walking through the file...
       // (a) Read the first <forest>, including the <teiHeader>
-      // Line: modMain - 2798
       if (!objProcType.FirstForest(ndxForest, ndxHeader, strForestFile)) 
         return errHandle.DoError("ExecuteQueriesFile could not process firest forest of " + fThis.getName());
       // Store the [ndxHeader] in the CrpFile object
       oCrpFile.ndxHeader = ndxHeader.argValue;
       // Loop through the file in <forest> chunks
       while (ndxForest.argValue != null) {
-        // ============ DEBUG ==================
-        // sSeg = ndxForest.argValue.SelectSingleNode("./child::div[@lang='org']/child::seg").getNodeValue();
-        // logger.debug("PsdxStream seg = [" + sSeg + "]");
-        // =====================================
         // Get the @forestId value of this forest
         if (!objProcType.GetForestId(ndxForest, intForestId)) return errHandle.DoError("Could not obtain @forestId");
         // Get a percentage of where we are
         if (!objProcType.Percentage(intPtc)) return errHandle.DoError("Could not find out where we are");
         
-        // ======= DEBUG =========== not needed for real work ==========
-        // Show where we are in the status
-        // errHandle.debug("file [" + fThis.getName() + "] " + intPtc.argValue + "%");
-        // =========================
-        
+       
         // TODO: convey the status to a global status gathering object for this Execute object??
         
         // Initialize the firest elements of arOut and arCmp
@@ -311,7 +315,7 @@ public class ExecutePsdxStream extends ExecuteXml {
           String strNextFile = "";  // points to the next file
           
           // TODO: implement. See modMain.vb [2890-2920]
-          oDbase.DbaseQueryCurrent(ndxDbRes);
+          this.oDbase.DbaseQueryCurrent(ndxDbRes);
         } else {
           // Always process
           bDoForest = true;
@@ -346,17 +350,17 @@ public class ExecutePsdxStream extends ExecuteXml {
               // Reset the parse results
               colParseJson = new JSONArray();
               // Parsing depends on Dbase too
-              if (bIsDbase && ndxDbList.size() > 0) {
+              if (this.bIsDbase && ndxDbList.size() > 0) {
                 // Parse all the <Result> elements within this forestId
                 bParsed = false;
                 for (int m=0;m<ndxDbList.size(); m++) {
                   // Perform a parse that only resets the collection when m==0
-                  if (objParseXq.DoParseXq(arQuery[k], objSaxDoc, this.xconfig, oCrpFile,
+                  if (this.objParseXq.DoParseXq(arQuery[k],arQeval[k],this.objSaxDoc, this.xconfig, oCrpFile,
                         ndxDbList.get(m), colParseJson, (m==0))) bParsed = true;
                 }
               } else {
                 // Parse this forest
-                bParsed = objParseXq.DoParseXq(arQuery[k], objSaxDoc, this.xconfig, oCrpFile, 
+                bParsed = this.objParseXq.DoParseXq(arQuery[k], arQeval[k], this.objSaxDoc, this.xconfig, oCrpFile, 
                         ndxForest.argValue, colParseJson, true);
               }
               
@@ -406,28 +410,35 @@ public class ExecutePsdxStream extends ExecuteXml {
                     JSONObject oThisRes = (JSONObject) colParseJson.getJSONObject(L);
                     
                     // Determine possible subcategorisation of *this* result
-                    strEtreeCat = (oThisRes.has("Cat")) ? oThisRes.getString("Cat") : "";
+                    strEtreeCat = (oThisRes.has("cat")) ? oThisRes.getString("cat") : "";
                     
                     // Get the oview line 
                     intOviewLine = arQuery[k].OviewLine;
+                    intCatLine = -1;
                     if (intOviewLine >=0) {
                       // TODO: Convert the oview line to an OviewId (see modMain:3035)
                       // Do we have subcategorization?
-                      if (strEtreeCat.isEmpty()) {
-                        // Make sure the intCatLine is negative
-                        intCatLine = -1;
-                      } else {
+                      if (!strEtreeCat.isEmpty()) {
                         // Is this a new QCline/Subcat combination?
                         intCatLine = 0;
                         // TODO: calculate correct numbers for the sub-categorization...
                       }
                     }
+                    /* ==== oude methode (teveel ruimte) =====
                     // Add information to this result
                     oThisRes.put("oview", intOviewLine);
                     oThisRes.put("file", fThis.getName());
+                    ===================== */
 
                     // Add this object to the JSONArray with the objects for this 
                     //  combination of Crp/File
+                    /*
+                    // arXqf[k].put(oThisRes);
+                    // Make sure the index matches the array size
+                    if (arXqf[k].length() != arHits[k]) {
+                      intCatLine = intCatLine;
+                    }
+                            */
                     arXqf[k].put(oThisRes);
                   }
                 }
@@ -440,17 +451,33 @@ public class ExecutePsdxStream extends ExecuteXml {
       }
       
       // TODO: combine the results of the queries
+      JSONObject oHitInfo = new JSONObject();
+      oHitInfo.put("file", fThis.getName());
       JSONObject oCombi;
       JSONArray arCombi = new JSONArray();
       for (int k=0;k<arQuery.length;k++) {
         oCombi = new JSONObject();
-        oCombi.put("file",fThis.getName());
         oCombi.put("qc", k+1);
         oCombi.put("count", arXqf[k].length());
         oCombi.put("results", arXqf[k]);
         arCombi.put(oCombi);
       }
-      jobCaller.setJobResult(arCombi.toString());
+      oHitInfo.put("hits", arCombi);
+
+      // Original handling: keep the results available in the XqF job
+      // jobCaller.setJobResult(oHitInfo.toString());
+      // New handling: store the results in a separate file
+      String sDir = this.crpThis.getDstDir() + "/hits";
+      File fResultDir = new File(sDir);
+      if (!fResultDir.exists()) {
+        fResultDir.mkdir();
+      }
+      String sLoc = sDir + "/" + fThis.getName() + ".hits";
+      File fResultXqF = new File(FileUtil.nameNormalize(sLoc));
+      // Write the results in 'pretty-print'
+      FileUtil.writeFile(fResultXqF, oHitInfo.toString(1));
+      // Store the filename
+      jobCaller.setJobResult(fResultXqF.getAbsolutePath());
 
       // Pass on the number of hits for this XqF job
       JSONArray arCount = new JSONArray();
@@ -471,16 +498,10 @@ public class ExecutePsdxStream extends ExecuteXml {
       return true;
     } catch (RuntimeException | SaxonApiException ex) {
       // Warn user
-      DoError("ExecutePsdxStream/ExecuteQueriesFile runtime error: " + ex.getMessage() + "\r\n");
+      errHandle.DoError("ExecutePsdxStream/ExecuteQueriesFile runtime error: " + ex.getMessage() + "\r\n");
       // Return failure
       return false;
-    } /* catch (XPathExpressionException ex) {
-      // Warn user
-      DoError("ExecutePsdxStream/ExecuteQueriesFile xpath error: " + ex.getMessage() + "\r\n");
-      // Return failure
-      return false;
-    } */
+    } 
   }
-// </editor-fold>  
-
+// </editor-fold>   
 }
