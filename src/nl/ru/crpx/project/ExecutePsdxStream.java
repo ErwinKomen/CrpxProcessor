@@ -6,12 +6,8 @@
 package nl.ru.crpx.project;
 
 import java.io.File;
-import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.xml.xpath.XPathExpressionException;
 import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.XQueryEvaluator;
@@ -27,11 +23,8 @@ import nl.ru.util.FileUtil;
 import nl.ru.util.StringUtil;
 import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
-import nl.ru.xmltools.Parse;
 import nl.ru.xmltools.XmlForest;
-import nl.ru.xmltools.XmlForest.ForType;
 import nl.ru.xmltools.XmlNode;
-import org.w3c.dom.Node;
 
 /**
  *
@@ -47,6 +40,7 @@ public class ExecutePsdxStream extends ExecuteXml {
   // ============ Local variables for "Xq" =====================================
   List<JobXqF> arJob = new ArrayList<>(); // A list of all the current XqF jobs running
   List<String> arRes = new ArrayList<>(); // The results of each job
+  JSONObject arSub[];                     // One list of sub-categories per QC
   JSONArray arCount = new JSONArray();    // Array with the counts per file
   // ========== constants ======================================================
   private static final QName loc_xq_EtreeId = new QName("", "", "TreeId");
@@ -54,7 +48,7 @@ public class ExecutePsdxStream extends ExecuteXml {
   private static final QName loc_xq_Location = new QName("", "", "Location");
 
   // ============ Local variables for "XqF" ====================================
-  
+  // (none apparently)
   /* ---------------------------------------------------------------------------
   Name:    ExecutePsdxStream
   Goal:    Perform initialisations needed for this class
@@ -69,7 +63,12 @@ public class ExecutePsdxStream extends ExecuteXml {
   public ExecutePsdxStream(CorpusResearchProject oProj) {
     // Do the initialisations for all Execute() classes
     super(oProj);
-    
+    // Initialize the array with subcategories
+    arSub = new JSONObject[arQuery.length];
+    for (int i=0;i<arQuery.length;i++) {
+      // Initialize the array for this QC item
+      arSub[i] = new JSONObject();
+    }
     
     // TODO: make sure we provide [intCurrentQCline] with the correct value!!
   }
@@ -252,7 +251,8 @@ public class ExecutePsdxStream extends ExecuteXml {
     JSONArray colParseJson;     // Array with json results
     XmlForest objProcType;      // Access to the XmlForest object allocated to me
     JSONArray[] arXqf;          // An array of JSONArray results for each QC item
-    XQueryEvaluator[] arQeval;   // Our own query evaluators
+    JSONObject[] arXqfSub;      // An array of JSONObject items containing subcat-count pairs
+    XQueryEvaluator[] arQeval;  // Our own query evaluators
     
     // Note: this uses [objProcType, which is a 'protected' variable from [Execute]
     try {
@@ -272,14 +272,17 @@ public class ExecutePsdxStream extends ExecuteXml {
       // Initialise the Out and Cmp arrays
       arOutExists = new boolean[arQuery.length + 2];
       arCmpExists = new boolean[arQuery.length + 2];
-      // Initialise the array of JSONArray results
+      // Initialise the array of JSONArray results and some other arrays
       arXqf = new JSONArray[arQuery.length];
+      arXqfSub = new JSONObject[arQuery.length];
       arQeval = new XQueryEvaluator[arQuery.length];
       for (int i=0; i< arXqf.length; i++) { 
         // Initialise the JSON array for this query
         arXqf[i] = new JSONArray(); 
         // Set a new XQueryEvaluator for this combination of Query / File
         arQeval[i] = arQuery[i].Exe.load();
+        // Initialise the JSONObject containing sub-cat counts per QC-item
+        arXqfSub[i] = new JSONObject();
       }
       
       // Validate existence of file
@@ -411,6 +414,12 @@ public class ExecutePsdxStream extends ExecuteXml {
                     
                     // Determine possible subcategorisation of *this* result
                     strEtreeCat = (oThisRes.has("cat")) ? oThisRes.getString("cat") : "";
+                    // Process the sub-category
+                    if (!strEtreeCat.isEmpty()) {
+                      // Keep track of counts for this subcat
+                      arXqfSub[k].increment(strEtreeCat);
+
+                    }
                     
                     // Get the oview line 
                     intOviewLine = arQuery[k].OviewLine;
@@ -419,26 +428,10 @@ public class ExecutePsdxStream extends ExecuteXml {
                       // TODO: Convert the oview line to an OviewId (see modMain:3035)
                       // Do we have subcategorization?
                       if (!strEtreeCat.isEmpty()) {
-                        // Is this a new QCline/Subcat combination?
-                        intCatLine = 0;
+
                         // TODO: calculate correct numbers for the sub-categorization...
                       }
                     }
-                    /* ==== oude methode (teveel ruimte) =====
-                    // Add information to this result
-                    oThisRes.put("oview", intOviewLine);
-                    oThisRes.put("file", fThis.getName());
-                    ===================== */
-
-                    // Add this object to the JSONArray with the objects for this 
-                    //  combination of Crp/File
-                    /*
-                    // arXqf[k].put(oThisRes);
-                    // Make sure the index matches the array size
-                    if (arXqf[k].length() != arHits[k]) {
-                      intCatLine = intCatLine;
-                    }
-                            */
                     arXqf[k].put(oThisRes);
                   }
                 }
@@ -465,7 +458,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       oHitInfo.put("hits", arCombi);
 
       // Original handling: keep the results available in the XqF job
-      // jobCaller.setJobResult(oHitInfo.toString());
+      //   jobCaller.setJobResult(oHitInfo.toString());
       // New handling: store the results in a separate file
       String sDir = this.crpThis.getDstDir() + "/hits";
       File fResultDir = new File(sDir);
@@ -474,9 +467,9 @@ public class ExecutePsdxStream extends ExecuteXml {
       }
       String sLoc = sDir + "/" + fThis.getName() + ".hits";
       File fResultXqF = new File(FileUtil.nameNormalize(sLoc));
-      // Write the results in 'pretty-print'
-      FileUtil.writeFile(fResultXqF, oHitInfo.toString(1));
-      // Store the filename
+      // Write the results to a file (give number of spaces to "toString" for 'pretty-print')
+      FileUtil.writeFile(fResultXqF, oHitInfo.toString());
+      // Store the filename, so that the calling JobXq knows where the results are
       jobCaller.setJobResult(fResultXqF.getAbsolutePath());
 
       // Pass on the number of hits for this XqF job
@@ -487,6 +480,7 @@ public class ExecutePsdxStream extends ExecuteXml {
         oCount.put("file", fThis.getName());
         oCount.put("qc", k+1);
         oCount.put("count", arXqf[k].length());
+        oCount.put("sub", arXqfSub[k]);
         arCount.put(oCount);
       }
       oCount = new JSONObject();
