@@ -40,7 +40,6 @@ public class ExecutePsdxStream extends ExecuteXml {
   // ============ Local variables for "Xq" =====================================
   List<JobXqF> arJob = new ArrayList<>(); // A list of all the current XqF jobs running
   List<String> arRes = new ArrayList<>(); // The results of each job
-  JSONObject arSub[];                     // One list of sub-categories per QC
   JSONArray arCount = new JSONArray();    // Array with the counts per file
   // ========== constants ======================================================
   private static final QName loc_xq_EtreeId = new QName("", "", "TreeId");
@@ -63,12 +62,6 @@ public class ExecutePsdxStream extends ExecuteXml {
   public ExecutePsdxStream(CorpusResearchProject oProj) {
     // Do the initialisations for all Execute() classes
     super(oProj);
-    // Initialize the array with subcategories
-    arSub = new JSONObject[arQuery.length];
-    for (int i=0;i<arQuery.length;i++) {
-      // Initialize the array for this QC item
-      arSub[i] = new JSONObject();
-    }
     
     // TODO: make sure we provide [intCurrentQCline] with the correct value!!
   }
@@ -477,14 +470,14 @@ public class ExecutePsdxStream extends ExecuteXml {
       JSONObject oCount;
       for (int k=0;k<arQuery.length;k++) {
         oCount = new JSONObject();
-        oCount.put("file", fThis.getName());
         oCount.put("qc", k+1);
         oCount.put("count", arXqf[k].length());
         oCount.put("sub", arXqfSub[k]);
         arCount.put(oCount);
       }
       oCount = new JSONObject();
-      oCount.put("stats", arCount);
+      oCount.put("file", fThis.getName());
+      oCount.put("hits", arCount);
       jobCaller.setJobCount(oCount);
 
 

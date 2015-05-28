@@ -287,90 +287,105 @@ public class CorpusResearchProject {
    20/04/2015   ERK Created
    --------------------------------------------------------------------------- */
   public boolean Save() {
-    // Validate
-    if (this.Location.isEmpty()) return false;
-    if (this.docProject == null) return false;
-    // Write as XML to the correct location
-    boolean bFlag = WriteXml(this.docProject, this.Location);
-    // Return the result of writing
-    return bFlag;
+    try {
+      // Validate
+      if (this.Location.isEmpty()) return false;
+      if (this.docProject == null) return false;
+      // Write as XML to the correct location
+      boolean bFlag = WriteXml(this.docProject, this.Location);
+      // Return the result of writing
+      return bFlag;
+    } catch (Exception ex) {
+      errHandle.DoError("Could not perform [Save]", ex, CorpusResearchProject.class);
+      return false;
+    }
   }
   
   public boolean Execute(Job jobCaller, String sCallingUser) {
     boolean bFlag = true; // Flag with execution result
     
-    // Set the starting time
-    long startTime = System.currentTimeMillis();
-    // Set the userid
-    this.userId = sCallingUser;
-    // Create an execution object instance
-        // Check what kind of project this is
-    switch (this.intProjType) {
-      case ProjPsdx: // Okay, we are able to process this kind of project
-        // Do we need to do streaming or not?
-        if (this.getStream()) {
-          // objEx = new ExecutePsdxStream(this, objGen);
-          objEx = new ExecutePsdxStream(this);
-        } else {
-          // objEx = new ExecutePsdxFast(this, objGen);
-          objEx = new ExecutePsdxFast(this);
-        }
-        break;
-      case ProjFolia:
-        // Do we need to do streaming or not?
-        if (this.getStream()) {
-          // objEx  = new ExecuteFoliaStream(this, objGen);
-          objEx  = new ExecuteFoliaStream(this);
-        } else {
-          // objEx  = new ExecuteFoliaFast(this, objGen);
-          objEx  = new ExecuteFoliaFast(this);
-        }
-        break;
-      case ProjAlp:
-      case ProjPsd:
-      case ProjNegra:
-      default: 
-       errHandle.DoError("Sorry, cannot execute projects of type [" + this.getProjectType() + "]");
+    try {
+      // Set the starting time
+      long startTime = System.currentTimeMillis();
+      // Set the userid
+      this.userId = sCallingUser;
+      // Create an execution object instance
+          // Check what kind of project this is
+      switch (this.intProjType) {
+        case ProjPsdx: // Okay, we are able to process this kind of project
+          // Do we need to do streaming or not?
+          if (this.getStream()) {
+            // objEx = new ExecutePsdxStream(this, objGen);
+            objEx = new ExecutePsdxStream(this);
+          } else {
+            // objEx = new ExecutePsdxFast(this, objGen);
+            objEx = new ExecutePsdxFast(this);
+          }
+          break;
+        case ProjFolia:
+          // Do we need to do streaming or not?
+          if (this.getStream()) {
+            // objEx  = new ExecuteFoliaStream(this, objGen);
+            objEx  = new ExecuteFoliaStream(this);
+          } else {
+            // objEx  = new ExecuteFoliaFast(this, objGen);
+            objEx  = new ExecuteFoliaFast(this);
+          }
+          break;
+        case ProjAlp:
+        case ProjPsd:
+        case ProjNegra:
+        default: 
+         errHandle.DoError("Sorry, cannot execute projects of type [" + this.getProjectType() + "]");
+      }
+      if (objEx == null) return false;
+      // Execute the queries using the chosen method
+      bFlag = objEx.ExecuteQueries(jobCaller);
+      // Note finish time
+      long stopTime = System.currentTimeMillis();
+      long elapsedTime = stopTime - startTime; 
+      // Log the time
+      logger.debug("Query time: " + elapsedTime + " (ms)");
+      // ========= Debugging =========
+      // Get the job's OVERALL results
+      String sResult = jobCaller.getJobResult();
+      File fResultOut = new File (this.DstDir + "/" + this.Name + ".results.json");
+      FileUtil.writeFile(fResultOut, sResult);
+      // Show where this is written
+      logger.debug("Results are in: " + fResultOut.getAbsolutePath());
+      // =============================
+      // Get the counting results
+      //   NOTE: an integer inside [toString()] provides pretty-printing
+      String sCount = jobCaller.getJobCount().toString(1);
+      File fCountOut = new File(this.DstDir + "/" + this.Name + ".count.json");
+      FileUtil.writeFile(fCountOut, sCount);
+      // Show where this is written
+      logger.debug("Counts are in: " + fCountOut.getAbsolutePath());
+      // Check if the query-execution resulted in an interrupt
+      if (!bFlag || objEx.bInterrupt) { 
+        errHandle.bInterrupt = true; 
+        errHandle.debug("Interrupted"); 
+        return false; 
+      }
+      // Is this a corpussearch project?
+      /*
+        ' Is this a corpussearch project?
+        bXmlData = (InStr(strQengine, "xquery", CompareMethod.Text) > 0)
+        ' Determine whether the syntax of the result should be shown or not
+        bShowPsd = Me.chbShowPsd.Checked
+        ' Show the results in the Results tab
+        ShowResults(bXmlData, bShowPsd)
+        ' Possibly show output file
+        RuOutMessage()
+        ' Possibly show lexicon file message
+        RuLexMessage()
+      */
+      // Return positively
+      return true; 
+    } catch (Exception ex) {
+      errHandle.DoError("Could not complete [Execute]", ex, CorpusResearchProject.class);
+      return false;      
     }
-    if (objEx == null) return false;
-    // Execute the queries using the chosen method
-    bFlag = objEx.ExecuteQueries(jobCaller);
-    // Note finish time
-    long stopTime = System.currentTimeMillis();
-    long elapsedTime = stopTime - startTime; 
-    // Log the time
-    logger.debug("Query time: " + elapsedTime + " (ms)");
-    // ========= Debugging =========
-    // Get the job's OVERALL results
-    String sResult = jobCaller.getJobResult();
-    File fResultOut = new File (this.DstDir + "/" + this.Name + ".results.json");
-    FileUtil.writeFile(fResultOut, sResult);
-    // Show where this is written
-    logger.debug("Results are in: " + fResultOut.getAbsolutePath());
-    // =============================
-    // Get the counting results
-    String sCount = jobCaller.getJobCount().toString();
-    File fCountOut = new File(this.DstDir + "/" + this.Name + ".count.json");
-    FileUtil.writeFile(fCountOut, sCount);
-    // Show where this is written
-    logger.debug("Counts are in: " + fCountOut.getAbsolutePath());
-    // Check if the query-execution resulted in an interrupt
-    if (!bFlag || objEx.bInterrupt) { errHandle.bInterrupt = true; return false; }
-    // Is this a corpussearch project?
-    /*
-      ' Is this a corpussearch project?
-      bXmlData = (InStr(strQengine, "xquery", CompareMethod.Text) > 0)
-      ' Determine whether the syntax of the result should be shown or not
-      bShowPsd = Me.chbShowPsd.Checked
-      ' Show the results in the Results tab
-      ShowResults(bXmlData, bShowPsd)
-      ' Possibly show output file
-      RuOutMessage()
-      ' Possibly show lexicon file message
-      RuLexMessage()
-    */
-    // Return positively
-    return true;
   }
   
   // ===================== Get and Set methods =================================
