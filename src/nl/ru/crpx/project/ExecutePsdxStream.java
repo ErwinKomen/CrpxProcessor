@@ -141,9 +141,10 @@ public class ExecutePsdxStream extends ExecuteXml {
       // Monitor the end of the jobs
       if (!monitorXqF(1)) return false;
       
-      // TODO: combine the results of the queries
+      // Combine the results of the queries into a table
       // Combine [arRes] into a result string (JSON)
-      String sCombiJson = "[" + StringUtil.join(arRes, ",") + "]";
+      // String sCombiJson = "[" + StringUtil.join(arRes, ",") + "]";
+      String sCombiJson = combineResults(arCount);
       jobCaller.setJobResult(sCombiJson);
 
       // Also combine the job count results
@@ -151,6 +152,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       oCount.put("counts", arCount);
       jobCaller.setJobCount(oCount);
       
+     
       // Return positively
       return true;
     } catch (RuntimeException ex) {
@@ -158,6 +160,91 @@ public class ExecutePsdxStream extends ExecuteXml {
       DoError("ExecutePsdxStream/ExecuteQueries error: " + ex.getMessage() + "\r\n");
       // Return failure
       return false;
+    }
+  }
+  
+  private String combineResults(JSONArray arLines) {
+    List<String> arSub = new ArrayList<>();   // each sub-category gets an entry here
+    List<String> arFile = new ArrayList<>();  // List of files
+    JSONObject arJsonRes[];
+    JSONObject arJsonSub[];
+    
+    try {
+      // Walk an object for all QC lines
+      JSONArray oTotal = new JSONArray();
+      // Walk all the QC lines
+      for (int iQC=0; iQC<arQuery.length; iQC++) {
+        // Clear the arraylist of subcats
+        arSub.clear(); 
+        arJsonRes = new JSONObject[arLines.length()];
+        arJsonSub = new JSONObject[arLines.length()];
+        // Walk all the lines
+        for (int i = 0; i< arLines.length(); i++ ) {
+          // Initialise object here
+          arJsonRes[i] = new JSONObject();
+          arJsonSub[i] = new JSONObject();
+          // Each line has fields "hits" and "file"
+          JSONArray oHit = arLines.getJSONObject(i).getJSONArray("hits");
+          // Add the file name to the list
+          arFile.add(arLines.getJSONObject(i).getString("file"));
+          // Get the element corresponding with the current QC line
+          JSONObject oEl = oHit.getJSONObject(iQC);
+          arJsonRes[i] = oEl;
+          // Get the "sub" element from here
+          JSONObject oSub = oEl.getJSONObject("sub");
+          arJsonSub[i] = oSub;
+          // Walk all the fields
+          JSONArray arKeys = oSub.names();
+          if (arKeys != null) for (int iField =0; iField < arKeys.length(); iField++) {
+            // Get this field
+            String sField = arKeys.getString(iField);
+            // Possibly add the field to [arSub]
+            if (!arSub.contains(sField)) arSub.add(sField);
+          }
+        }
+        // Review the results for this QC line
+        JSONObject oQCresults = new JSONObject();
+        oQCresults.put("qc", iQC);
+        JSONArray aSubNames = new JSONArray();
+        // Add fields and values for each "sub" category
+        for (int j=0; j< arSub.size(); j++) {
+          // Add this field
+          aSubNames.put(arSub.get(j));
+        }
+        oQCresults.put("subcats", aSubNames);
+        // Create an array for each file
+        JSONArray aResFile = new JSONArray();
+        for (int i=0;i<arLines.length(); i++) {
+          // Create the object for this line
+          JSONObject oResThis = new JSONObject();
+          oResThis.put("file", arFile.get(i));
+          oResThis.put("count", arJsonRes[i].getInt("count"));
+          // Add fields and values for each "sub" category
+          JSONArray aResSub = new JSONArray();
+          for (int j=0; j< arSub.size(); j++) {
+            // Add this field
+            int iCount = 0;
+            if (arJsonSub[i].has(arSub.get(i))) {
+              iCount = arJsonSub[i].getInt(arSub.get(i));
+            } 
+            aResSub.put(iCount);
+          }
+          // Add the array of sub-cat counts
+          oResThis.put("sub", aResSub);
+          aResFile.put(oResThis);
+        }
+        oQCresults.put("hits", aResFile);
+        // Add to the array with totals
+        oTotal.put(oQCresults);
+      }
+      
+      // Return the results
+      return oTotal.toString(1);
+    } catch (Exception ex) {
+      // Warn user
+      DoError("ExecutePsdxStream/combineResults error: " + ex.getMessage() + "\r\n");
+      // Return failure
+      return "";
     }
   }
   
@@ -183,7 +270,7 @@ public class ExecutePsdxStream extends ExecuteXml {
             // It is ready, so gather its results
             String sResultXqF = jThis.getJobResult();
             // Process the job results
-            arRes.add(sResultXqF);
+            // arRes.add(sResultXqF);
             arCount.put(jThis.getJobCount());
             // We have its results, so take it away from our job list
             arJob.remove(jThis);
