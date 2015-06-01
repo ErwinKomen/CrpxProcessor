@@ -20,7 +20,6 @@ import nl.ru.crpx.xq.CrpFile;
 import nl.ru.crpx.xq.RuBase;
 import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
-import nl.ru.util.StringUtil;
 import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
 import nl.ru.xmltools.XmlForest;
@@ -163,6 +162,13 @@ public class ExecutePsdxStream extends ExecuteXml {
     }
   }
   
+  /* ---------------------------------------------------------------------------
+     Name:    combineResults
+     Goal:    Re-combine the overall Xq counts from [arLines] to make it a better
+                input for the creation of a table
+     History:
+     01/jun/2015 ERK Created for JAVA
+     --------------------------------------------------------------------------- */
   private String combineResults(JSONArray arLines) {
     List<String> arSub = new ArrayList<>();   // each sub-category gets an entry here
     List<String> arFile = new ArrayList<>();  // List of files
@@ -173,7 +179,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       // Walk an object for all QC lines
       JSONArray oTotal = new JSONArray();
       // Walk all the QC lines
-      for (int iQC=0; iQC<arQuery.length; iQC++) {
+       for (int iQC=0; iQC<arQuery.length; iQC++) {
         // Clear the arraylist of subcats
         arSub.clear(); 
         arJsonRes = new JSONObject[arLines.length()];
@@ -204,7 +210,7 @@ public class ExecutePsdxStream extends ExecuteXml {
         }
         // Review the results for this QC line
         JSONObject oQCresults = new JSONObject();
-        oQCresults.put("qc", iQC);
+        oQCresults.put("qc", iQC+1);
         JSONArray aSubNames = new JSONArray();
         // Add fields and values for each "sub" category
         for (int j=0; j< arSub.size(); j++) {
@@ -224,8 +230,8 @@ public class ExecutePsdxStream extends ExecuteXml {
           for (int j=0; j< arSub.size(); j++) {
             // Add this field
             int iCount = 0;
-            if (arJsonSub[i].has(arSub.get(i))) {
-              iCount = arJsonSub[i].getInt(arSub.get(i));
+            if (arJsonSub[i].has(arSub.get(j))) {
+              iCount = arJsonSub[i].getInt(arSub.get(j));
             } 
             aResSub.put(iCount);
           }

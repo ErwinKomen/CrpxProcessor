@@ -301,6 +301,15 @@ public class CorpusResearchProject {
     }
   }
   
+  /* ---------------------------------------------------------------------------
+   Name:    Execute
+   Goal:    Handle the execution of this CRP
+            - Do preparations, depending on the project type and execution type
+            - Start up the actual Xq job to gather results
+            - Return the results to the appropriate places
+   History:
+   20/04/2015   ERK Created
+   --------------------------------------------------------------------------- */
   public boolean Execute(Job jobCaller, String sCallingUser) {
     boolean bFlag = true; // Flag with execution result
     
