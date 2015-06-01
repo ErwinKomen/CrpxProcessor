@@ -62,6 +62,9 @@ public class SearchManager {
 
   /** Default values for request parameters */
   private Map<String, String> defaultParameterValues;
+  
+  /** The indexParam holds all the languages we can search */
+  private Map<String, IndexParam> indexParam;
 
   // /** Run in debug mode or not? [no] */
   // private boolean debugMode;
@@ -175,6 +178,33 @@ public class SearchManager {
     // Cache properties
     JSONObject cacheProp = perfProp.getJSONObject("cache");
 
+    // Find the indices
+    indexParam = new HashMap<String, IndexParam>();
+    JSONObject indicesMap = properties.getJSONObject("indices");
+    Iterator<?> it = indicesMap.keys();
+    while (it.hasNext()) {
+      String indexName = (String) it.next();
+      JSONObject indexConfig = indicesMap.getJSONObject(indexName);
+
+      File dir = JsonUtil.getFileProp(indexConfig, "dir", null);
+      if (dir == null || !dir.exists()) {
+        logger.error("Language index directory for '" + indexName
+                        + "' does not exist: " + dir);
+        continue;
+      }
+
+      // Get a "pid" (unique per language index) if provided; otherwise ""
+      String pid = JsonUtil.getProperty(indexConfig, "pid", "");
+      if (pid.length() == 0) {
+        // NOTE: pid may be specified in index metadata or not
+      }
+
+      boolean mayViewContent = JsonUtil.getBooleanProp(indexConfig,
+        "mayViewContent", false);
+
+      indexParam.put(indexName, new IndexParam(dir, pid, mayViewContent));
+    }
+
     // Keep a list of searchparameters.
     searchParameterNames = Arrays.asList("resultsType", "query", "queryid", "tmpdir", "waitfortotal");
 
@@ -189,6 +219,41 @@ public class SearchManager {
 
   public List<String> getSearchParameterNames() {
     return searchParameterNames;
+  }
+  /**
+   * Return the list of indices available for searching.
+   * 
+   * @return the list of index names
+   */
+  public Collection<String> getAvailableIndices() {
+    return indexParam.keySet();
+  }
+  /**
+   * Get the index directory based on index name
+   *
+   * @param indexName
+   *            short name of the index
+   * @return the index directory, or null if not found
+   */
+  public File getIndexDir(String indexName) {
+    // tear apart the index name from the sub-directory specification
+    String arPart[] = indexName.split(";");
+    
+    IndexParam p = indexParam.get(arPart[0]);
+    if (p == null)
+            return null;
+    // Action depends on the size of [arPart]
+    if (arPart.length == 1) {
+      // Return the File path that is already stored
+      return p.getDir();
+    } else {
+      String sPath = p.getDir().getAbsolutePath();
+      for (int i=1;i<arPart.length;i++) {
+        sPath = sPath + "/" + arPart[i];
+      }
+      // Return the extended path as a File object
+      return new File(sPath);
+    }
   }
 
   /**
