@@ -1,8 +1,11 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * This software has been developed at the "Meertens Instituut"
+ *   for the CLARIN project "CorpusStudio-WebApplication".
+ * The application is based on the "CorpusStudio" program written by Erwin R. Komen
+ *   while working for the Radboud University Nijmegen.
+ * The program and the source can be freely used and re-distributed.
  */
+
 // My own name
 package nl.ru.crpx.project;
 // The external libraries that I need
