@@ -29,7 +29,7 @@ import org.apache.log4j.Logger;
    Name:    CrpxProcessor
    Goal:    Process "crpx" files that contain a corpus research project (xml)
    History:
-   17/10/2014   ERK Created
+   17/10/2014   ERK Created 
    --------------------------------------------------------------------------- */
 public class CrpxProcessor {
   // This class uses a logger
