@@ -290,6 +290,7 @@ public abstract class Job implements Comparable<Job> {
   public JSONObject getJobCount() { return jobCount;}
   public void setJobCount(JSONObject oCount) { jobCount = oCount;}
   public String getJobStatus() {return jobStatus;}
+  public Integer getJobTaskId() { return jobTaskId; }
   private String shortUserId() {return userId.substring(0, 6);}
   public void setUnusable() { reusable = false; }  
   public boolean getUsable() { return reusable;}

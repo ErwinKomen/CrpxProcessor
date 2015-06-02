@@ -537,20 +537,40 @@ public class FileUtil {
   }
   // ERK: added: get all filtered files recursively
   public static void getFileNames(List<String> fileNames, Path dir, String sFilter) {
+    // Get all the items inside "dir" that fit "sFilter"
     try(DirectoryStream<Path> stream = Files.newDirectoryStream(dir, sFilter)) {
+      // Walk all these items
       for (Path path : stream) {
+        // Add the directory to the list to be returned
+        fileNames.add(path.toAbsolutePath().toString());
+        /*
         // Is this [path] a directory or a file?
         if(path.toFile().isDirectory()) {
+          // Add the directory to the list to be returned
+          fileNames.add(path.toAbsolutePath().toString());
           // It is a directory, so use it as a basis to continue
           getFileNames(fileNames, path, sFilter);
         } else {
           // It is a file, so use it as a basis to continue
           fileNames.add(path.toAbsolutePath().toString());
           // System.out.println(path.getFileName());
+        } */
+      }
+    } catch(IOException e) {
+      e.printStackTrace();
+    }
+    // Get a list of *all* items inside [dir]
+    try(DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
+      // Walk all the items
+      for (Path path : stream) {
+        // Is this item a directory?
+        if (path.toFile().isDirectory()) {
+          // Look for items inside this directory
+          getFileNames(fileNames, path, sFilter);
         }
       }
     } catch(IOException e) {
-        e.printStackTrace();
+      e.printStackTrace();
     }
   } 
 }
