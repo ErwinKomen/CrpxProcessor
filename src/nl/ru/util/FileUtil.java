@@ -489,20 +489,80 @@ public class FileUtil {
   }
   // ERK: added string-to-string file name normalization using .nio
   public static String nameNormalize(String sName) {
+    Path pThis = null;
+    LinkOption lThis;
+    File sMac = new File("/Users/erwin/");
+    File sLinux = new File("/etc/project/");
+    String sReplace = "/";
+    
     String fs = System.getProperty("file.separator");
     // Check if we need Windows >> Mac/nix conversion
     if (fs.equals("/") && sName.contains("\\")) {
+      // Check the path
+      if (sMac.exists())  sReplace = sMac.getAbsolutePath();
+      else { if (sLinux.exists()) sReplace = sLinux.getAbsolutePath(); }
       // Perform conversion first
-      sName = sName.replace("\\", "/").toLowerCase().replace("d:/", "/Users/erwin/");
+      sName = sName.replace("\\", "/").toLowerCase().replace("d:/", sReplace);
     }
     try {
       // Perform normalization
-      Path pThis = Paths.get(sName);
+      pThis = Paths.get(sName);
       pThis = pThis.normalize();
-      LinkOption lThis = LinkOption.NOFOLLOW_LINKS;
-      try {
-        pThis = pThis.toRealPath(lThis);
-      } catch (NoSuchFileException ex) {
+      /* ======== OBSOLETE ====
+      lThis = LinkOption.NOFOLLOW_LINKS; 
+         ======================  */
+      // Get the string equivalent and turn it into a File
+      File fFile = pThis.toFile();
+      // Check if the path exists
+      if (!fFile.exists()) {
+        // This particular file/directory is not found: attempt dir-by-dir
+        String[] arDir = fFile.toString().split("/");
+        String sTmpPath = "";
+        // Walk the whole directory structure part-for-part
+        for (int i=1; i< arDir.length; i++) {
+          // Check if this exists
+          File fNew = new File(sTmpPath + "/" + arDir[i]);
+          if (!fNew.exists()) {
+            // Look for a variant 
+            File fOld = new File(sTmpPath);
+            if (!fOld.isDirectory()) {
+              // This is a problem: we can only look inside directories
+            }
+            String[] arHere = fOld.list();
+            if (arHere == null) {
+              Logger.getLogger(FileUtil.class.getName()).log(Level.SEVERE, "arHere is null");
+              return "";
+            }
+            // Find the variant
+            for (int j=0;j<arHere.length; j++) {
+              if (arHere[j].equalsIgnoreCase(arDir[i])) {
+                // We found the culprit
+                arDir[i] = arHere[j];
+              }
+            }
+          }
+          // Build path
+          sTmpPath += "/" + arDir[i];
+        }
+
+      }
+      
+      sName = fFile.toString();
+      return sName;
+    } catch (Exception ex) {
+      Logger.getLogger(FileUtil.class.getName()).log(Level.SEVERE, null, ex);
+      return "";
+    }
+    /* ================= OBSOLETE =========
+    try {
+      pThis = pThis.toRealPath(lThis);
+    } catch (NoSuchFileException | RuntimeException ex) {
+      pThis = null;
+    } catch (IOException ex) {
+      pThis = null;
+    }
+    try {
+      if (pThis==null) {
         // This particular file/directory is not found: attempt dir-by-dir
         String[] arDir = pThis.toString().split("/");
         String sTmpPath = "";
@@ -517,6 +577,10 @@ public class FileUtil {
               // This is a problem: we can only look inside directories
             }
             String[] arHere = fOld.list();
+            if (arHere == null) {
+              Logger.getLogger(FileUtil.class.getName()).log(Level.SEVERE, "arHere is null");
+              return "";
+            }
             // Find the variant
             for (int j=0;j<arHere.length; j++) {
               if (arHere[j].equalsIgnoreCase(arDir[i])) {
@@ -530,10 +594,11 @@ public class FileUtil {
         }
       }
       sName = pThis.toString();
-    } catch (IOException ex) {
+    } catch (Exception ex) {
       Logger.getLogger(FileUtil.class.getName()).log(Level.SEVERE, null, ex);
     }
-    return sName;
+   return sName;
+       ================================ */
   }
   // ERK: added: get all filtered files recursively
   public static void getFileNames(List<String> fileNames, Path dir, String sFilter) {
@@ -543,18 +608,6 @@ public class FileUtil {
       for (Path path : stream) {
         // Add the directory to the list to be returned
         fileNames.add(path.toAbsolutePath().toString());
-        /*
-        // Is this [path] a directory or a file?
-        if(path.toFile().isDirectory()) {
-          // Add the directory to the list to be returned
-          fileNames.add(path.toAbsolutePath().toString());
-          // It is a directory, so use it as a basis to continue
-          getFileNames(fileNames, path, sFilter);
-        } else {
-          // It is a file, so use it as a basis to continue
-          fileNames.add(path.toAbsolutePath().toString());
-          // System.out.println(path.getFileName());
-        } */
       }
     } catch(IOException e) {
       e.printStackTrace();
