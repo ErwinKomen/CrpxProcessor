@@ -113,6 +113,25 @@
       }
     }
   },
+  // The location and parameters for each language-corpus index
+  // ---------------------------------------------------------------
+  // (missing indices will be skipped)
+  "indices": {
+    "eng_hist": {
+      "dir": "D:/data files/corpora/english/xml/adapted",
+      "mayViewContent": true
+    },
+
+    "che_lat": {
+      "dir": "D:/data files/corpora/chechen/xml/npcmc",
+      "mayViewContent": true
+    },
+
+    "lak_cyr": {
+      "dir": "D:/data files/corpora/lak/xml/npcmlbe",
+      "mayViewContent": true
+    },
+  },
   // Configuration that affects how requests are handled
   // ---------------------------------------------------------------
   "requests": {
