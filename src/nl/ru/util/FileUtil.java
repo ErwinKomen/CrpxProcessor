@@ -502,7 +502,7 @@ public class FileUtil {
       if (sMac.exists())  sReplace = sMac.getAbsolutePath();
       else { if (sLinux.exists()) sReplace = sLinux.getAbsolutePath(); }
       // Perform conversion first
-      sName = sName.replace("\\", "/").toLowerCase().replace("d:/", sReplace);
+      sName = sName.replace("\\", "/").toLowerCase().replace("d:/", sReplace + "/");
     }
     try {
       // Perform normalization
@@ -534,11 +534,20 @@ public class FileUtil {
               return "";
             }
             // Find the variant
+            boolean bFound = false;
             for (int j=0;j<arHere.length; j++) {
               if (arHere[j].equalsIgnoreCase(arDir[i])) {
                 // We found the culprit
                 arDir[i] = arHere[j];
+                bFound = true;
+                break;
               }
+            }
+            // Check if we found it
+            if (!bFound) {
+              // It has not been found, so create the directory
+              File fMake = new File(sTmpPath + "/" + arDir[i]);
+              fMake.mkdir();
             }
           }
           // Build path
