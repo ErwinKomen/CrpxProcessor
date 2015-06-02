@@ -29,6 +29,7 @@ public class JobXq extends Job {
   // public XmlNode ndxCurrentHeader = null;   // XML header of the current XML file
   public boolean ru_bFileSaveAsk = false;   // Needed for ru:setattrib()
   public boolean bTraceXq = false;          // Trace on XQ processing
+  String sReqArgument = "";                 // Copy of the query
   File fInput;                              // The file to be searched
 // </editor-fold>
   // =================== Class initialisation ==================================
@@ -38,6 +39,9 @@ public class JobXq extends Job {
     // Other initializations for this Xq search job
     intFollNum = crpThis.getFollNum();
     intPrecNum = crpThis.getPrecNum();
+    // Set the query 
+    sReqArgument = par.getString("query");
+    this.currentuserId = userId;
   }
   
   // ======================= Perform the search ================================
@@ -46,6 +50,10 @@ public class JobXq extends Job {
     try {
       // Validate
       if (crpThis==null) { errHandle.DoError("There is no CRP"); return;}
+      // Note start time
+      long startTime = System.currentTimeMillis();
+      // Store the user/session id in our local list
+      Integer iTaskNumber = addUserJob("jobxq", currentuserId, id, sReqArgument);
       // Execute queries
       if (crpThis.Execute(this, this.userId)) {
         // Check for interrupt
@@ -58,6 +66,16 @@ public class JobXq extends Job {
       } else {
         errHandle.DoError("JobXq: The queries could not be executed");
       }
+      // Note finish time
+      long stopTime = System.currentTimeMillis();
+      long elapsedTime = stopTime - startTime; 
+      // Log the time
+      errHandle.debug("Query time: " + elapsedTime + " (ms)");
+      
+      // Set the job status
+      this.jobStatus = "completed";
+      // Set the task number, since it has been successfully completed
+      jobTaskId = iTaskNumber;      
       
     } catch (Exception ex) {
       // Show the error

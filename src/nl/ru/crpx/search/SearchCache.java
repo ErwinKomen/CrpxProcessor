@@ -74,6 +74,27 @@ public class SearchCache {
     }
     return search;
   }
+  /**
+   * Get the search with the indicated jobid from the cache if present.
+   *
+   * @param iJobId the jobid we are looking for
+   * @return the Search if found, or null if not
+   */
+  public Job getJob(int iJobId) {
+    // Sort cache by last access time
+    List<Job> allCachedJobs = new ArrayList<>(cachedSearches.values());
+    // Walk all jobs
+    for (Job search: allCachedJobs) {
+      // Check out the id of this job
+      if (search.id == iJobId) {
+        // Found the job!
+        return search;
+      }
+    }
+    // We did not succeed in finding the correct job...
+    return null;
+  }
+
 
   /** Put a search in the cache.
    *

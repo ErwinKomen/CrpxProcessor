@@ -2,14 +2,17 @@ package nl.ru.crpx.search;
 
 // <editor-fold defaultstate="collapsed" desc="Imports">
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import nl.ru.crpx.dataobject.DataObjectMapElement;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.crpx.xq.Extensions;
 import nl.ru.util.ExUtil;
+import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
 // </editor-fold>
 /*
@@ -51,6 +54,9 @@ public abstract class Job implements Comparable<Job> {
   protected String jobResult;               // String representation of the result of this job
   protected JSONObject jobCount;            // Counts for this job
   protected String jobStatus;               // Status returned by this job
+  protected String currentuserId;           // Who created this job?
+  protected boolean reusable = true;        // The job can be re-used if it was not interrupted
+  protected Integer jobTaskId = -1;         // The task-id of this job
 
 // </editor-fold>
   // ============== Class initialisation ======================================
@@ -63,6 +69,7 @@ public abstract class Job implements Comparable<Job> {
     this.searchMan = searchMan;
     // Set my copy of the user
     this.userId = userId;
+    this.currentuserId = userId;
     // Set my copy of the search parameters
     this.par = par;
     // Initialize results
@@ -243,6 +250,11 @@ public abstract class Job implements Comparable<Job> {
     }
   }
   /**
+   * Inform how many clients are waiting for this job to finish.
+   */
+  public int getClientsWaiting() { return clientsWaiting; }  
+  
+  /**
    * Try to cancel this job.
    */
   public void cancelJob() {
@@ -279,6 +291,8 @@ public abstract class Job implements Comparable<Job> {
   public void setJobCount(JSONObject oCount) { jobCount = oCount;}
   public String getJobStatus() {return jobStatus;}
   private String shortUserId() {return userId.substring(0, 6);}
+  public void setUnusable() { reusable = false; }  
+  public boolean getUsable() { return reusable;}
   @Override
   public String toString() {
     return id + ": " + par.toString();
@@ -304,6 +318,239 @@ public abstract class Job implements Comparable<Job> {
   public long estimateSizeBytes() {    return 1000000; }
 
   
+// </editor-fold>
+// <editor-fold desc="User-Job listing">
+  /** A list of user-session ids that have requested this job */
+  static List<JSONObject> lUserJob = new ArrayList<>();
+  /** 
+   * Add to the userjob list: a combination of jobname, userid, jobid 
+   * 
+   * @param sJob
+   * @param sUser
+   * @param iJob
+   * @param sQuery
+   * 
+   * @return the task number for @sUser
+   */
+  public static Integer addUserJob(String sJob, String sUser, long iJob, String sQuery) {
+    Integer iTasks = 0;   // Number of tasks for user @sUser
+    // Create a new object for the stack
+    JSONObject oThis = new JSONObject();
+    // Set the values for this object
+    oThis.put("job", sJob);
+    oThis.put("userid", sUser);
+    oThis.put("timestamp", getCurrentTimeStamp());
+    oThis.put("jobid", iJob);
+    oThis.put("query", sQuery);
+    // Add object to stack
+    lUserJob.add(oThis);
+    // Check how many objects there are for user [sUser]
+    for (Integer i = 0; i< lUserJob.size(); i++) {
+      // Get this object
+      oThis = lUserJob.get(i);
+      // See if the user id coincides
+      if (sUser.equals(oThis.get("userid"))) {
+        // Increment number of tasks for this user
+        iTasks++;
+      }
+    }
+    // Debugging
+    errHandle.debug("Job addUserJob " + sJob + " user=[" + sUser + "] job=[" + 
+            String.valueOf(iJob) + "] task=" + String.valueOf(iTasks));
+    // ========== DEBUGGING =======
+    // showUserJob();
+    // ============================
+    // Return the number of tasks for this user
+    return iTasks;
+  }
+  
+  /** 
+   * getUserJobList
+   * 
+   *  List all "jobrx" jobs belonging to user @sUser 
+   * 
+   * @param sUser     The unique string for a user/window/location-on-window
+   * @param sJobType  The type of job (jobrx) for example
+   * 
+   * @return the number of unwaited jobs
+   */
+  public static List<Long> getUserJobList(String sUser, String sJobType) {
+    JSONObject oThis ;          // One user-job object
+    List<Long> lJobList = new ArrayList<>(); // List of jbos
+    
+    // Visit all the jobs kept in the [lUserJob] list
+    for (Integer i = 0; i< lUserJob.size(); i++) {
+      // Get this object
+      oThis = lUserJob.get(i);
+      // See if the user id coincides and this is a "jobrx"
+      if (sJobType.equals(oThis.get("job")) && sUser.equals(oThis.get("userid"))) {
+        // Add this job id
+        lJobList.add((Long) oThis.get("jobid"));
+      }
+    }
+    // Return our result
+    return lJobList;
+  }
+  /**
+   * showUserJob
+   * 
+   *  return a list with the jobs per user
+   * 
+   * @return 
+   */
+  public static String showUserJob() {
+    // Create an array to be returned
+    JSONArray aBack = new JSONArray();
+    // Create a new object for the stack
+    JSONObject oThis;
+    JSONObject oQuery;
+    JSONObject oBack;
+    String sUser;
+    Integer iJob;
+    String sQuery;
+    String sTimestamp;
+    String sBack;
+    
+    // Go through the cache and show its contents
+    for (Integer i = 0; i< lUserJob.size(); i++) {
+      // Get this object
+      oThis = lUserJob.get(i);
+      sUser = oThis.getString("userid");
+      iJob = oThis.getInt("jobid");
+      oQuery = new JSONObject(oThis.getString("query"));
+      sTimestamp = oThis.getString("timestamp");
+      sQuery = oQuery.getJSONArray("srchTerms").getString(0);
+      // Show contents
+      errHandle.debug("Job date=[" + sTimestamp + "] list[" + i + "]: user=[" + sUser + "] job=[" + 
+              String.valueOf(iJob) + "] query=" + sQuery);
+      oBack = new JSONObject();
+      oBack.put("userid", sUser);
+      oBack.put("jobid", iJob);
+      oBack.put("query", sQuery);
+      // Add content to array
+      aBack.put(oBack);
+    }
+    // Return the resulting array
+    sBack = aBack.toString();
+    return sBack;
+  }
+  
+  /** 
+   * Retrieve the last @jobid done by user @sUser
+   * Give that job id and then remove it from the stack
+   * 
+   * @param sUser
+   * 
+   * @return the jobid or else -1
+   */
+  public static long popUserJob(String sUser) {
+    JSONObject oThis;   // Object from the stack
+    JSONObject oRemove; // The object to be removed
+    long iJob = -1;     // Job id we are returning
+    Integer i = lUserJob.size();
+    Integer j;
+    
+    // Walk all jobs from last to first
+    while (--i >= 0) {
+      // Get this job
+      oThis = lUserJob.get(i);
+      // Check if this job belongs to the presented user
+      if (sUser.equals(oThis.getString("userid"))) {
+        // We found the last job done by this user
+        // Remove the object from the list
+        lUserJob.remove(oThis);
+        // Now look for the next job's id
+        j = lUserJob.size();
+        while (--j >= 0) {
+          // Get this job
+          oThis = lUserJob.get(j);
+          // Check if this job belongs to the presented user
+          if (sUser.equals(oThis.getString("userid"))) {
+            // We found the penultimate job done by this user
+            iJob = oThis.getInt("jobid");
+            // ========== DEBUGGING =======
+            // showUserJob();
+            // ============================
+            // Return the correct result
+            return iJob;
+          }
+        }
+        // Leave this loop
+        break;
+      }
+    }
+    // ========== DEBUGGING =======
+    // showUserJob();
+    // ============================
+    // Return -1, because normally I would have left at the "return" above
+    return iJob;
+  }
+  
+  /** 
+   * Retrieve the @jobid done by user @sUser as task number @iTask
+   * Note: task numbers start with 1 (NOT with zero)
+   * 
+   * @param sUser
+   * @param iTask
+   * 
+   * @return the jobid or else -1
+   */
+  public static long getJobFromTask(String sUser, Integer iTask) {
+    JSONObject oThis;   // Object from the stack
+    long iJob = -1;     // Job id we are returning
+    Integer i;          // Counter within the UserJob list
+    Integer j = 0;      // Task number for this user
+    // Walk all jobs from last to first
+    for (i=0;i<lUserJob.size(); i++) {
+      // Get the job at this place
+      oThis = lUserJob.get(i);
+      // Check if this job belongs to the presented user
+      if (sUser.equals(oThis.getString("userid"))) {
+        // We found a job done by this user
+        // Increment our task number
+        j++;
+        // Check if this is the desired task
+        if (iTask == j) {
+          // Get tje jobid of this one
+          iJob = oThis.getInt("jobid");
+          // Leave the for-loop
+          break;
+        }
+      }
+    }
+    // ========== DEBUGGING =======
+    showUserJob();
+    // ============================
+    // Return the job id we found
+    return iJob;
+  }
+  
+  /**
+   * Get the query belonging to the jobid @iJobId
+   * 
+   * @param iJobId
+   * @return the query belonging to @iJobId as a string
+   */
+  public static String getQueryFromJob(Integer iJobId) {
+    JSONObject oThis;     // Object from the stack
+    String sQuery = "{}"; // The query string we are returning
+    Integer i;            // Counter within the UserJob list
+
+    // Walk all jobs from last to first
+    for (i=0;i<lUserJob.size(); i++) {
+      // Get the job at this place
+      oThis = lUserJob.get(i);
+      // Check if this has the right job id
+      if (iJobId == oThis.getInt("jobid")) {
+        // We found the correct job
+        sQuery = oThis.getString("query");
+        // Leave the for-loop
+        break;
+      }
+    }
+    // Return the job id we found
+    return sQuery;
+  }
 // </editor-fold>
 // <editor-fold defaultstate="collapsed" desc="Exceptions">
   // =============== Exception handling ========================================

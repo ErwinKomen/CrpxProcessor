@@ -220,6 +220,12 @@ public class SearchManager {
   public List<String> getSearchParameterNames() {
     return searchParameterNames;
   }
+  // ============ Find a job with a particular id
+  public JobXq searchGetJobXq(String sJobId) {
+    Job search = cache.getJob(Integer.parseInt(sJobId));
+    return (JobXq) search;
+  }
+
   /**
    * Return the list of indices available for searching.
    * 
