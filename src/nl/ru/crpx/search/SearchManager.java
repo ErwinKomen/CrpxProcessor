@@ -498,40 +498,40 @@ public class SearchManager {
   }
 
   public int getCheckAgainAdviceMinimumMs() {
-          return checkAgainAdviceMinimumMs;
+    return checkAgainAdviceMinimumMs;
   }
 
   public boolean isDebugMode(String ip) {
-          return debugModeIps.contains(ip);
+    return debugModeIps.contains(ip);
   }
 
   static void debugWait() {
-          // Fake extra search time
-          try {
-                  Thread.sleep(2000);
-          } catch (InterruptedException e) {
-                  throw new RuntimeException(e);
-          }
+    // Fake extra search time
+    try {
+      Thread.sleep(2000);
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public SearchCache getCache() {
-          return cache;
+    return cache;
   }
 
   public DataFormat getContentsFormat(String indexName) {
-          return DataFormat.XML; // could be made configurable
+    return DataFormat.XML; // could be made configurable
   }
 
   public int getMaxContextSize() {
-          return maxContextSize;
+    return maxContextSize;
   }
 
   public DataObject getCacheStatusDataObject() {
-          return cache.getCacheStatusDataObject();
+    return cache.getCacheStatusDataObject();
   }
 
   public DataObject getCacheContentsDataObject() {
-          return cache.getContentsDataObject();
+    return cache.getContentsDataObject();
   }
 
   public int getMaxSnippetSize() {
