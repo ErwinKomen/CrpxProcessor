@@ -302,6 +302,28 @@ public class SearchManager {
   }
 
   /**
+   * Check if the searchParameters contain a "query" string
+   *   that has an object "force" set to "true"
+   * 
+   * @param par
+   * @return 
+   */
+  private boolean searchHasForce(SearchParameters par) {
+    try {
+      String sQ = par.getString("query");
+      if (!sQ.isEmpty()) {
+        JSONObject oQ = new JSONObject(sQ);
+        if (oQ.has("force"))
+          return oQ.getBoolean("force");
+      }
+      // Getting here means there is no 'force' parameter
+      return false;
+    } catch (Exception ex) {
+      logger.error("Could not find [force] in: " + par.toString(), ex);
+      return false;
+    }
+  }
+  /**
    * Start a new search or return an existing Search object corresponding to
    * these search parameters.
    *
@@ -326,9 +348,20 @@ public class SearchManager {
     // Retrieve the corpus research project we are working on
     this.crpThis = objPrj;
     // Create room for a job
-    Job search;
+    Job search = null;
     synchronized (this) {
-      search = cache.get(searchParameters);
+      // Check if we may re-use a previous query
+      if (searchHasForce(searchParameters))  {
+        // The job must be 're-done', which means that any old job with the same
+        //   signature must be taken away
+        Job searchOld = cache.get(searchParameters);
+        if (searchOld != null) {
+          // Now we must remove this job from the cache
+          cache.removeOneSearch(searchOld);
+        }
+      }
+      else
+        search = cache.get(searchParameters);
       if (search == null) {
         // Not found in cache
 
@@ -357,21 +390,25 @@ public class SearchManager {
             }
           }
         }
+        logger.debug("Running jobs = " + numRunningJobs);
         if (numRunningJobs >= maxRunningJobsPerUser) {
           // User has too many running jobs. Can't start another one.
           runningJobsPerUser.put(userId, newRunningJobs); // refresh
-                                                                                                          // the list
+                                                          // the list
           logger.warn("Can't start new search, user already has "
-                          + numRunningJobs + " jobs running.");
+              + numRunningJobs + " jobs running.");
           throw new QueryException(
-                          "TOO_MANY_JOBS",
-                          "You already have too many running searches. Please wait for some previous searches to complete before starting new ones.");
+              "TOO_MANY_JOBS",
+              "You already have too many running searches. Please wait for some previous searches to complete before starting new ones.");
         }
 
         // Create a new search object with these parameters and place it
         // in the cache
         search = Job.create(this, userId, searchParameters);
-        cache.put(search);
+        
+        // Only *cache* the search if it is *not* an XqF one
+        if (!search.par.getString("jobclass").toLowerCase().equals("jobxqf"))
+          cache.put(search);
 
         // Update running jobs
         newRunningJobs.add(search);

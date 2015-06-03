@@ -64,7 +64,7 @@ public class ExecuteXml extends Execute {
     super(oProj);
     // For work with Saxon Xquery see the 9.1.0.1 documentation:
     //  D:/DownLoad/XML/saxon-resources9-1-0-1/doc/using-xquery/api-query/s9api-query.html
-
+    strDbType = new ByRef("");
     // Set the saxon processor correctly
     objSaxon = oProj.getSaxProc();
     xconfig = new Configuration();

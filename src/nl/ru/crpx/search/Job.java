@@ -54,6 +54,8 @@ public abstract class Job implements Comparable<Job> {
   protected String jobResult;               // String representation of the result of this job
   protected JSONObject jobCount;            // Counts for this job
   protected String jobStatus;               // Status returned by this job
+  protected JSONObject jobProgress;         // Details of where we are in this job
+  protected int jobPtc;                     // Percentage progress for this job
   protected String currentuserId;           // Who created this job?
   protected boolean reusable = true;        // The job can be re-used if it was not interrupted
   protected Integer jobTaskId = -1;         // The task-id of this job
@@ -74,6 +76,7 @@ public abstract class Job implements Comparable<Job> {
     this.par = par;
     // Initialize results
     jobResult = ""; jobCount = new JSONObject(); jobStatus = "initialized";
+    jobProgress = new JSONObject();
     // Make sure the finishing time is initialized correctly
     finishedAt = -1;
   }
@@ -289,7 +292,12 @@ public abstract class Job implements Comparable<Job> {
   public void setJobResult(String sData) { jobResult = sData;}
   public JSONObject getJobCount() { return jobCount;}
   public void setJobCount(JSONObject oCount) { jobCount = oCount;}
+  public JSONObject getJobProgress() { return jobProgress;}
+  public void setJobProgress(JSONObject oCount) { jobProgress = oCount;}
   public String getJobStatus() {return jobStatus;}
+  public void setJobStatus(String sThis) { jobStatus = sThis;}
+  public int getJobPtc() { return jobPtc;}
+  public void setJobPtc(int iThis) {jobPtc = iThis;}
   public Integer getJobTaskId() { return jobTaskId; }
   private String shortUserId() {return userId.substring(0, 6);}
   public void setUnusable() { reusable = false; }  

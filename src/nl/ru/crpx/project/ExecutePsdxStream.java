@@ -43,6 +43,7 @@ public class ExecutePsdxStream extends ExecuteXml {
   List<JobXqF> arJob = new ArrayList<>(); // A list of all the current XqF jobs running
   List<String> arRes = new ArrayList<>(); // The results of each job
   JSONArray arCount = new JSONArray();    // Array with the counts per file
+  JSONObject oProgress;                   // Progress of this Xq job
   // ========== constants ======================================================
   private static final QName loc_xq_EtreeId = new QName("", "", "TreeId");
   private static final QName loc_xq_Section = new QName("", "", "Section");
@@ -79,10 +80,12 @@ public class ExecutePsdxStream extends ExecuteXml {
   @Override
   public boolean ExecuteQueries(Job jobCaller)  {
     int iCrpFileId; // Index of CrpFile object
+    int iPtc;       // Percentage progress
     
     try {
       // Set the job for global access within Execute > ExecuteXml > ExecutePsdxStream
       this.objSearchJob = jobCaller;
+      oProgress = new JSONObject();
       /* ========= Should not be here
       // Set the XmlForest element correctly
       this.objProcType = new XmlForest(this.crpThis,(JobXq) jobCaller, this.errHandle);
@@ -96,11 +99,23 @@ public class ExecutePsdxStream extends ExecuteXml {
       
       // Initialise the job array and the results array
       arJob.clear();  arRes.clear();
+
+      // Indicate we are working
+      jobCaller.setJobStatus("working");
+      oProgress.put("total", lSource.size());
       
       // Visit all the source files stored in [lSource]
       for (int i=0;i<lSource.size(); i++) {
+        // Where are we?
+        iPtc = (100 * (i+1)) / lSource.size();
+        jobCaller.setJobPtc(iPtc);
         // Take this input file
         File fInput = new File(lSource.get(i));
+        synchronized(oProgress) {
+          oProgress.put("start", fInput.getName());
+          oProgress.put("count", i+1);
+          jobCaller.setJobProgress(oProgress);
+        }
         // Add the combination of File/CRP to the stack
         CrpFile oCrpFile = new CrpFile(this.crpThis, fInput, objSaxon, (JobXq) jobCaller);
         RuBase.setCrpCaller(oCrpFile);
@@ -109,11 +124,12 @@ public class ExecutePsdxStream extends ExecuteXml {
         // Add the id to the search parameters
         SearchParameters searchXqFpar = new SearchParameters(this.searchMan);
         searchXqFpar.put("crpfileid", Integer.toString(iCrpFileId));
-        // Also add the "query" parameter
+        // Do *NOT* add the "query" parameter -- that would influence the max number of *total* jobs per user that can be re-used
+        // Give it a different name, like "xqf"
         searchXqFpar.put("query", "{\"crp\": \"" + crpThis.getName() + "\"" +
                 ", \"file\": \"" + fInput.getName() + "\"" + "}");
         // Keep track of the old jobs and make sure not too many are running now
-        if (!monitorXqF(this.iMaxParJobs)) {
+        if (!monitorXqF(this.iMaxParJobs, jobCaller)) {
           // Getting here means that we are UNABLE to wait for the number of jobs
           //  of this user to decrease below @iMaxParJobs
           return errHandle.DoError("ExecuteQueries: unable to get below max #jobs " + 
@@ -141,7 +157,7 @@ public class ExecutePsdxStream extends ExecuteXml {
         arJob.add(search);
       }
       // Monitor the end of the jobs
-      if (!monitorXqF(1)) return false;
+      if (!monitorXqF(1, jobCaller)) return false;
       
       // Combine the results of the queries into a table
       // Combine [arRes] into a result string (JSON)
@@ -266,7 +282,7 @@ public class ExecutePsdxStream extends ExecuteXml {
    * @param iUntil
    * @return 
    */
-  private boolean monitorXqF(int iUntil) {
+  private boolean monitorXqF(int iUntil, Job jobCaller) {
     try {
       // Loop while the number of jobs is larger than the maximum
       while (arJob.size() >= iUntil) {
@@ -281,6 +297,12 @@ public class ExecutePsdxStream extends ExecuteXml {
             // Process the job results
             // arRes.add(sResultXqF);
             arCount.put(jThis.getJobCount());
+            // Note that it has finished for others too
+            synchronized(oProgress) {
+              oProgress.put("finish",RuBase.getCrpFile(jThis.intCrpFileId).flThis.getName());
+              oProgress.put("ready", arCount.length());
+              jobCaller.setJobProgress(oProgress);
+            }
             // We have its results, so take it away from our job list
             arJob.remove(jThis);
           }

@@ -130,6 +130,32 @@ public class SearchCache {
   }
 
   /**
+   * Remove @searchRem from the cache (if it is in there)
+   * @param searchRem 
+   */
+  void removeOneSearch(Job searchRem) {
+    // Sort cache by last access time
+    List<Job> lastAccessOrder = new ArrayList<Job>(cachedSearches.values());
+    Collections.sort(lastAccessOrder); // put stalest first
+    // Walk all jobs
+    for (Job search : lastAccessOrder) {
+      // Is this the job te be removed?
+      if (search.equals(searchRem)) {
+        // Search is taking too long. Cancel it.
+        logger.debug("Search is being removed: " + search);
+        search.cancelJob();
+
+        // For now, remove from cache, but we should really blacklist these
+        // kinds of searches so repeating them doesn't matter.
+        // TODO blacklist
+        cachedSearches.remove(search.getParameters());
+        cacheSizeBytes -= search.estimateSizeBytes();
+        return;
+      }
+    }
+  }
+  
+  /**
    * If the cache exceeds the given parameters, clean it up by
    * removing less recently used searches.
    */

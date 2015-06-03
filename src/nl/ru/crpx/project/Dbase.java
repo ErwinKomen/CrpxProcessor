@@ -46,6 +46,8 @@ public class Dbase extends CrpGlobal {
     // XmlNode ndxThis = null; // Node
 
     try {
+      // Validate
+      if (strFirstEl == null) return false;
       // Initialise
       strFirstEl.argValue = "";
       loc_colDbFiles = new ArrayList<>();

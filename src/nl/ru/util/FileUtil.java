@@ -544,7 +544,7 @@ public class FileUtil {
               }
             }
             // Check if we found it
-            if (!bFound && ! arDir[i].contains(".")) {
+            if (!bFound && !arDir[i].contains(".")) {
               // It has not been found, so create the directory
               File fMake = new File(sTmpPath + "/" + arDir[i]);
               fMake.mkdir();
@@ -611,6 +611,12 @@ public class FileUtil {
   }
   // ERK: added: get all filtered files recursively
   public static void getFileNames(List<String> fileNames, Path dir, String sFilter) {
+    // Validate: we can only look inside directories
+    if (!dir.toFile().isDirectory()) {
+      // add the file to the list
+      fileNames.add(dir.toString());
+      return;
+    }
     // Get all the items inside "dir" that fit "sFilter"
     try(DirectoryStream<Path> stream = Files.newDirectoryStream(dir, sFilter)) {
       // Walk all these items

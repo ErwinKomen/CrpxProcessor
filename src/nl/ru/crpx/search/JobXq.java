@@ -47,6 +47,8 @@ public class JobXq extends Job {
   // ======================= Perform the search ================================
   @Override
   public void performSearch() throws QueryException {
+    String sStatus = "started";  // My copy of the job status
+    
     try {
       // Validate
       if (crpThis==null) { errHandle.DoError("There is no CRP"); return;}
@@ -59,12 +61,15 @@ public class JobXq extends Job {
         // Check for interrupt
         if (errHandle.bInterrupt) {
           errHandle.DoError("JobXq: The program has been interrupted");
+          sStatus = "interrupted";
         } else {
           // There is no need to say anything here
           errHandle.debug("JobXq: performSearch: ready handling job");
+          sStatus = "completed";
         }
       } else {
         errHandle.DoError("JobXq: The queries could not be executed");
+        sStatus = "error";
       }
       // Note finish time
       long stopTime = System.currentTimeMillis();
@@ -73,9 +78,14 @@ public class JobXq extends Job {
       errHandle.debug("Query time: " + elapsedTime + " (ms)");
       
       // Set the job status
-      this.jobStatus = "completed";
+      this.jobStatus = sStatus;
       // Set the task number, since it has been successfully completed
-      jobTaskId = iTaskNumber;      
+      jobTaskId = iTaskNumber;    
+      // Check if an error message needs to be generated
+      if (!sStatus.equals("completed")) {
+        // Store an error message in the job-resultß
+        this.jobResult = errHandle.getErrList().toString();
+      }
       
     } catch (Exception ex) {
       // Show the error

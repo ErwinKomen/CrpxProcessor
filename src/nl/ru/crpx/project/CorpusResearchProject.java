@@ -98,11 +98,11 @@ public class CorpusResearchProject {
   private Execute objEx = null;           // Execution object
   private Processor objSaxon;             // The saxon processor (for global reference)
   // Each project contains a number of lists
-  static List<JSONObject> lDefList = new ArrayList<>();
-  static List<JSONObject> lQueryList = new ArrayList<>();
-  static List<JSONObject> lQueryConstructor = new ArrayList<>();
-  static List<JSONObject> lDbFeatList = new ArrayList<>();
-  static List<JSONObject> lPeriodInfo = new ArrayList<>();
+  List<JSONObject> lDefList = new ArrayList<>();
+  List<JSONObject> lQueryList = new ArrayList<>();
+  List<JSONObject> lQueryConstructor = new ArrayList<>();
+  List<JSONObject> lDbFeatList = new ArrayList<>();
+  List<JSONObject> lPeriodInfo = new ArrayList<>();
 
   // ==================== Class initialisations ================================
   public CorpusResearchProject() {
@@ -146,27 +146,24 @@ public class CorpusResearchProject {
         // Perform initialisations
         if (!DoInit()) return(errHandle.DoError("unable to initialize"));
       } catch (ParserConfigurationException ex) {
-        logger.error("Load crpx: could not configure parser", ex);
-        return false;
+        return errHandle.DoError("Load crpx: could not configure parser", ex, CorpusResearchProject.class);
       }
       mSet.clear();
       try {
         // Read the CRPX project xml file
         this.docProject = this.parser.parse(this.flProject);
       } catch (SAXException ex) {
-        logger.error("Load crpx file: SAX problem", ex);
-        return false;
+        return errHandle.DoError("Load crpx file: SAX problem", ex, CorpusResearchProject.class);
       } catch (IOException ex) {
-        logger.error("Load crpx file: IO problem", ex);
-        return false;
+        return errHandle.DoError("Load crpx file: IO problem", ex, CorpusResearchProject.class);
       }
       // Debugging
       logger.debug("Root node=" + this.docProject.getDocumentElement().getTagName());
       try {
         NodeList ndxList = (NodeList) xpath.compile("./descendant::Setting").evaluate( this.docProject, XPathConstants.NODESET);
-        logger.debug("Settings of this crpx: " + ndxList.getLength());
+        errHandle.debug("Settings of this crpx: " + ndxList.getLength());
       } catch (XPathExpressionException ex) {
-        logger.error("debug", ex);
+        return errHandle.DoError("debug", ex, CorpusResearchProject.class);
       }
       // === Loading the settings assumes that this.docProject exists!!
       // Load the settings: strings
