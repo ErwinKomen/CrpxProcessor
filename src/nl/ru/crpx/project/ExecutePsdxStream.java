@@ -140,21 +140,26 @@ public class ExecutePsdxStream extends ExecuteXml {
         try {
           // Initiate the XqF job
           search = searchMan.searchXqF(crpThis, userId, searchXqFpar);
-        } catch (QueryException | InterruptedException ex) {
+        } catch (QueryException ex) {
           // Return error and failure
           return errHandle.DoError("Failed to execute file ", ex, ExecutePsdxStream.class);
+        } catch (InterruptedException ex) {
+          // Interruption as such should not be such a problem, I think
+          return errHandle.DoError("Interrupted during sleep: " + ex.getMessage());
         }
         
-        // Get the @id of the job that has been created
-        String sThisJobId = search.getJobId();
-        String sNow = Job.getCurrentTimeStamp();
-        // Additional debugging to find out where the errors come from
-        logger.debug("XqFjob [" + sNow + "] userid=[" + userId + "] jobid=[" + 
-                sThisJobId + "], finished=" + 
-                search.finished() + " status=" + search.getJobStatus() );
-        
-        // Add the job to the list of jobs for this project/user
-        arJob.add(search);
+        synchronized(search) {
+          // Get the @id of the job that has been created
+          String sThisJobId = search.getJobId();
+          String sNow = Job.getCurrentTimeStamp();
+          // Additional debugging to find out where the errors come from
+          logger.debug("XqFjob [" + sNow + "] userid=[" + userId + "] jobid=[" + 
+                  sThisJobId + "], finished=" + 
+                  search.finished() + " status=" + search.getJobStatus() );
+
+          // Add the job to the list of jobs for this project/user
+          arJob.add(search);
+        }
       }
       // Monitor the end of the jobs
       if (!monitorXqF(1, jobCaller)) return false;
@@ -175,7 +180,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       return true;
     } catch (RuntimeException ex) {
       // Warn user
-      DoError("ExecutePsdxStream/ExecuteQueries error: " + ex.getMessage() + "\r\n");
+      errHandle.DoError("ExecutePsdxStream/ExecuteQueries error: ", ex, ExecutePsdxStream.class);
       // Return failure
       return false;
     }

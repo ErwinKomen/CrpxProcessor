@@ -362,6 +362,12 @@ public class SearchManager {
       }
       else
         search = cache.get(searchParameters);
+      // Check for a job that finished with an error
+      if (search != null && search.getJobStatus().equals("error")) {
+        cache.removeOneSearch(search);
+        search = null;
+      }
+      // Now continue
       if (search == null) {
         // Not found in cache
 
