@@ -544,7 +544,7 @@ public class FileUtil {
               }
             }
             // Check if we found it
-            if (!bFound) {
+            if (!bFound && ! arDir[i].contains(".")) {
               // It has not been found, so create the directory
               File fMake = new File(sTmpPath + "/" + arDir[i]);
               fMake.mkdir();
