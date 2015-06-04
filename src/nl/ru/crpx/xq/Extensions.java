@@ -341,7 +341,7 @@ public class Extensions extends RuBase {
   public static boolean matches(Value varText, Value strPattern) {
     try {
       return matches(varText.getStringValue(), strPattern.getStringValue());
-    } catch (XPathException ex) {
+    } catch (Exception ex) {
       // Show error
       logger.error("Extensions/matches error: " + ex.getMessage() + "\r\n");
       return false;
@@ -375,7 +375,7 @@ public class Extensions extends RuBase {
     try {
       // Execute the main function
       return matches(varText.getStringValue(), strPattern.getStringValue(), strPatternNo.getStringValue());
-    } catch (XPathException ex) {
+    } catch (Exception ex) {
       // Show error
       logger.error("Extensions/matches error: " + ex.getMessage() + "\r\n");
       return false;
@@ -448,7 +448,7 @@ public class Extensions extends RuBase {
       sResult = RuNodeText(objXp, ndSax, strType);
       // Return the result
       return sResult;
-    } catch (IllegalArgumentException ex) {
+    } catch (Exception ex) {
       // Show error
       logger.error("Extensions/NodeText error: " + ex.getMessage() + "\r\n");
       // Return failure
