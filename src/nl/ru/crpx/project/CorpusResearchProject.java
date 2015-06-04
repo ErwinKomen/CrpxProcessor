@@ -24,6 +24,7 @@ import net.sf.saxon.s9api.Processor;
 import nl.ru.crpx.search.Job;
 import nl.ru.crpx.search.SearchManager;
 import nl.ru.crpx.tools.ErrHandle;
+import nl.ru.crpx.tools.General;
 import nl.ru.util.FileUtil;
 import nl.ru.util.json.JSONObject;
 import static nl.ru.xmltools.XmlIO.WriteXml;
@@ -73,6 +74,7 @@ public class CorpusResearchProject {
   private String Comments = "";     // Comments about this project
   private String Author = "";       // Author of this project
   private String ProjectType = "";  // The type of project (one of several)
+  private String SaveDate = "";     // The date + time when this CRP was last saved
   private File QueryDir = null;     // Location of temporal queries
   private File DstDir = null;       // Destination directory
   private File SrcDir = null;       // Directory where the psdx files are located
@@ -134,7 +136,7 @@ public class CorpusResearchProject {
    17/10/2014   ERK Created
    --------------------------------------------------------------------------- */
   public boolean Load(String sSrcDir, String sDstDir, String sQueryDir) {
-      try {
+    try {
       // Validate crucial settings ---------------------------------
       if (this.Location.equals("")) return(false);
       this.flProject = new File(this.Location);
@@ -142,8 +144,10 @@ public class CorpusResearchProject {
         // The project cannot be read/opened
         return(errHandle.DoError("Cannot read [" + this.flProject + "]"));
       }    
+      // Keep track of the save date
+      this.SaveDate = General.getSaveDate(this.flProject);
+      // Perform initialisations
       try {
-        // Perform initialisations
         if (!DoInit()) return(errHandle.DoError("unable to initialize"));
       } catch (ParserConfigurationException ex) {
         return errHandle.DoError("Load crpx: could not configure parser", ex, CorpusResearchProject.class);
@@ -293,6 +297,9 @@ public class CorpusResearchProject {
       if (this.docProject == null) return false;
       // Write as XML to the correct location
       boolean bFlag = WriteXml(this.docProject, this.Location);
+      
+      // Adapt the [SaveDate] property of myself
+      this.SaveDate = "";
       // Return the result of writing
       return bFlag;
     } catch (Exception ex) {
@@ -406,6 +413,7 @@ public class CorpusResearchProject {
   public String getAuthor() { return this.Author;}
   public String getProjectType() { return this.ProjectType;}
   public String getUserId() { return this.userId; }
+  public String getSave() { return this.SaveDate; }
   // Set string values
   public void setLocation(String sValue) { this.Location = sValue;}
   public void setProjectType(String sValue) { this.ProjectType = sValue;}

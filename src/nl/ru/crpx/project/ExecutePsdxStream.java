@@ -139,7 +139,7 @@ public class ExecutePsdxStream extends ExecuteXml {
         JobXqF search = null;
         try {
           // Initiate the XqF job
-          search = searchMan.searchXqF(crpThis, userId, searchXqFpar);
+          search = searchMan.searchXqF(crpThis, userId, searchXqFpar, jobCaller);
         } catch (QueryException ex) {
           // Return error and failure
           return errHandle.DoError("Failed to execute file ", ex, ExecutePsdxStream.class);

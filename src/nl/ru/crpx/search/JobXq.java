@@ -9,11 +9,6 @@
 package nl.ru.crpx.search;
 
 import java.io.File;
-import nl.ru.crpx.project.CorpusResearchProject;
-import nl.ru.crpx.xq.CrpFile;
-import nl.ru.crpx.xq.Extensions;
-import nl.ru.xmltools.XmlNode;
-import org.w3c.dom.Node;
 
 /**
  *
@@ -29,7 +24,7 @@ public class JobXq extends Job {
   // public XmlNode ndxCurrentHeader = null;   // XML header of the current XML file
   public boolean ru_bFileSaveAsk = false;   // Needed for ru:setattrib()
   public boolean bTraceXq = false;          // Trace on XQ processing
-  String sReqArgument = "";                 // Copy of the query
+  String sQueryXq = "";                 // Copy of the query
   File fInput;                              // The file to be searched
 // </editor-fold>
   // =================== Class initialisation ==================================
@@ -39,8 +34,6 @@ public class JobXq extends Job {
     // Other initializations for this Xq search job
     intFollNum = crpThis.getFollNum();
     intPrecNum = crpThis.getPrecNum();
-    // Set the query 
-    sReqArgument = par.getString("query");
     this.currentuserId = userId;
   }
   
@@ -54,14 +47,20 @@ public class JobXq extends Job {
       if (crpThis==null) { errHandle.DoError("There is no CRP"); return;}
       // Note start time
       long startTime = System.currentTimeMillis();
+      // Set the query 
+      sQueryXq = par.getString("query");
       // Store the user/session id in our local list
-      Integer iTaskNumber = addUserJob("jobxq", currentuserId, id, sReqArgument);
+      Integer iTaskNumber = addUserJob("jobxq", currentuserId, id, sQueryXq);
+
+      // Set the job status to indicate that we are working
+      this.jobStatus = "working";
+      
       // Execute queries
       if (crpThis.Execute(this, this.userId)) {
         // Check for interrupt
         if (errHandle.bInterrupt) {
           errHandle.DoError("JobXq: The program has been interrupted");
-          sStatus = "interrupted";
+          sStatus = "error";
         } else {
           // There is no need to say anything here
           errHandle.debug("JobXq: performSearch: ready handling job");

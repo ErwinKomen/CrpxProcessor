@@ -263,7 +263,7 @@ public class SearchManager {
   }
 
   /**
-   * searchXqF - perform search operation for a whole CRP
+   * searchXq - perform search operation for a whole CRP
    * @param objPrj
    * @param userId
    * @param par
@@ -277,20 +277,24 @@ public class SearchManager {
     SearchParameters parBasic = par.copyWithOnly("query");
     // Set the correct jobclass
     parBasic.put("jobclass", "JobXq");
-    return (JobXq) search(objPrj, userId, parBasic);
+    return (JobXq) search(objPrj, userId, parBasic, null);
   }
   
   /** 
    * searchXqF - perform search operation on one file for a CRP
    * 
-   * @param objPrj
-   * @param userId
-   * @param par
+   * @param objPrj    -- corpus research project being searched
+   * @param userId    -- id of the calling user
+   * @param par       -- parameters for this search
+   * @param myParent  -- the parent Xq job
+   * 
    * @return result of the search job
+   * 
    * @throws QueryException
    * @throws InterruptedException 
    */
-  public JobXqF searchXqF(CorpusResearchProject objPrj, String userId, SearchParameters par) 
+  public JobXqF searchXqF(CorpusResearchProject objPrj, String userId, SearchParameters par,
+          Job myParent) 
           throws QueryException, InterruptedException {
     // Only copy the query parameter
     SearchParameters parBasic = par.copyWithOnly("query");
@@ -298,7 +302,7 @@ public class SearchManager {
     parBasic.put("crpfileid", par.getString("crpfileid"));
     // Set the correct jobclass
     parBasic.put("jobclass", "JobXqF");
-    return (JobXqF) search(objPrj, userId, parBasic);
+    return (JobXqF) search(objPrj, userId, parBasic, myParent);
   }
 
   /**
@@ -334,13 +338,16 @@ public class SearchManager {
    * @param blockUntilFinished
    *            if true, wait until the search finishes; otherwise, return
    *            immediately
+   * @param jobParent
+   *            the parent of this job
    * @return a Search object corresponding to these parameters
    * @throws QueryException
    *             if the query couldn't be executed
    * @throws InterruptedException
    *             if the search thread was interrupted
    */
-  private Job search(CorpusResearchProject objPrj, String userId, SearchParameters searchParameters)
+  private Job search(CorpusResearchProject objPrj, String userId, SearchParameters searchParameters, 
+          Job jobParent)
             throws QueryException, InterruptedException {
     // Search the cache / running jobs for this search, create new if not
     // found.
@@ -350,22 +357,16 @@ public class SearchManager {
     // Create room for a job
     Job search = null;
     synchronized (this) {
+      // Check if there is a previous job
+      search = cache.get(searchParameters);
       // Check if we may re-use a previous query
-      if (searchHasForce(searchParameters))  {
-        // The job must be 're-done', which means that any old job with the same
-        //   signature must be taken away
-        Job searchOld = cache.get(searchParameters);
-        if (searchOld != null) {
+      if (search != null) {
+        // Check the status of this job
+        if (search.finished() && search.jobStatus.equals("error")) {
           // Now we must remove this job from the cache
-          cache.removeOneSearch(searchOld);
+          cache.removeOneSearch(search);
+          search = null;
         }
-      }
-      else
-        search = cache.get(searchParameters);
-      // Check for a job that finished with an error
-      if (search != null && search.getJobStatus().equals("error")) {
-        cache.removeOneSearch(search);
-        search = null;
       }
       // Now continue
       if (search == null) {
@@ -411,6 +412,9 @@ public class SearchManager {
         // Create a new search object with these parameters and place it
         // in the cache
         search = Job.create(this, userId, searchParameters);
+        
+        // Add the parent
+        search.setParent(jobParent);
         
         // Only *cache* the search if it is *not* an XqF one
         if (!search.par.getString("jobclass").toLowerCase().equals("jobxqf"))
@@ -570,4 +574,12 @@ public class SearchManager {
     return checkAgainAdvice;
   }
 
+  /**
+   * Finish all the XqF jobs that have this Xq as parent
+   * 
+   * @param parentXq 
+   */
+  public void finishChildXqFjobs(Job parentXq) {
+    cache.removeChildren(parentXq);    
+  }
 }

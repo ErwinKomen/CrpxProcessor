@@ -6,6 +6,7 @@
 
 package nl.ru.crpx.tools;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -91,6 +92,12 @@ public class General {
     SimpleDateFormat sdfDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//dd/MM/yyyy
     Date now = new Date();
     String strDate = sdfDate.format(now);
+    return strDate;
+  }
+  public static String getSaveDate(File fThis) {
+    SimpleDateFormat sdfDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//dd/MM/yyyy
+    Date dtSave = new Date(fThis.lastModified());
+    String strDate = sdfDate.format(dtSave);
     return strDate;
   }
 

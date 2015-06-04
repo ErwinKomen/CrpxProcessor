@@ -144,13 +144,32 @@ public class SearchCache {
         // Search is taking too long. Cancel it.
         logger.debug("Search is being removed: " + search);
         search.cancelJob();
-
-        // For now, remove from cache, but we should really blacklist these
-        // kinds of searches so repeating them doesn't matter.
-        // TODO blacklist
+        // Physically remove from cache
         cachedSearches.remove(search.getParameters());
         cacheSizeBytes -= search.estimateSizeBytes();
         return;
+      }
+    }
+  }
+  
+  /**
+   * Remove all the child jobs under parent 'p'
+   * 
+   * @param p 
+   */
+  void removeChildren(Job p) {
+    // Sort cache by last access time
+    List<Job> lastAccessOrder = new ArrayList<Job>(cachedSearches.values());
+    Collections.sort(lastAccessOrder); // put stalest first
+    for (Job search: lastAccessOrder) {
+      if (search.parent.equals(p)) {
+        // Show what we are doing
+        logger.debug("remove child of [" + p.getJobId() + "] job " + search.getJobId());
+        // Remove this job
+        search.cancelJob();
+        // Physically remove from cache
+        cachedSearches.remove(search.getParameters());
+        cacheSizeBytes -= search.estimateSizeBytes();
       }
     }
   }

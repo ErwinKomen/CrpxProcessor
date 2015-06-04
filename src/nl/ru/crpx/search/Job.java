@@ -52,13 +52,15 @@ public abstract class Job implements Comparable<Job> {
   protected SearchParameters par;           // Parameters specified for this particular search
   protected String userId;                  // ID of user attached to this job
   protected String jobResult;               // String representation of the result of this job
-  protected JSONObject jobCount;            // Counts for this job
   protected String jobStatus;               // Status returned by this job
+  protected String currentuserId;           // Who created this job?
+  protected String jobQuery;                // The query string associated with this job (passed on via SearchParameters)
+  protected JSONObject jobCount;            // Counts for this job
   protected JSONObject jobProgress;         // Details of where we are in this job
   protected int jobPtc;                     // Percentage progress for this job
-  protected String currentuserId;           // Who created this job?
   protected boolean reusable = true;        // The job can be re-used if it was not interrupted
   protected Integer jobTaskId = -1;         // The task-id of this job
+  protected Job parent = null;              // The 'parent' job I am under
 
 // </editor-fold>
   // ============== Class initialisation ======================================
@@ -77,6 +79,8 @@ public abstract class Job implements Comparable<Job> {
     // Initialize results
     jobResult = ""; jobCount = new JSONObject(); jobStatus = "initialized";
     jobProgress = new JSONObject();
+    // Initialise the query string 
+    jobQuery = par.getString("query");
     // Make sure the finishing time is initialized correctly
     finishedAt = -1;
   }
@@ -296,12 +300,14 @@ public abstract class Job implements Comparable<Job> {
   public void setJobProgress(JSONObject oCount) { jobProgress = oCount;}
   public String getJobStatus() {return jobStatus;}
   public void setJobStatus(String sThis) { jobStatus = sThis;}
+  public String getJobQuery() {return jobQuery;}
   public int getJobPtc() { return jobPtc;}
   public void setJobPtc(int iThis) {jobPtc = iThis;}
   public Integer getJobTaskId() { return jobTaskId; }
   private String shortUserId() {return userId.substring(0, 6);}
   public void setUnusable() { reusable = false; }  
   public boolean getUsable() { return reusable;}
+  public void setParent(Job p) { parent = p;}
   @Override
   public String toString() {
     return id + ": " + par.toString();
