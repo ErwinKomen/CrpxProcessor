@@ -45,7 +45,7 @@ public class ErrHandle {
     lErrStack.add(oThis);
     // DEBUGGING: also show it in the error logger
     // logger.error(msg, ex);
-    Logger.getLogger(this.clsDefault).error(msg, ex);
+    Logger.getLogger(cls).error(msg, ex);
     // Return failure
     return false;
   }
