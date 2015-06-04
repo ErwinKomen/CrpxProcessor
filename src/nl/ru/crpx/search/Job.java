@@ -371,7 +371,8 @@ public abstract class Job implements Comparable<Job> {
     }
     // Debugging
     errHandle.debug("Job addUserJob " + sJob + " user=[" + sUser + "] job=[" + 
-            String.valueOf(iJob) + "] task=" + String.valueOf(iTasks));
+            String.valueOf(iJob) + "] task=" + String.valueOf(iTasks) +
+            " query=[" + sQuery + "]");
     // ========== DEBUGGING =======
     // showUserJob();
     // ============================

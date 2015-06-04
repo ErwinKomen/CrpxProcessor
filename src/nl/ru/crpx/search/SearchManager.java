@@ -518,41 +518,19 @@ public class SearchManager {
     }
   }
 
-  public SearchCache getCache() {
-    return cache;
-  }
-
   public DataFormat getContentsFormat(String indexName) {
     return DataFormat.XML; // could be made configurable
   }
 
-  public int getMaxContextSize() {
-    return maxContextSize;
-  }
-
-  public DataObject getCacheStatusDataObject() {
-    return cache.getCacheStatusDataObject();
-  }
-
-  public DataObject getCacheContentsDataObject() {
-    return cache.getContentsDataObject();
-  }
-
-  public int getMaxSnippetSize() {
-    return maxSnippetSize;
-  }
-
-  public boolean mayOverrideUserId(String ip) {
-    return overrideUserIdIps.contains(ip);
-  }
-
-  public DataFormat getDefaultOutputType() {
-    return defaultOutputType;
-  }
-
-  public int getClientCacheTimeSec() {
-    return clientCacheTimeSec;
-  }
+  public SearchCache getCache() { return cache; }
+  public int getMaxContextSize() { return maxContextSize; }
+  public DataObject getCacheStatusDataObject() { return cache.getCacheStatusDataObject(); }
+  public DataObject getCacheContentsDataObject() { return cache.getContentsDataObject(); }
+  public int getMaxSnippetSize() { return maxSnippetSize; }
+  public boolean mayOverrideUserId(String ip) { return overrideUserIdIps.contains(ip); }
+  public DataFormat getDefaultOutputType() { return defaultOutputType; }
+  public int getClientCacheTimeSec() { return clientCacheTimeSec; }
+  public Job getXqJob(String sQuery) {    return cache.getJob(sQuery);  }
 
   /**
    * Give advice for how long to wait to check the status of a search.
@@ -582,4 +560,5 @@ public class SearchManager {
   public void finishChildXqFjobs(Job parentXq) {
     cache.removeChildren(parentXq);    
   }
+  
 }

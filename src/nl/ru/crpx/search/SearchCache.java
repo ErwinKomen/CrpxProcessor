@@ -94,6 +94,25 @@ public class SearchCache {
     // We did not succeed in finding the correct job...
     return null;
   }
+  public Job getJob(String sQuery) {
+    try {
+    // Sort cache by last access time
+    List<Job> allCachedJobs = new ArrayList<>(cachedSearches.values());
+    // Walk all jobs
+    for (Job search: allCachedJobs) {
+      // Check out the id of this job
+      if (search.jobQuery.equals(sQuery)) {
+        // Found the job!
+        return search;
+      }
+    }
+    // We did not succeed in finding the correct job...
+    return null;
+    } catch (Exception ex) {
+      logger.error("Could not getJob", ex);
+      return null;
+    }
+  }
 
 
   /** Put a search in the cache.
@@ -158,19 +177,28 @@ public class SearchCache {
    * @param p 
    */
   void removeChildren(Job p) {
-    // Sort cache by last access time
-    List<Job> lastAccessOrder = new ArrayList<Job>(cachedSearches.values());
-    Collections.sort(lastAccessOrder); // put stalest first
-    for (Job search: lastAccessOrder) {
-      if (search.parent.equals(p)) {
-        // Show what we are doing
-        logger.debug("remove child of [" + p.getJobId() + "] job " + search.getJobId());
-        // Remove this job
-        search.cancelJob();
-        // Physically remove from cache
-        cachedSearches.remove(search.getParameters());
-        cacheSizeBytes -= search.estimateSizeBytes();
+    int iRemoved = 0; // Number of children actually removed
+    
+    try {
+      // Sort cache by last access time
+      List<Job> lastAccessOrder = new ArrayList<Job>(cachedSearches.values());
+      Collections.sort(lastAccessOrder); // put stalest first
+      for (Job search: lastAccessOrder) {
+        if (search.parent != null && search.parent.equals(p)) {
+          // Show what we are doing
+          logger.debug("remove child of [" + p.getJobId() + "] job " + search.getJobId());
+          // Remove this job
+          search.cancelJob();
+          // Physically remove from cache
+          cachedSearches.remove(search.getParameters());
+          cacheSizeBytes -= search.estimateSizeBytes();
+          iRemoved++;
+        }
       }
+      // Show what we've done
+      logger.debug("Removed children: " + iRemoved);
+    } catch (Exception ex) {
+      logger.error("Could not remove children", ex);
     }
   }
   
