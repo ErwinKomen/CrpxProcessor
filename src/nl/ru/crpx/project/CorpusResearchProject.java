@@ -98,7 +98,7 @@ public class CorpusResearchProject {
   private PrjTypeManager prjTypeManager;  // Project type manager associated with this CRP
   private String userId;                  // ID of calling user
   private Execute objEx = null;           // Execution object
-  private Processor objSaxon;             // The saxon processor (for global reference)
+  private static Processor objSaxon = null;             // The saxon processor (for global reference)
   // Each project contains a number of lists
   List<JSONObject> lDefList = new ArrayList<>();
   List<JSONObject> lQueryList = new ArrayList<>();
@@ -125,7 +125,7 @@ public class CorpusResearchProject {
     // Set default project type
     this.intProjType = ProjType.ProjPsdx;
     // Create a processor that is NOT schema-aware (so we use Saxon-B 9.1.0.8)
-    objSaxon = new Processor(false);
+    if (objSaxon == null) objSaxon = new Processor(false);
   }
   
   // =================== instance methods ======================================
