@@ -10,6 +10,7 @@ package nl.ru.crpx.search;
 
 import java.io.File;
 import nl.ru.crpx.project.ExecutePsdxStream;
+import nl.ru.crpx.xq.RuBase;
 import org.w3c.dom.Node;
 
 /**
@@ -45,6 +46,8 @@ public class JobXqF extends Job {
     intCrpFileId = par.getInteger("crpfileid");
     // My own copy of the CrpFile object
     // oCrpFile = RuBase.getCrpFile(par.getInteger("crpfileid"));
+    // Get a handle to the input file
+    fInput = RuBase.getCrpFile(par.getInteger("crpfileid")).flThis;
     //
   }
   
@@ -54,16 +57,18 @@ public class JobXqF extends Job {
     try {
       // Validate
       if (crpThis==null) { errHandle.DoError("There is no CRP"); return;}
+      // Get the file name
+      String sName = fInput.getName();
       // Perform the queries on the selected CrpFile object
       if (objEx.ExecuteQueriesFile(this, intCrpFileId)) {
         // Check for interrupt
         if (errHandle.bInterrupt) {
-          errHandle.DoError("JobXqF: The program has been interrupted");
+          errHandle.DoError("JobXqF: The program has been interrupted [" + sName + "]");
         } else {
-          errHandle.debug("JobXqF: performSearch: ready handling job");
+          errHandle.debug("JobXqF: performSearch: ready handling job [" + sName + "]");
         }
       } else {
-        errHandle.DoError("JobXqF: The queries could not be executed");
+        errHandle.DoError("JobXqF: The queries could not be executed [" + sName + "]");
       }
 
       // Get the current file we are searching

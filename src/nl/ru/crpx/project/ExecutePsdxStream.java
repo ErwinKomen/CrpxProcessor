@@ -43,7 +43,7 @@ public class ExecutePsdxStream extends ExecuteXml {
   List<JobXqF> arJob = new ArrayList<>(); // A list of all the current XqF jobs running
   List<String> arRes = new ArrayList<>(); // The results of each job
   JSONArray arCount = new JSONArray();    // Array with the counts per file
-  JSONObject oProgress;                   // Progress of this Xq job
+  JSONObject oProgress = null;            // Progress of this Xq job
   // ========== constants ======================================================
   private static final QName loc_xq_EtreeId = new QName("", "", "TreeId");
   private static final QName loc_xq_Section = new QName("", "", "Section");
@@ -109,6 +109,15 @@ public class ExecutePsdxStream extends ExecuteXml {
         // Where are we?
         iPtc = (100 * (i+1)) / lSource.size();
         jobCaller.setJobPtc(iPtc);
+        
+        // ================= DEBUGGING =============
+        if (oProgress==null) {
+          logger.debug("ExecuteQueries " + (i+1) + "/" + lSource.size() + ": oProgress is null for [" + this.userId + "]");
+        } else {
+          logger.debug("ExecuteQueries " + (i+1) + "/" + lSource.size() + ": oProgress okay for [" + this.userId + "]");
+        }
+        // =========================================
+        
         // Take this input file
         File fInput = new File(lSource.get(i));
         synchronized(oProgress) {
@@ -153,8 +162,9 @@ public class ExecutePsdxStream extends ExecuteXml {
           String sThisJobId = search.getJobId();
           String sNow = Job.getCurrentTimeStamp();
           // Additional debugging to find out where the errors come from
-          logger.debug("XqFjob [" + sNow + "] userid=[" + userId + "] jobid=[" + 
-                  sThisJobId + "], finished=" + 
+          logger.debug("XqFjob [" + sNow + "] " + (i+1) + "/" + lSource.size() + 
+                  " on [" + fInput.getName() + "] userid=[" + 
+                  userId + "] jobid=[" + sThisJobId + "], finished=" + 
                   search.finished() + " status=" + search.getJobStatus() );
 
           // Add the job to the list of jobs for this project/user
@@ -302,6 +312,23 @@ public class ExecutePsdxStream extends ExecuteXml {
             // Process the job results
             // arRes.add(sResultXqF);
             arCount.put(jThis.getJobCount());
+            
+            // ================= DEBUGGING =============
+            if (oProgress==null) {
+              logger.debug("monitorXqF job " + jThis.getJobId() + ": oProgress is null for [" + this.userId + "]");
+            } else {
+              logger.debug("monitorXqF job " + jThis.getJobId() + ": oProgress okay for [" + this.userId + "]");
+              // More double checking
+              if (jThis.intCrpFileId <0)
+                logger.debug("monitorXqF job " + jThis.getJobId() + " fileid=" + jThis.intCrpFileId);
+              CrpFile oCrpFile = RuBase.getCrpFile(jThis.intCrpFileId);
+              if (oCrpFile==null)
+                logger.debug("monitorXqF job " + jThis.getJobId() + " CrpFile=null");
+              if (oCrpFile.flThis == null)
+                logger.debug("monitorXqF job " + jThis.getJobId() + " CrpFile.flThis=null");
+            }
+            // =========================================
+            
             // Note that it has finished for others too
             synchronized(oProgress) {
               oProgress.put("finish",RuBase.getCrpFile(jThis.intCrpFileId).flThis.getName());

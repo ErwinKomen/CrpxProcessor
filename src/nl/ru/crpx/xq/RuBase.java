@@ -35,14 +35,16 @@ public class RuBase /* extends Job */ {
 // <editor-fold defaultstate="collapsed" desc="Local and global variables">
   // ======== attempt ============
   protected List<JSONObject> lAttempt;
+  // ==================== Initialisation flag ==================================
+  private static boolean bInit = false;
   // ==================== static list of all CRPs that are using me ============
-  private static List<CrpFile> lCrpCaller;
+  private static List<CrpFile> lCrpCaller;  // This is used by "Extensions"
   // ==================== local variables ======================================
-  private String strRuLexFile;  // Location of the ru:lex file
+  private String strRuLexFile;              // Location of the ru:lex file
   private XPath xpath;
-  private XPathCompiler xpComp;        // My own xpath compiler (Xdm, saxon)
-  static Processor objSaxon;           // The processor above the document builder
-  static DocumentBuilder objSaxDoc;    // Internal copy of the document-builder to be used
+  private XPathCompiler xpComp;             // My own xpath compiler (Xdm, saxon)
+  static Processor objSaxon;                // The processor above the document builder
+  static DocumentBuilder objSaxDoc;         // Internal copy of the document-builder to be used
   // ===================== local constant stuff ================================
   private static ErrHandle errHandle;
   private static XPathSelector ru_xpeNodeText_Psdx;   // Search expression for ProjPsdx
@@ -81,16 +83,23 @@ public class RuBase /* extends Job */ {
     try {
       // this.xpath = XPathFactory.newInstance(NamespaceConstant.OBJECT_MODEL_SAXON).newXPath();
       this.xpath = XPathFactory.newInstance().newXPath();
+      // Take over the Processor that has already been made
       this.objSaxon = objPrj.getSaxProc();
+      // Every new project gets its own documentbuilder (??)
       this.objSaxDoc = this.objSaxon.newDocumentBuilder();
       errHandle = new ErrHandle(RuBase.class);
-      lCrpCaller = new ArrayList<>();
-      // Set up the compiler
-      this.xpComp = this.objSaxon.newXPathCompiler();
-      ru_xpeNodeText_Psdx = xpComp.compile("./descendant-or-self::eLeaf[@Type = 'Vern' or @Type = 'Punct']").load();
-      ru_xpeNodeText_Folia = xpComp.compile("./descendant-or-self::w/child::t").load();
-      ru_xpeNodeText_Alp = xpComp.compile("./descendant-or-self::node[count(@word)>0]").load();
-      ru_xpeNodeText_Negra = xpComp.compile("./descendant-or-self::t").load();
+      // Only reset the caller list if it has not yet been initialized
+      if (!bInit) {
+         lCrpCaller = new ArrayList<>();
+        // Set up the compiler
+        this.xpComp = this.objSaxon.newXPathCompiler();
+        ru_xpeNodeText_Psdx = xpComp.compile("./descendant-or-self::eLeaf[@Type = 'Vern' or @Type = 'Punct']").load();
+        ru_xpeNodeText_Folia = xpComp.compile("./descendant-or-self::w/child::t").load();
+        ru_xpeNodeText_Alp = xpComp.compile("./descendant-or-self::node[count(@word)>0]").load();
+        ru_xpeNodeText_Negra = xpComp.compile("./descendant-or-self::t").load();
+        // Indicate we are initialized
+        bInit = true;
+      }
     } catch (SaxonApiException ex) {
         logger.error("RuBase initialisation error", ex);
     }

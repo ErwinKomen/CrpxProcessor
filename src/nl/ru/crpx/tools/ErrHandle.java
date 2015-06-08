@@ -59,6 +59,10 @@ public class ErrHandle {
     Logger.getLogger(this.clsDefault).debug(msg);
     // logger.debug(msg);
   }
+  public void debug(String msg, Class cls) {
+    Logger.getLogger(cls).debug(msg);
+    // logger.debug(msg);
+  }
   // ========== Allow others to see that there are errors ===========
   public boolean hasErr() {
     return (lErrStack.size() > 0);

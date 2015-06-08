@@ -397,7 +397,7 @@ public class SearchManager {
             }
           }
         }
-        logger.debug("Running jobs = " + numRunningJobs);
+        // logger.debug("Running jobs = " + numRunningJobs);
         if (numRunningJobs >= maxRunningJobsPerUser) {
           // User has too many running jobs. Can't start another one.
           runningJobsPerUser.put(userId, newRunningJobs); // refresh
@@ -438,7 +438,8 @@ public class SearchManager {
       search.rethrowException();
     }
 
-    logger.debug("Search done. jobId=" + search.getJobId() + " type=" + searchParameters.getString("jobclass"));
+    logger.debug("Search triggered: jobId=" + search.getJobId() + " type=" + 
+            searchParameters.getString("jobclass") + " finished=" + search.finished());
     return search;
   }
 
