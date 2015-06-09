@@ -129,6 +129,9 @@ public class SearchManager {
    * My own copy of the corpus research project we are working on
    */
   private CorpusResearchProject crpThis;
+  
+  // Properties passed on in the command-line
+  private JSONObject oCmdLine;
 
   /**
    * 
@@ -143,14 +146,16 @@ public class SearchManager {
     for (int i = 0; i < jsonDebugModeIps.length(); i++) {
       debugModeIps.add(jsonDebugModeIps.getString(i));
     }
+    
+    // Initialise the command-line properties to nothing
+    oCmdLine = new JSONObject();
 
     // Request properties
     JSONObject reqProp = properties.getJSONObject("requests");
-    defaultOutputType = DataFormat.XML; // XML if nothing specified (because
-                                        // of browser's default Accept
-                                        // header)
+    defaultOutputType = DataFormat.JSON; // We normally work with JSON
     if (reqProp.has("defaultOutputType"))
-      defaultOutputType = DataFormat.XML;
+      defaultOutputType = getOutputTypeFromString(
+					reqProp.getString("defaultOutputType"), DataFormat.JSON);
     defaultBlockingMode = JsonUtil.getBooleanProp(reqProp,
                     "defaultBlockingMode", true);
     JSONArray jsonOverrideUserIdIps = reqProp
@@ -216,6 +221,9 @@ public class SearchManager {
     // Start with empty cache
     cache = new SearchCache(cacheProp);
   }
+  
+  public void setCmdLineProperties(JSONObject oNew) { this.oCmdLine = oNew; }
+  public JSONObject getCmdLineProperties() { return this.oCmdLine; }
 
   public List<String> getSearchParameterNames() {
     return searchParameterNames;
@@ -532,6 +540,7 @@ public class SearchManager {
   public DataFormat getDefaultOutputType() { return defaultOutputType; }
   public int getClientCacheTimeSec() { return clientCacheTimeSec; }
   public Job getXqJob(String sQuery) {    return cache.getJob(sQuery);  }
+  public Job getXqJob(Integer iJobId) { return cache.getJob(iJobId); }
 
   /**
    * Give advice for how long to wait to check the status of a search.
@@ -561,5 +570,20 @@ public class SearchManager {
   public void finishChildXqFjobs(Job parentXq) {
     cache.removeChildren(parentXq);    
   }
-  
+  	/**
+	 * Translate the string value for outputType to the enum OutputType value.
+	 *
+	 * @param typeString
+	 *            the outputType string
+	 * @param defaultValue what to use if neither matches
+	 * @return the OutputType enum value
+	 */
+	public static DataFormat getOutputTypeFromString(String typeString, DataFormat defaultValue) {
+		if (typeString.equalsIgnoreCase("xml"))
+			return DataFormat.XML;
+		if (typeString.equalsIgnoreCase("json"))
+			return DataFormat.JSON;
+		logger.warn("Onbekend outputtype gevraagd: " + typeString);
+		return defaultValue;
+	}
 }

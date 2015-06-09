@@ -7,6 +7,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import nl.ru.crpx.dataobject.DataObject;
 import nl.ru.crpx.dataobject.DataObjectMapElement;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.tools.ErrHandle;
@@ -57,6 +58,7 @@ public abstract class Job implements Comparable<Job> {
   protected String jobQuery;                // The query string associated with this job (passed on via SearchParameters)
   protected JSONObject jobCount;            // Counts for this job
   protected JSONObject jobProgress;         // Details of where we are in this job
+  protected DataObject jobTable;            // Tabular result 
   protected int jobPtc;                     // Percentage progress for this job
   protected boolean reusable = true;        // The job can be re-used if it was not interrupted
   protected Integer jobTaskId = -1;         // The task-id of this job
@@ -298,6 +300,8 @@ public abstract class Job implements Comparable<Job> {
   public void setJobCount(JSONObject oCount) { jobCount = oCount;}
   public JSONObject getJobProgress() { return jobProgress;}
   public void setJobProgress(JSONObject oCount) { jobProgress = oCount;}
+  public DataObject getJobTable() { return jobTable;}
+  public void setJobTable(DataObject oTable) { jobTable = oTable;}
   public String getJobStatus() {return jobStatus;}
   public void setJobStatus(String sThis) { jobStatus = sThis;}
   public String getJobQuery() {return jobQuery;}

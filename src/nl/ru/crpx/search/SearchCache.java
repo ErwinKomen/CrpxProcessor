@@ -80,7 +80,7 @@ public class SearchCache {
    * @param iJobId the jobid we are looking for
    * @return the Search if found, or null if not
    */
-  public Job getJob(int iJobId) {
+  public Job getJob(long iJobId) {
     // Sort cache by last access time
     List<Job> allCachedJobs = new ArrayList<>(cachedSearches.values());
     // Walk all jobs

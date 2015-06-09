@@ -372,7 +372,9 @@ public class CorpusResearchProject {
       // =============================
       // Get the counting results
       //   NOTE: an integer inside [toString()] provides pretty-printing
-      String sCount = jobCaller.getJobCount().toString(1);
+      JSONObject objCount = new JSONObject();
+      objCount.put("count", jobCaller.getJobCount());
+      String sCount = objCount.toString(1);
       File fCountOut = new File(this.DstDir + "/" + this.Name + ".count.json");
       FileUtil.writeFile(fCountOut, sCount);
       // Show where this is written

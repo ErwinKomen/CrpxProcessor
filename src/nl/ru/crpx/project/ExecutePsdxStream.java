@@ -14,6 +14,9 @@ import java.util.List;
 import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.XQueryEvaluator;
+import nl.ru.crpx.dataobject.DataObject;
+import nl.ru.crpx.dataobject.DataObjectList;
+import nl.ru.crpx.dataobject.DataObjectMapElement;
 import nl.ru.crpx.search.Job;
 import nl.ru.crpx.search.JobXq;
 import nl.ru.crpx.search.JobXqF;
@@ -44,6 +47,7 @@ public class ExecutePsdxStream extends ExecuteXml {
   List<String> arRes = new ArrayList<>(); // The results of each job
   JSONArray arCount = new JSONArray();    // Array with the counts per file
   JSONObject oProgress = null;            // Progress of this Xq job
+  DataObjectMapElement dmProgress = null; // Progress of this Xq job
   // ========== constants ======================================================
   private static final QName loc_xq_EtreeId = new QName("", "", "TreeId");
   private static final QName loc_xq_Section = new QName("", "", "Section");
@@ -86,6 +90,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       // Set the job for global access within Execute > ExecuteXml > ExecutePsdxStream
       this.objSearchJob = jobCaller;
       oProgress = new JSONObject();
+      dmProgress = new DataObjectMapElement();
       /* ========= Should not be here
       // Set the XmlForest element correctly
       this.objProcType = new XmlForest(this.crpThis,(JobXq) jobCaller, this.errHandle);
@@ -113,9 +118,7 @@ public class ExecutePsdxStream extends ExecuteXml {
         // ================= DEBUGGING =============
         if (oProgress==null) {
           logger.debug("ExecuteQueries " + (i+1) + "/" + lSource.size() + ": oProgress is null for [" + this.userId + "]");
-        } else {
-          logger.debug("ExecuteQueries " + (i+1) + "/" + lSource.size() + ": oProgress okay for [" + this.userId + "]");
-        }
+        } 
         // =========================================
         
         // Take this input file
@@ -175,12 +178,13 @@ public class ExecutePsdxStream extends ExecuteXml {
       if (!monitorXqF(1, jobCaller)) return false;
       
       // Combine the results of the queries into a table
-      // Combine [arRes] into a result string (JSON)
-      // String sCombiJson = "[" + StringUtil.join(arRes, ",") + "]";
       String sCombiJson = combineResults(arCount);
       jobCaller.setJobResult(sCombiJson);
+      
+      // Provide a dataobject table for better processing
+      jobCaller.setJobTable(getResultsTable(arCount));
 
-      // Also combine the job count results
+      // Also provide the job count results (which are perhaps less interesting)
       JSONObject oCount = new JSONObject();
       oCount.put("counts", arCount);
       jobCaller.setJobCount(oCount);
@@ -196,6 +200,102 @@ public class ExecutePsdxStream extends ExecuteXml {
     }
   }
   
+  /* ---------------------------------------------------------------------------
+     Name:    getResultsTable
+     Goal:    Re-combine the overall Xq counts from [arLines] to make it a better
+                input for the creation of a table
+     History:
+     09/jun/2015 ERK Created for JAVA
+     --------------------------------------------------------------------------- */
+  private DataObject getResultsTable(JSONArray arLines) {
+    List<String> arSub = new ArrayList<>();   // each sub-category gets an entry here
+    List<String> arFile = new ArrayList<>();  // List of files
+    JSONObject arJsonRes[];                   // Object "hits" of the current QC line
+    JSONObject arJsonSub[];                   // Object "sub" of the current QC line
+    DataObjectList arCombi = new DataObjectList("QCline");
+
+    try {
+      // Walk all the QC lines
+      for (int iQC=0; iQC<arQuery.length; iQC++) {
+        // Clear the arraylist of subcats
+        arSub.clear(); arFile.clear();
+        arJsonRes = new JSONObject[arLines.length()];
+        arJsonSub = new JSONObject[arLines.length()];
+        // Walk all the lines
+        for (int i = 0; i< arLines.length(); i++ ) {
+          // Initialise object here
+          arJsonRes[i] = new JSONObject();
+          arJsonSub[i] = new JSONObject();
+          // Each line has fields "hits" and "file"
+          JSONArray oHit = arLines.getJSONObject(i).getJSONArray("hits");
+          // Add the file name to the list
+          arFile.add(arLines.getJSONObject(i).getString("file"));
+          // Get the element corresponding with the current QC line
+          JSONObject oEl = oHit.getJSONObject(iQC);
+          arJsonRes[i] = oEl;
+          // Get the "sub" element from here
+          JSONObject oSub = oEl.getJSONObject("sub");
+          arJsonSub[i] = oSub;
+          // Walk all the fields
+          JSONArray arKeys = oSub.names();
+          if (arKeys != null) for (int iField =0; iField < arKeys.length(); iField++) {
+            // Get this field
+            String sField = arKeys.getString(iField);
+            // Possibly add the field to [arSub]
+            if (!arSub.contains(sField)) arSub.add(sField);
+          }
+        }
+        // We now have three arrays containing one entry for each processed file
+        // (1) arFile     file name
+        // (2) arJsonRes  object "hits" = { "sub":..., "count": ..., "qc": ...}
+        // (3) arJsonSub  object "sub"  = key/value object of sub-category/counts
+        // Re-combine the results for this QC line
+        DataObjectMapElement dmOneQc = new DataObjectMapElement();
+        // The dataobject for one QC line contains: "hits", "subcats" and "qc"
+        dmOneQc.put("qc", iQC+1);
+        // Create and add the array of sub-categories
+        DataObjectList aSubNames = new DataObjectList("subcat");
+        // Add the name of each "sub" category
+        for (String sSubCatName : arSub) { aSubNames.add(sSubCatName); }
+        dmOneQc.put("subcats", aSubNames);
+        // Calculate and create an array of "hit" elements
+        DataObjectList aHits = new DataObjectList("hit");
+        // Each "hit" object consists of: {"sub": ..., "count": ..., "file": ...}
+        for (int i=0;i<arLines.length(); i++) {
+          // Create a hit element for each line
+          DataObjectMapElement oResThis = new DataObjectMapElement();
+          // Add the "count" and the "file" parameters
+          oResThis.put("file", arFile.get(i));
+          oResThis.put("count", arJsonRes[i].getInt("count"));
+          // Get fields and values for each "sub" category
+          DataObjectList aResSub = new DataObjectList("sub");
+          for (int j=0; j< arSub.size(); j++) {
+            // Add this field
+            int iCount = 0;
+            if (arJsonSub[i].has(arSub.get(j))) {
+              iCount = arJsonSub[i].getInt(arSub.get(j));
+            } 
+            aResSub.add(iCount);
+          }
+          // Add the array of sub-cat counts
+          oResThis.put("subs", aResSub);
+          // Add the results to the "hit" list
+          aHits.add(oResThis);
+        }
+        // Add the array of "hit" elements
+        dmOneQc.put("hits", aHits);
+        // Add this QC object to the list
+        arCombi.add(dmOneQc);
+      }
+      // Return the result
+      return arCombi;
+    } catch (Exception ex) {
+      // Warn user
+      DoError("ExecutePsdxStream/getResultsTable error", ex, ExecutePsdxStream.class);
+      // Return failure
+      return null;
+    }
+  }
   /* ---------------------------------------------------------------------------
      Name:    combineResults
      Goal:    Re-combine the overall Xq counts from [arLines] to make it a better
@@ -317,7 +417,6 @@ public class ExecutePsdxStream extends ExecuteXml {
             if (oProgress==null) {
               logger.debug("monitorXqF job " + jThis.getJobId() + ": oProgress is null for [" + this.userId + "]");
             } else {
-              logger.debug("monitorXqF job " + jThis.getJobId() + ": oProgress okay for [" + this.userId + "]");
               // More double checking
               if (jThis.intCrpFileId <0)
                 logger.debug("monitorXqF job " + jThis.getJobId() + " fileid=" + jThis.intCrpFileId);
