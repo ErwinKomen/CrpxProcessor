@@ -180,6 +180,7 @@ public class XmlIndexReader {
       // Initialize the index datastructure
       arIndex = new ArrayList<>();
       BufferedReader br = new BufferedReader(new FileReader( this.loc_fIndexFile));
+      // Get the header line
       // Get the first line
       String sHeaderFile = br.readLine();
       if (sHeaderFile.isEmpty()) return false;
