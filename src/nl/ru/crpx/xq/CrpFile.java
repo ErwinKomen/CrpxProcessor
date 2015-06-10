@@ -12,6 +12,9 @@ import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.search.JobXq;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.xmltools.XmlForest;
+import nl.ru.xmltools.XmlForestFoliaIndex;
+import nl.ru.xmltools.XmlForestPsdxIndex;
+import nl.ru.xmltools.XmlForestPsdxLine;
 import nl.ru.xmltools.XmlNode;
 
 /**
@@ -49,10 +52,40 @@ public class CrpFile {
       // Create a new document builder
       oSaxDoc = objSaxon.newDocumentBuilder();
       // Create a new xml-processor type
-            // Set the XmlForest element correctly
-      this.objProcType = new XmlForest(this.crpThis, jobCaller, this.errHandle);
-      // Make sure 
-      this.objProcType.setProcType(XmlForest.ForType.PsdxPerForest);
+      // Set the XmlForest element correctly
+      switch (this.crpThis.getForType()) {
+        case PsdxWholeFile:
+        case PsdxPerForest:
+        case PsdxPerForgrp:
+          // Create an XmlForest object
+          this.objProcType = new XmlForestPsdxLine(this.crpThis, jobCaller, this.errHandle); 
+          // Set the project type correctly
+          this.objProcType.setProcType(XmlForest.ForType.PsdxPerForest);
+          break;
+        case PsdxIndex:
+          // Create an XmlForest object
+          this.objProcType = new XmlForestPsdxIndex(this.crpThis, jobCaller, this.errHandle); 
+          // Set the project type correctly
+          this.objProcType.setProcType(XmlForest.ForType.PsdxIndex);
+          break;
+        case FoliaWholeFile:
+        case FoliaPerS:
+        case FoliaPerPara:
+        case FoliaPerDiv:
+        case FoliaIndex:
+          // Create an XmlForest object
+          this.objProcType = new XmlForestFoliaIndex(this.crpThis, jobCaller, this.errHandle); 
+          // Set the project type correctly
+          this.objProcType.setProcType(XmlForest.ForType.FoliaIndex);
+          break;
+        default:
+          // Create an XmlForest object
+          this.objProcType = new XmlForestPsdxIndex(this.crpThis, jobCaller, this.errHandle);
+          // Set the project type correctly
+          this.objProcType.setProcType(XmlForest.ForType.PsdxPerForest);
+          break;
+          
+      }
       // Set my unique identifier
       id++;
     } catch (Exception ex) {

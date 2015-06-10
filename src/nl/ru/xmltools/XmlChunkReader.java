@@ -16,7 +16,11 @@ import java.util.regex.Pattern;
 import org.apache.log4j.Logger;
 
 /**
- *
+ * XmlChunkReader - read xml files in chunks determined by (unique) starting and
+ *                  closing chunks
+ * E.g: <forest .. > ... </forest>
+ *      <teiHeader>  ... </teiHeader>
+ * 
  * @author Erwin R. Komen
  */
 public class XmlChunkReader {

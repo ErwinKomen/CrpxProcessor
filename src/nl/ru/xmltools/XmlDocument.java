@@ -91,10 +91,13 @@ public class XmlDocument {
       // Find the node
       XdmItem ndResult = oSelector.evaluateSingle();
       // Check what kind of item we have: atomic value or node
-      if (ndResult.isAtomicValue()) {
+      if (ndResult != null && ndResult.isAtomicValue()) {
         // The result is an atomic value, but we were expecting a node
         ndResult = null;
       } 
+      if (ndResult == null) {
+        return null;
+      }
       // Create an XmlNode with the result
       XmlNode ndBack = new XmlNode((XdmNode) ndResult, oProc);
       return ndBack;

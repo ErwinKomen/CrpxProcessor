@@ -21,12 +21,14 @@ import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.parsers.*;
 import javax.xml.xpath.*;
 import net.sf.saxon.s9api.Processor;
+import net.sf.saxon.s9api.QName;
 import nl.ru.crpx.search.Job;
 import nl.ru.crpx.search.SearchManager;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.crpx.tools.General;
 import nl.ru.util.FileUtil;
 import nl.ru.util.json.JSONObject;
+import nl.ru.xmltools.XmlForest.ForType;
 import static nl.ru.xmltools.XmlIO.WriteXml;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
@@ -87,6 +89,7 @@ public class CorpusResearchProject {
   private boolean bShowPsd = true;  // The PSD syntax needs to be shown in the results
   private int PrecNum = 2;          // Number of preceding lines
   private int FollNum = 1;          // Number of following lines
+  private ForType forProcType;      // The kind of processing type
   private XMLGregorianCalendar dtCreated; // Creation date of this project
   private XMLGregorianCalendar dtChanged; // Last change of this project
   private Document docProject;            // Project as XML document
@@ -124,6 +127,8 @@ public class CorpusResearchProject {
     this.flProject = null;
     // Set default project type
     this.intProjType = ProjType.ProjPsdx;
+    // Set default forest-processing type for this kind of project
+    this.forProcType = ForType.PsdxPerForest;
     // Create a processor that is NOT schema-aware (so we use Saxon-B 9.1.0.8)
     if (objSaxon == null) objSaxon = new Processor(false);
   }
@@ -181,16 +186,48 @@ public class CorpusResearchProject {
       // Determine the names of nodes available globally
       switch (this.intProjType) {
         case ProjPsdx:
-          sNodeNameSnt = "forest"; sNodeNamePrg=""; sNodeNameWrd="eLeaf"; sNodeNameCns = "eTree"; break;
+          sNodeNameSnt = "forest"; sNodeNamePrg=""; sNodeNameWrd="eLeaf"; sNodeNameCns = "eTree"; 
+          //  Original: this.forProcType = ForType.PsdxPerForest;
+          this.forProcType = ForType.PsdxIndex;
+          break;
         case ProjFolia:
-          sNodeNameSnt = "s"; sNodeNamePrg="p"; sNodeNameWrd="w"; sNodeNameCns = "su"; break;
+          sNodeNameSnt = "s"; sNodeNamePrg="p"; sNodeNameWrd="w"; sNodeNameCns = "su"; 
+          this.forProcType = ForType.FoliaIndex;
+          break;
         case ProjNegra:
-          sNodeNameSnt = "s"; sNodeNamePrg=""; sNodeNameWrd="t"; sNodeNameCns = ""; break;
+          sNodeNameSnt = "s"; sNodeNamePrg=""; sNodeNameWrd="t"; sNodeNameCns = ""; 
+          // TODO: adapt when implementing Negra
+          this.forProcType = ForType.NegraPerS;
+          break;
         case ProjAlp:
-          sNodeNameSnt = "node"; sNodeNamePrg=""; sNodeNameWrd="node"; sNodeNameCns = "node"; break;
+          sNodeNameSnt = "node"; sNodeNamePrg=""; sNodeNameWrd="node"; sNodeNameCns = "node"; 
+          // TODO: adapt when implementing Alpino
+          this.forProcType = ForType.AlpPerS;
+          break;
         case ProjPsd:
-          sNodeNameSnt = ""; sNodeNamePrg=""; sNodeNameWrd=""; sNodeNameCns = ""; break;
+          // This should actually not be implemented??
+          sNodeNameSnt = ""; sNodeNamePrg=""; sNodeNameWrd=""; sNodeNameCns = ""; 
+          // TODO: adapt when implementing PSD treebank processing
+          this.forProcType = ForType.PsdPerS;
+          break;
+        default:  // Default behaviour may need to be restored to an ERROR message?
+          // For now: default is Psdx and PsdxPerForest
+          sNodeNameSnt = "forest"; sNodeNamePrg=""; sNodeNameWrd="eLeaf"; sNodeNameCns = "eTree"; 
+          this.forProcType = ForType.PsdxPerForest;
+          break;
+      }
+      // Double check on the forest-processing-type
+      switch (getSetting("ForType")) {
+        case "PsdxPerForest": this.forProcType = ForType.PsdxPerForest; break;
+        case "PsdxPerForgrp": this.forProcType = ForType.PsdxPerForgrp; break;
+        case "PsdxWholeFile": this.forProcType = ForType.PsdxWholeFile; break;
+        case "FoliaPerDiv": this.forProcType = ForType.FoliaPerDiv; break;
+        case "FoliaPerPara": this.forProcType = ForType.FoliaPerPara; break;
+        case "FoliaPerS": this.forProcType = ForType.FoliaPerS; break;
+        case "FoliaWholeFile": this.forProcType = ForType.FoliaWholeFile; break;
         default:
+          // No need to do anything for the default
+          break;
       }
 
       // Calculate bXmlData
@@ -419,6 +456,9 @@ public class CorpusResearchProject {
   // Set string values
   public void setLocation(String sValue) { this.Location = sValue;}
   public void setProjectType(String sValue) { this.ProjectType = sValue;}
+  // Forest (processing) type handling
+  public ForType getForType() { return this.forProcType; }
+  public void setForType(ForType ftNew) { this.forProcType = ftNew; }
   // Set string values and do that in the XML too
   public void setName(String sValue) { if (setSetting("Name", sValue)) { this.Name = sValue;}}
   public void setSource(String sValue) { if (setSetting("Source", sValue)) { this.Source = sValue;}}
@@ -478,6 +518,93 @@ public class CorpusResearchProject {
   public void setPrjTypeManager(PrjTypeManager oThis) { this.prjTypeManager = oThis;}
   public Execute getExe() { return this.objEx; }
   public Processor getSaxProc() { return this.objSaxon; }
+  // =================== Text extension ========================================
+  public String getTextExt() {
+    switch (this.intProjType) {
+      case ProjPsdx: return ".psdx";
+      case ProjNegra: return ".negra";
+      case ProjPsd: return ".psd";
+      case ProjFolia: return ".folia.xml";
+      case ProjAlp: return ".xml";
+    }
+    // Unidentified project
+    return ".xml";
+  }
+  public String getTagPara() {
+    switch (this.intProjType) {
+      case ProjPsdx: return "@Para";
+      case ProjNegra: return "";
+      case ProjPsd: return "";
+      case ProjFolia: return "p";
+      case ProjAlp: return "";
+    }
+    // Unidentified project
+    return ".xml";
+  }
+  public String getTagHeader() {
+    switch (this.intProjType) {
+      case ProjPsdx: return "teiHeader";
+      case ProjNegra: return "teiHeader";
+      case ProjPsd: return "";
+      case ProjFolia: return "metadata";
+      case ProjAlp: return "";
+    }
+    // Unidentified project
+    return ".xml";
+  }
+  public String getTagLine() {
+    switch (this.intProjType) {
+      case ProjPsdx: return "forest";
+      case ProjNegra: return "s";
+      case ProjPsd: return "";
+      case ProjFolia: return "s";
+      case ProjAlp: return "node";
+    }
+    // Unidentified project
+    return ".xml";
+  }
+  public String getNodeLine() {
+    switch (this.intProjType) {
+      case ProjPsdx: return "./descendant-or-self::forest[1]";
+      case ProjNegra: return "./descendant-or-self::s[1]";
+      case ProjPsd: return "";
+      case ProjFolia: return "./descendant-or-self::s[1]";
+      case ProjAlp: return "./descendant-or-self::node[1]";
+      default: return "";
+    }
+  }
+  public String getNodeLast() {
+    switch (this.intProjType) {
+      case ProjPsdx: return "./descendant::eTree[last()]";
+      case ProjNegra: return "./descendant::su[last()]";
+      case ProjPsd: return "";
+      case ProjFolia: return "./descendant::su[last()]";
+      case ProjAlp: return "./descendant::node[last()]";
+      default: return "";
+    }
+  }
+  public QName getAttrLineId() {
+    switch(this.intProjType ) {
+      case ProjPsdx: return new QName("", "", "forestId");
+      case ProjFolia: return new QName("xml", "", "id");
+      case ProjNegra: return new QName("", "", "");
+      case ProjAlp: return new QName("", "", "");
+      case ProjPsd: return new QName("", "", "");
+      default: return new QName("", "", "id");
+    }
+  }
+  public QName getAttrConstId() {
+    switch(this.intProjType ) {
+      case ProjPsdx: return new QName("", "", "Id");
+      case ProjFolia: return new QName("xml", "", "id");
+      case ProjNegra: return new QName("", "", "");
+      case ProjAlp: return new QName("", "", "");
+      case ProjPsd: return new QName("", "", "");
+      default: return new QName("", "", "id");
+    }
+  }
+
+
   // =================== Compatibility with .NET: get 'table' ==================
   public List<JSONObject> getTable(String sName) {
     switch(sName) {

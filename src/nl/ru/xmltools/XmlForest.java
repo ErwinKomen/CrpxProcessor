@@ -33,11 +33,11 @@ import org.xml.sax.SAXException;
  *
  * @author Erwin R. Komen
  */
-public class XmlForest {
+public abstract class XmlForest {
   // This class uses a logger
-  private final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(XmlForest.class);
+  protected final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(XmlForest.class);
 // <editor-fold defaultstate="collapsed" desc="Header">
-  private final  class Context {
+  protected final  class Context {
     public String Seg;    // Text of this line
     public String TxtId;  // TextId of this line
     public String Loc;    // Location for this line
@@ -47,10 +47,18 @@ public class XmlForest {
     PsdxWholeFile(1),   // Each file in one go
     PsdxPerForest(2),   // Each <forest> element
     PsdxPerForgrp(3),   // Each <forestGrp> element
+    PsdxIndex(4),       // Random-access PSDX through indexing
     FoliaWholeFile(10), // Each file in one go
     FoliaPerDiv(11),    // Each <div> element
     FoliaPerPara(12),   // Each <p> element
-    FoliaPerS(13);      // Each <s> element
+    FoliaPerS(13),      // Each <s> element
+    FoliaIndex(14),     // Random-access FoLiA through indexing
+    AlpWholeFile(20),   // Alpino: whole file
+    AlpPerS(21),        // Alpino: per sentence
+    NegraWholeFile(30), // Negra: whole file
+    NegraPerS(31),      // Negra: per sentence
+    PsdWholeFile(40),   // Treebank: whole file
+    PsdPerS(41);        // Treebank: per sentence
 
     private int intValue;
     private static java.util.HashMap<Integer, ForType> mappings;
@@ -77,31 +85,30 @@ public class XmlForest {
   }
 // </editor-fold>
   // ========================================== Constants ======================
-  private static final QName loc_xq_forestId = new QName("", "", "forestId");  
-  private static final QName loc_xq_Location = new QName("", "", "Location");  
-  private static final QName loc_xq_TextId = new QName("", "", "TextId");  
-  private static final String loc_path_Forest = "./descendant-or-self::forest[1]";
-  private static final String loc_path_TeiHeader = "./descendant-or-self::teiHeader[1]";
+  protected static final QName loc_xq_forestId = new QName("", "", "forestId");  
+  protected static final QName loc_xq_Location = new QName("", "", "Location");  
+  protected static final QName loc_xq_TextId = new QName("", "", "TextId");  
+  protected static final String loc_path_Forest = "./descendant-or-self::forest[1]";
+  protected static final String loc_path_TeiHeader = "./descendant-or-self::teiHeader[1]";
   // ========================================== LOCAL VARIABLE ================================================
-  private String loc_strCurrent = "";   // XML code of current forest
-  private String loc_strCombi = "";     // Combined XML context, from where current node is taken
-  private int loc_intCurrent;           // Position of current node within [loc_arContext]
-  private List<String> loc_colStack;    // Stack for the context
-  private List<String> loc_colCombi;    // Where we combine the context
-  private XmlDocument loc_pdxThis;      // Current one
-  private XmlDocument[] loc_arPrec;     // Preceding lines as Xml document
-  private XmlDocument[] loc_arFoll;     // Following lines as Xml document
-  private Context[] loc_arPrecCnt;      // Preceding context
-  private Context[] loc_arFollCnt;      // Following context
-  private Context loc_cntThis;          // Current context
-  private XmlChunkReader loc_xrdFile;   // Local copy of XML chunk reader
-  private ForType loc_Type;             // The type of treatment expected
-  private ErrHandle objErr;               // Local access to the general object with global variables
-  private JobXq objJob;                   // Access to the job that is being executed
-  private CorpusResearchProject crpThis;  // The corpus research project for which I am created
-  private Parse objParse;                 // Object to use my own version of the "GetSeg()" function
-  private Processor objSaxon;             // Local access to the processor
-  private DocumentBuilder objSaxDoc;      // My own document-builder
+  protected String loc_strCurrent = "";   // XML code of current forest
+  protected String loc_strCombi = "";     // Combined XML context, from where current node is taken
+  protected int loc_intCurrent;           // Position of current node within [loc_arContext]
+  protected List<String> loc_colStack;    // Stack for the context
+  protected List<String> loc_colCombi;    // Where we combine the context
+  protected XmlDocument loc_pdxThis;      // Current one
+  protected XmlDocument[] loc_arPrec;     // Preceding lines as Xml document
+  protected XmlDocument[] loc_arFoll;     // Following lines as Xml document
+  protected Context[] loc_arPrecCnt;      // Preceding context
+  protected Context[] loc_arFollCnt;      // Following context
+  protected Context loc_cntThis;          // Current context
+  protected ForType loc_Type;             // The type of treatment expected
+  protected ErrHandle objErr;               // Local access to the general object with global variables
+  protected JobXq objJob;                   // Access to the job that is being executed
+  protected CorpusResearchProject crpThis;  // The corpus research project for which I am created
+  protected Parse objParse;                 // Object to use my own version of the "GetSeg()" function
+  protected Processor objSaxon;             // Local access to the processor
+  protected DocumentBuilder objSaxDoc;      // My own document-builder
   // private XmlReaderSettings loc_xrdSet; // Special arrangements for the reader --> already done in XmlDocument()
   // ==========================================================================================================
   // Class instantiation
@@ -126,7 +133,6 @@ public class XmlForest {
     }
   }
 // </editor-fold>
-// <editor-fold defaultstate="collapsed" desc="Main">
   // ----------------------------------------------------------------------------------------------------------
   // Name :  ProcType
   // Goal :  The type of procedure that needs to be used
@@ -138,6 +144,15 @@ public class XmlForest {
   public final void setProcType(int value) {loc_Type = ForType.forValue(value);  }
   public final void setProcType(ForType value) {loc_Type = value;  }
 
+  // Methods that are overridden by the classes that extend XmlForest:
+  public abstract boolean FirstForest(ByRef<XmlNode> ndxForest, ByRef<XmlNode> ndxHeader, String strFile);
+  public abstract boolean GetForestId(ByRef<XmlNode> ndxForest, ByRef<Integer> intForestId);
+  public abstract boolean NextForest(ByRef<XmlNode> ndxForest);
+  public abstract boolean IsEnd();
+  public abstract boolean Percentage(ByRef<Integer> intPtc);
+  public abstract String GetContext();
+// <editor-fold defaultstate="collapsed" desc="Main">
+  /*
   // ----------------------------------------------------------------------------------------------------------
   // Name :  FirstForest
   // Goal :  Load the first forest - depending on method 
@@ -145,7 +160,7 @@ public class XmlForest {
   // 14-04-2014  ERK Created
   // 23/apr/2015  ERK Adapted for Java
   // ----------------------------------------------------------------------------------------------------------
-  public final boolean FirstForest(ByRef<XmlNode> ndxForest, ByRef<XmlNode> ndxHeader, String strFile) {
+  public boolean FirstForest(ByRef<XmlNode> ndxForest, ByRef<XmlNode> ndxHeader, String strFile) {
     try {
       switch (loc_Type) {
         case FoliaPerDiv:
@@ -181,7 +196,7 @@ public class XmlForest {
   // 02-07-2011  ERK Created  for .NET
   // 13/may/2015 ERK Adapted for Java
   // ----------------------------------------------------------------------------------------------------------
-  public final boolean GetForestId(ByRef<XmlNode> ndxForest, ByRef<Integer> intForestId) {
+  public boolean GetForestId(ByRef<XmlNode> ndxForest, ByRef<Integer> intForestId) {
     String sAttr;   // Attribute value
     // Node attrThis;  // Room for one attribute
     
@@ -228,7 +243,7 @@ public class XmlForest {
   // History:
   // 14-04-2014  ERK Created
   // ----------------------------------------------------------------------------------------------------------
-  public final boolean NextForest(ByRef<XmlNode> ndxForest) {
+  public boolean NextForest(ByRef<XmlNode> ndxForest) {
     try {
       switch (loc_Type) {
         case FoliaPerDiv:
@@ -263,7 +278,7 @@ public class XmlForest {
   // History:
   // 14-04-2014  ERK Created
   // ----------------------------------------------------------------------------------------------------------
-  public final boolean IsEnd() {
+  public boolean IsEnd() {
     try {
       switch (loc_Type) {
         case FoliaPerDiv:
@@ -297,7 +312,7 @@ public class XmlForest {
   // History:
   // 14-04-2014  ERK Created
   // ----------------------------------------------------------------------------------------------------------
-  public final boolean Percentage(ByRef<Integer> intPtc) {
+  public boolean Percentage(ByRef<Integer> intPtc) {
     try {
       switch (loc_Type) {
         case FoliaPerDiv:
@@ -331,7 +346,7 @@ public class XmlForest {
   // History:
   // 08-04-2014  ERK Created
   // ----------------------------------------------------------------------------------------------------------
-  public final String GetContext() {
+  public String GetContext() {
     try {
       switch (loc_Type) {
         case FoliaPerDiv:
@@ -357,9 +372,13 @@ public class XmlForest {
       // Return failure
       return "";
     }
+
   }
+    */
+
 // </editor-fold>
 // <editor-fold defaultstate="collapsed" desc="PsdxPerForest">
+  /* ================ Taken over by all who "extend" me =====================
   // ----------------------------------------------------------------------------------------------------------
   // Name :  PsdxPerForest_FirstForest
   // Goal :  Load the first forest using an XmlReader 
@@ -717,10 +736,12 @@ public class XmlForest {
       return "";
     }
   }
+  ========================= */
 //VB TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
 ///#End Region
 // </editor-fold>
 // <editor-fold defaultstate="collapsed" desc="PsdxPerFile">
+  /* ====================== Taken over by all who extend me ====================
   // ----------------------------------------------------------------------------------------------------------
   // Name :  PsdxPerFile_FirstForest
   // Goal :  Load the first forest using an XmlReader 
@@ -1025,6 +1046,7 @@ public class XmlForest {
   private boolean StreamIsEnd() {
     return (loc_xrdFile.EOF && objJob.intFollNum == 0 || loc_arFoll[0] == null);
   }  
+  ======================================== */
 // </editor-fold>
 
 }
