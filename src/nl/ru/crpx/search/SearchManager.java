@@ -15,6 +15,7 @@ import nl.ru.crpx.dataobject.DataObjectMapElement;
 import nl.ru.crpx.dataobject.DataObjectString;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.project.ExecutePsdxStream;
+import nl.ru.crpx.tools.General;
 import nl.ru.util.JsonUtil;
 import nl.ru.util.MemoryUtil;
 import nl.ru.util.json.JSONArray;
@@ -275,17 +276,18 @@ public class SearchManager {
    * @param objPrj
    * @param userId
    * @param par
+   * @param bCache  - true: allow caching; false: prevent caching
    * @return result of the search job
    * @throws QueryException
    * @throws InterruptedException 
    */
-  public JobXq searchXq(CorpusResearchProject objPrj, String userId, SearchParameters par)
+  public JobXq searchXq(CorpusResearchProject objPrj, String userId, SearchParameters par, boolean bCache)
             throws QueryException, InterruptedException {
     // Only copy the query parameter
     SearchParameters parBasic = par.copyWithOnly("query");
     // Set the correct jobclass
     parBasic.put("jobclass", "JobXq");
-    return (JobXq) search(objPrj, userId, parBasic, null);
+    return (JobXq) search(objPrj, userId, parBasic, null, bCache);
   }
   
   /** 
@@ -310,7 +312,7 @@ public class SearchManager {
     parBasic.put("crpfileid", par.getString("crpfileid"));
     // Set the correct jobclass
     parBasic.put("jobclass", "JobXqF");
-    return (JobXqF) search(objPrj, userId, parBasic, myParent);
+    return (JobXqF) search(objPrj, userId, parBasic, myParent, true);
   }
 
   /**
@@ -355,7 +357,7 @@ public class SearchManager {
    *             if the search thread was interrupted
    */
   private Job search(CorpusResearchProject objPrj, String userId, SearchParameters searchParameters, 
-          Job jobParent)
+          Job jobParent, boolean bCache)
             throws QueryException, InterruptedException {
     // Search the cache / running jobs for this search, create new if not
     // found.
@@ -370,7 +372,10 @@ public class SearchManager {
       // Check if we may re-use a previous query
       if (search != null) {
         // Check the status of this job
-        if (search.finished() && search.jobStatus.equals("error")) {
+        if (search.finished() && (search.jobStatus.equals("error") || !bCache)) {
+          // Show what we are doing
+          String sReason = (bCache) ? " due to error" : " due to [no-cache]";
+          logger.debug("searchManager removing job #" + search.getJobId() + sReason);
           // Now we must remove this job from the cache
           cache.removeOneSearch(search);
           search = null;

@@ -37,7 +37,7 @@ public class RequestHandlerExecute extends RequestHandler {
       // Create a job for this query
       Job search;
       // Initiate the search
-      search = searchMan.searchXq(prjThis, userId, searchParam);
+      search = searchMan.searchXq(prjThis, userId, searchParam, true);
       // Get the @id of the job that has been created
       String sThisJobId = search.getJobId();
       String sNow = Job.getCurrentTimeStamp();
