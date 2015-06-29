@@ -210,6 +210,7 @@ public class ExecutePsdxStream extends ExecuteXml {
   private DataObject getResultsTable(JSONArray arLines) {
     List<String> arSub = new ArrayList<>();   // each sub-category gets an entry here
     List<String> arFile = new ArrayList<>();  // List of files
+    List<Integer> arSubCount = new ArrayList<>(); // each sub-category gets a count total here
     JSONObject arJsonRes[];                   // Object "hits" of the current QC line
     JSONObject arJsonSub[];                   // Object "sub" of the current QC line
     DataObjectList arCombi = new DataObjectList("QCline");
@@ -245,14 +246,20 @@ public class ExecutePsdxStream extends ExecuteXml {
             if (!arSub.contains(sField)) arSub.add(sField);
           }
         }
+        // Get access to information on this QC item
+        JSONObject oQcThis = this.crpThis.getListQCitem(iQC);
+        // Reset the array that contains the counts for each sub-category
+        arSubCount.clear();
+        for (int i=0;i<arSub.size(); i++ ) {arSubCount.add(0);}
         // We now have three arrays containing one entry for each processed file
         // (1) arFile     file name
         // (2) arJsonRes  object "hits" = { "sub":..., "count": ..., "qc": ...}
         // (3) arJsonSub  object "sub"  = key/value object of sub-category/counts
         // Re-combine the results for this QC line
         DataObjectMapElement dmOneQc = new DataObjectMapElement();
-        // The dataobject for one QC line contains: "hits", "subcats" and "qc"
+        // The dataobject for one QC line contains: "hits", "subcats", "counts" and "qc"
         dmOneQc.put("qc", iQC+1);
+        dmOneQc.put("result", oQcThis.getString("Result"));
         // Create and add the array of sub-categories
         DataObjectList aSubNames = new DataObjectList("subcat");
         // Add the name of each "sub" category
@@ -260,6 +267,7 @@ public class ExecutePsdxStream extends ExecuteXml {
         dmOneQc.put("subcats", aSubNames);
         // Calculate and create an array of "hit" elements
         DataObjectList aHits = new DataObjectList("hit");
+        int iTotal = 0;
         // Each "hit" object consists of: {"sub": ..., "count": ..., "file": ...}
         for (int i=0;i<arLines.length(); i++) {
           // Create a hit element for each line
@@ -267,6 +275,8 @@ public class ExecutePsdxStream extends ExecuteXml {
           // Add the "count" and the "file" parameters
           oResThis.put("file", arFile.get(i));
           oResThis.put("count", arJsonRes[i].getInt("count"));
+          // Also keep track of overall total
+          iTotal += arJsonRes[i].getInt("count");
           // Get fields and values for each "sub" category
           DataObjectList aResSub = new DataObjectList("sub");
           for (int j=0; j< arSub.size(); j++) {
@@ -276,12 +286,20 @@ public class ExecutePsdxStream extends ExecuteXml {
               iCount = arJsonSub[i].getInt(arSub.get(j));
             } 
             aResSub.add(iCount);
+            // Add this to the overall counting for sub-categories
+            arSubCount.set(j, arSubCount.get(j) + iCount);
           }
           // Add the array of sub-cat counts
           oResThis.put("subs", aResSub);
           // Add the results to the "hit" list
           aHits.add(oResThis);
         }
+        // Create the sub-totals
+        DataObjectList aSubCount = new DataObjectList("count");
+        for (int i=0;i<arSub.size(); i++) {aSubCount.add(arSubCount.get(i)); }
+        // Add the array of subcat-totals
+        dmOneQc.put("counts", aSubCount);
+        dmOneQc.put("total", iTotal);
         // Add the array of "hit" elements
         dmOneQc.put("hits", aHits);
         // Add this QC object to the list
