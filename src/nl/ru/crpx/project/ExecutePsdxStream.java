@@ -9,6 +9,7 @@
 package nl.ru.crpx.project;
 
 import java.io.File;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import net.sf.saxon.s9api.QName;
@@ -720,7 +721,8 @@ public class ExecutePsdxStream extends ExecuteXml {
       // Original handling: keep the results available in the XqF job
       //   jobCaller.setJobResult(oHitInfo.toString());
       // New handling: store the results in a separate file
-      String sDir = this.crpThis.getDstDir() + "/hits";
+      // N.B: the path to this file must contain the project's name
+      String sDir = this.crpThis.getHitsDir();
       File fResultDir = new File(sDir);
       if (!fResultDir.exists()) {
         fResultDir.mkdir();

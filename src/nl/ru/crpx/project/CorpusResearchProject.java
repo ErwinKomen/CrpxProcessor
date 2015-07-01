@@ -11,6 +11,7 @@ package nl.ru.crpx.project;
 // The external libraries that I need
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -518,6 +519,13 @@ public class CorpusResearchProject {
   public void setPrjTypeManager(PrjTypeManager oThis) { this.prjTypeManager = oThis;}
   public Execute getExe() { return this.objEx; }
   public Processor getSaxProc() { return this.objSaxon; }
+  public String getHitsDir() {
+    // Calculate the directory where the .hits files are to be located for this project
+    String sProjectFileName = Paths.get(this.getLocation()).getFileName().toString();
+    sProjectFileName = sProjectFileName.substring(0, sProjectFileName.lastIndexOf("."));
+    String sDir = this.getDstDir() + "/"+ sProjectFileName + "/hits";
+    return sDir;
+  }
   // =================== Text extension ========================================
   public String getTextExt() {
     switch (this.intProjType) {
