@@ -28,6 +28,7 @@ import java.util.regex.Pattern;
  * Een collectie reguliere expressies om verschillende patronen uit Strings te filteren.
  */
 public class StringUtil {
+  public static final int INDEX_NOT_FOUND = -1;
 	/** String containing nbsp character (decimal 160 = hex A0) */
 	public static final String STR_NON_BREAKING_SPACE = "\u00A0";
 
@@ -96,7 +97,93 @@ public class StringUtil {
 	public static String convertNbspToSpace(String string) {
 		return PATT_NON_BREAKING_SPACE.matcher(string).replaceAll(" ");
 	}
+  
+  // Count matches
+  //-----------------------------------------------------------------------
+  /**
+   * <p>Counts how many times the substring appears in the larger string.</p>
+   *
+    * <p>A {@code null} or empty ("") String input returns {@code 0}.</p>
+    *
+    * <pre>
+    * StringUtils.countMatches(null, *)       = 0
+    * StringUtils.countMatches("", *)         = 0
+    * StringUtils.countMatches("abba", null)  = 0
+    * StringUtils.countMatches("abba", "")    = 0
+    * StringUtils.countMatches("abba", "a")   = 2
+    * StringUtils.countMatches("abba", "ab")  = 1
+    * StringUtils.countMatches("abba", "xxx") = 0
+    * </pre>
+    *
+    * @param str  the CharSequence to check, may be null
+    * @param sub  the substring to count, may be null
+    * @return the number of occurrences, 0 if either CharSequence is {@code null}
+    * @since 3.0 Changed signature from countMatches(String, String) to countMatches(CharSequence, CharSequence)
+    */
+   public static int countMatches(final CharSequence str, final CharSequence sub) {
+       if (isEmpty(str) || isEmpty(sub)) {
+           return 0;
+       }
+       int count = 0;
+       int idx = 0;
+       while ((idx = CharSequenceUtils.indexOf(str, sub, idx)) != INDEX_NOT_FOUND) {
+           count++;
+           idx += sub.length();
+       }
+       return count;
+   }
 
+   /**
+    * <p>Counts how many times the char appears in the given string.</p>
+    *
+    * <p>A {@code null} or empty ("") String input returns {@code 0}.</p>
+    *
+    * <pre>
+    * StringUtils.countMatches(null, *)       = 0
+    * StringUtils.countMatches("", *)         = 0
+    * StringUtils.countMatches("abba", 0)  = 0
+    * StringUtils.countMatches("abba", 'a')   = 2
+    * StringUtils.countMatches("abba", 'b')  = 2
+    * StringUtils.countMatches("abba", 'x') = 0
+    * </pre>
+    *
+    * @param str  the CharSequence to check, may be null
+    * @param ch  the char to count
+    * @return the number of occurrences, 0 if the CharSequence is {@code null}
+    */
+  public static int countMatches(final CharSequence str, final char ch) {
+      if (isEmpty(str)) {
+          return 0;
+      }
+      int count = 0;
+      // We could also call str.toCharArray() for faster look ups but that would generate more garbage.
+      for (int i = 0; i < str.length(); i++) {
+          if (ch == str.charAt(i)) {
+              count++;
+          }
+      }
+      return count;
+  }
+  
+  /**
+  * <p>Checks if a CharSequence is empty ("") or null.</p>
+  *
+  * <pre>
+  * StringUtils.isEmpty(null)      = true
+  * StringUtils.isEmpty("")        = true
+  * StringUtils.isEmpty(" ")       = false
+  * StringUtils.isEmpty("bob")     = false
+  * StringUtils.isEmpty("  bob  ") = false
+  * </pre>
+  *
+  *
+  * @param cs  the CharSequence to check, may be null
+  * @return {@code true} if the CharSequence is empty or null
+  */
+  public static boolean isEmpty(final CharSequence cs) {
+    return cs == null || cs.length() == 0;
+  }
+   
 	/**
 	 * Abbreviates a string for display if necessary.
 	 *

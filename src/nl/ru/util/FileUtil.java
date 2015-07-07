@@ -508,6 +508,12 @@ public class FileUtil {
       // Perform normalization
       pThis = Paths.get(sName);
       pThis = pThis.normalize();
+      // Determine file-separator
+      if (pThis.toString().contains("/"))
+        fs = "/";
+      else
+        fs = "\\";
+      
       /* ======== OBSOLETE ====
       lThis = LinkOption.NOFOLLOW_LINKS; 
          ======================  */
@@ -515,13 +521,21 @@ public class FileUtil {
       File fFile = pThis.toFile();
       // Check if the path exists
       if (!fFile.exists()) {
+        String[] arDir;
         // This particular file/directory is not found: attempt dir-by-dir
-        String[] arDir = fFile.toString().split("/");
+        if (fs.equals("\\"))
+          arDir = fFile.toString().replace("\\", "/").split("/");
+        else
+          arDir = fFile.toString().split(fs);
         String sTmpPath = "";
+        // Action depends on what is inside arDir[0]
+        if (arDir[0].endsWith(":")) sTmpPath += arDir[0];
         // Walk the whole directory structure part-for-part
         for (int i=1; i< arDir.length; i++) {
           // Check if this exists
-          File fNew = new File(sTmpPath + "/" + arDir[i]);
+          File fNew = new File(sTmpPath + fs + arDir[i]);
+          // Adapt
+          fNew = Paths.get(fNew.toString()).normalize().toFile();
           if (!fNew.exists()) {
             // Look for a variant 
             File fOld = new File(sTmpPath);
