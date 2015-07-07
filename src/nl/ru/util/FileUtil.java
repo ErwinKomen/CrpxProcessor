@@ -160,11 +160,11 @@ public class FileUtil {
    * @return read interface into the file
    */
   public static BufferedReader openForReading(File file, String encoding) {
-          try {
-                  return new BufferedReader(new InputStreamReader(new FileInputStream(file), encoding));
-          } catch (Exception e) {
-                  throw new RuntimeException(e);
-          }
+    try {
+      return new BufferedReader(new InputStreamReader(new FileInputStream(file), encoding));
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
   
   /**
