@@ -246,7 +246,7 @@ public class CrpxProcessor {
 
     try {
       // Create room for the project
-      CorpusResearchProject prjThis = new CorpusResearchProject();
+      CorpusResearchProject prjThis = new CorpusResearchProject(true);
       // Initialize directories
       sInputDir = (dirInput == null) ? "" : dirInput.getAbsolutePath();
       sOutputDir = (dirOutput == null) ? "" : dirOutput.getAbsolutePath();

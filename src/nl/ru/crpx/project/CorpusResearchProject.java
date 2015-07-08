@@ -12,9 +12,12 @@ package nl.ru.crpx.project;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +49,8 @@ import org.xml.sax.SAXException;
 public class CorpusResearchProject {
   // This class uses a logger
   private static final Logger logger = Logger.getLogger(CorpusResearchProject.class);
+  // private static String sGregorianFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSSXXX";
+  private static String sGregorianFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS";
   // ================== Enumerations in use ==================================
   public enum ProjType {
     ProjPsd, ProjPsdx, ProjNegra, ProjAlp, ProjFolia, None;
@@ -91,8 +96,8 @@ public class CorpusResearchProject {
   private int PrecNum = 2;          // Number of preceding lines
   private int FollNum = 1;          // Number of following lines
   private ForType forProcType;      // The kind of processing type
-  private XMLGregorianCalendar dtCreated; // Creation date of this project
-  private XMLGregorianCalendar dtChanged; // Last change of this project
+  private Date dtCreated;           // Creation date of this project
+  private Date dtChanged;           // Last change of this project
   private Document docProject;            // Project as XML document
   private DocumentBuilderFactory factory;
   private DocumentBuilder parser;
@@ -111,7 +116,7 @@ public class CorpusResearchProject {
   List<JSONObject> lPeriodInfo = new ArrayList<>();
 
   // ==================== Class initialisations ================================
-  public CorpusResearchProject() {
+  public CorpusResearchProject(boolean bUseSaxon) {
     // Set error handler
     errHandle = new ErrHandle(CorpusResearchProject.class);
     // Other class-level initialisations
@@ -130,8 +135,11 @@ public class CorpusResearchProject {
     this.intProjType = ProjType.ProjPsdx;
     // Set default forest-processing type for this kind of project
     this.forProcType = ForType.PsdxPerForest;
-    // Create a processor that is NOT schema-aware (so we use Saxon-B 9.1.0.8)
-    if (objSaxon == null) objSaxon = new Processor(false);
+    // Should we initialize saxon?
+    if (bUseSaxon) {
+      // Create a processor that is NOT schema-aware (so we use Saxon-B 9.1.0.8)
+      if (objSaxon == null) objSaxon = new Processor(false);
+    }
   }
   
   // =================== instance methods ======================================
@@ -184,6 +192,9 @@ public class CorpusResearchProject {
       this.Author = getSetting("Author");
       this.ProjectType = getSetting("ProjectType");
       this.intProjType = ProjType.getType(this.ProjectType);
+      // Load the dates
+      this.dtChanged = stringToDate(getDateSetting("Changed"));
+      this.dtCreated = stringToDate(getDateSetting("Created"));
       // Determine the names of nodes available globally
       switch (this.intProjType) {
         case ProjPsdx:
@@ -493,10 +504,10 @@ public class CorpusResearchProject {
   public void setPrecNum(int iValue) {if (setSetting("PrecNum", String.valueOf(iValue))) {this.PrecNum = iValue;}}
   public void setFollNum(int iValue) {if (setSetting("FollNum", String.valueOf(iValue))) {this.FollNum = iValue;}}
   // ================ Date/Time values
-  public XMLGregorianCalendar getDateChanged() {return this.dtChanged;}
-  public XMLGregorianCalendar getDateCreated() {return this.dtCreated;}
-  public void setPrecNum(XMLGregorianCalendar dValue) {if (setSetting("DateChanged", String.valueOf(dValue))) {this.dtChanged = dValue;}}
-  public void setFollNum(XMLGregorianCalendar dValue) {if (setSetting("DateCreated", String.valueOf(dValue))) {this.dtCreated = dValue;}}
+  public Date getDateChanged() {return this.dtChanged;}
+  public Date getDateCreated() {return this.dtCreated;}
+  public void setDateChanged(Date dValue) {if (setDateSetting("Changed", String.valueOf(dValue))) {this.dtChanged = dValue;}}
+  public void setDateCreated(Date dValue) {if (setDateSetting("Created", String.valueOf(dValue))) {this.dtCreated = dValue;}}
   // ================ Query Constructor elements
   public int getListQCsize() { return lQueryConstructor.size(); }
   public List<JSONObject> getListQC() { return lQueryConstructor;}
@@ -657,10 +668,48 @@ public class CorpusResearchProject {
     // Return positively
     return true;
   }
+  private String getDateSetting(String sName) {
+    String strValue = ""; // Default value
+    Date dtThis;
+    
+    try {
+      String sExp = "./descendant::Date"+sName;
+      Node ndxThis = (Node) xpath.compile(sExp).evaluate(this.docProject, XPathConstants.NODE);
+      if (ndxThis == null) return "";
+      // Get the value of the node
+      strValue = ndxThis.getTextContent();
+    } catch (XPathExpressionException ex) {
+      logger.error("Problem with getDateSetting [" + sName + "]", ex);
+    }
+    // Return the result
+    return strValue;
+  }
+  private boolean setDateSetting(String sName, String sValue) {
+    
+    try {
+      String sExp = "./descendant::Date"+sName;
+      Node ndxThis = (Node) xpath.compile(sExp).evaluate(this.docProject, XPathConstants.NODE);
+      ndxThis.setTextContent(sValue);
+    } catch (XPathExpressionException ex) {
+      logger.error("Problem with setDateSetting [" + sName + "]", ex);
+    }
+    // Return positively
+    return true;
+  }
 
-
-
-
+  public Date stringToDate(String s) throws ParseException {
+    // Create the correct format of what we are expecting
+    SimpleDateFormat simpleDateFormat = new SimpleDateFormat(sGregorianFormat);
+   // Parse string to date
+   return simpleDateFormat.parse(s);       
+  }
+  public String dateToString(Date dtThis) {
+    // Create the format
+    SimpleDateFormat simpleDateFormat = new SimpleDateFormat(sGregorianFormat);
+    return simpleDateFormat.format(dtThis);
+  }
+  
+ 
   /* ---------------------------------------------------------------------------
    Name:    doSort
    Goal:    Sort the JSONObject ArrayList @sList on @sField

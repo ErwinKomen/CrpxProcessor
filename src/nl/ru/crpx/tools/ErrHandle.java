@@ -18,7 +18,8 @@ import org.apache.log4j.Logger;
  * @author Erwin R. Komen
  */
 public class ErrHandle {
-  protected static final Logger logger = Logger.getLogger(ErrHandle.class);
+  // protected static final Logger logger = Logger.getLogger(ErrHandle.class);
+  protected final Logger logger ;
   // ============== Variables associated with the *class* "ErrHandle" ==========
   private List<JSONObject> lErrStack;
   private Class clsDefault;
@@ -29,6 +30,7 @@ public class ErrHandle {
     clsDefault = clsMine;
     bInterrupt = false;
     lErrStack = new ArrayList<>();
+    logger = Logger.getLogger(clsMine);
   }
   // ================== Public methods for this class ==========================
   public boolean DoError(String msg, Exception ex, Class cls) {
@@ -52,11 +54,14 @@ public class ErrHandle {
   public boolean DoError(String msg, Class cls) {
     return DoError(msg, null, cls);
   }
+  public boolean DoError(String msg, Exception ex) {
+    return DoError(msg, ex, clsDefault);
+  }
   public boolean DoError(String msg) {
     return DoError(msg, null, clsDefault);
   }
   public void debug(String msg) {
-    Logger.getLogger(this.clsDefault).debug(msg);
+    logger.debug(msg);
     // logger.debug(msg);
   }
   public void debug(String msg, Class cls) {
