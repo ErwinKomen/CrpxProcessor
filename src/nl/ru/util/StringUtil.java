@@ -15,6 +15,8 @@
  *******************************************************************************/
 package nl.ru.util;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
 import java.text.Collator;
 import java.text.Normalizer;
 import java.text.ParseException;
@@ -23,6 +25,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.DataFormatException;
+import java.util.zip.Deflater;
+import java.util.zip.Inflater;
 
 /**
  * Een collectie reguliere expressies om verschillende patronen uit Strings te filteren.
@@ -54,6 +59,9 @@ public class StringUtil {
 
 	/** Pattern matching nbsp character (decimal 160 = hex A0) */
 	private static final Pattern PATT_NON_BREAKING_SPACE = Pattern.compile(STR_NON_BREAKING_SPACE);
+  
+  /** Hex array */
+  final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
 
 	/**
 	 * Matches Unicode diacritics composition characters, which are separated out by the Normalizer
@@ -378,6 +386,94 @@ public class StringUtil {
 		}
 		return result.toString();
 	}
+  
+  /**
+   * escapeHexCoding
+	 *    Escape a string for inclusion in JSON output:
+   *        (1) compress it
+   *        (2) convert it to a hex-dump
+	 *
+	 * @param input the input string
+	 * @return the HEX coded output string
+	 */
+	public static String escapeHexCoding(String input) {
+		StringBuilder result = new StringBuilder();
+    // Turn string into bytes using UTF8
+    byte[] arByte = input.getBytes(Charset.forName("UTF-8"));
+    // Compress the byte array
+    Deflater compresser = new Deflater();
+    compresser.setInput(arByte);
+    compresser.finish();
+    // Make room for the output
+    byte[] arCompr = new byte[arByte.length];
+    // Compress the input into the output
+    int compressedDataLength = compresser.deflate(arCompr);
+    compresser.end();
+    /* 
+    // Convert the compressed output to HEX 
+		for (int i = 0; i < compressedDataLength; i++) {
+      char[] hexChars = new char[2];
+      // Get a byt-to-hex equivalent efficiently
+      int v = arCompr[i] & 0xFF;
+      hexChars[0] = hexArray[v >>> 4];
+      hexChars[1] = hexArray[v & 0x0F];
+      // Add the byte-to-hex equivalent to the result
+      result.append(new String(hexChars));
+		}
+		return result.toString();
+    /* */
+    /* Alternative: base64 encoding */
+    String sEnc = Base64.encode(arCompr);
+    return sEnc;
+    /* */
+	}
+  /**
+   * unescapeHexCoding
+	 *    Unescape a string that was turned into a hex dump:
+   *      (1) hex to byte array
+   *      (2) byte array unzip
+   *      (3) result to string
+	 *
+	 * @param input the input string
+   * 
+	 * @return the HEX coded output string
+   * 
+   * @throws java.io.IOException
+   * @throws java.util.zip.DataFormatException
+   */
+  public static String unescapeHexCoding(String input) throws IOException, DataFormatException {
+    int resultLength = 0;
+		// StringBuilder result = new StringBuilder();
+    int compressedDataLength = input.length();
+    // Convert Base64 into byte array
+    byte[] arByte = Base64.decode(input);
+    
+    /*
+    // Turn hex input into byte array
+    byte[] arByte = new byte[compressedDataLength];
+    for (int i = 0; i < input.length(); i+=2) {
+      char[] hexChars = new char[2];
+      hexChars[0] = input.charAt(i);
+      hexChars[1] = input.charAt(i+1);
+      int iHC0 = hexChars[0] << 4;
+      int iHC1 = hexChars[1] & 0x0F;
+      int v = 16 *  iHC0 + iHC1;
+      arByte[i/2] = (byte) v;
+    }
+    */
+    // Decompress byte-array
+    byte[] arDecr = new byte[compressedDataLength * 10];
+    Inflater decompresser = new Inflater();
+    // decompresser.setInput(arByte, 0, compressedDataLength);
+    decompresser.setInput(arByte);
+    resultLength = decompresser.inflate(arDecr);
+    decompresser.end();    
+    
+    // Convert byte array into string again
+    String sResult = new String(arDecr, 0, resultLength, "UTF-8");
+
+		return sResult;
+  }
 
 	/**
 	 * Get the default collator.

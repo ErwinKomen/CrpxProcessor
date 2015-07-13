@@ -50,7 +50,8 @@ public class CorpusResearchProject {
   // This class uses a logger
   private static final Logger logger = Logger.getLogger(CorpusResearchProject.class);
   // private static String sGregorianFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSSXXX";
-  private static String sGregorianFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS";
+  // private static String sGregorianFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS";
+  private static String sGregorianFormat = "yyyy-MM-dd'T'HH:mm:ss";
   // ================== Enumerations in use ==================================
   public enum ProjType {
     ProjPsd, ProjPsdx, ProjNegra, ProjAlp, ProjFolia, None;
@@ -269,10 +270,13 @@ public class CorpusResearchProject {
       // Load the list of database features
       ReadCrpList(lDbFeatList, "./descendant::DbFeatList/child::DbFeat", 
                   "DbFeatId;Name;Pre;QCid;FtNum", "");
-      // Check directories
+      // Check directories: this is no longer needed
+      //   since we WILL NOT be using these directories anyway...
+      /*
       if (!this.QueryDir.isDirectory())  if (!this.QueryDir.mkdir()) return(errHandle.DoError("Could not create QueryDir [" + this.QueryDir.toString() + "]"));
       if (!this.DstDir.isDirectory())  if (!this.DstDir.mkdir()) return(errHandle.DoError("Could not create DstDir [" + this.DstDir.toString() + "]"));
       if (!this.SrcDir.isDirectory())  if (!this.SrcDir.mkdir()) return(errHandle.DoError("Could not create SrcDir [" + this.SrcDir.toString() + "]"));
+      */
 
       // Check the project type
       switch(this.ProjectType) {
