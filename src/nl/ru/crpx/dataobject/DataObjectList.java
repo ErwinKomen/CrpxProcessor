@@ -5,9 +5,13 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import nl.ru.util.json.JSONObject;
+import org.apache.log4j.Logger;
 
 /**
  * A list of DataObjects.
@@ -77,6 +81,49 @@ public class DataObjectList extends DataObject {
 			break;
 		}
 	}
+  
+  /**
+   * sort
+   *    This assumes that the DataObjectList contains
+   *    [DataObjectMapElement] members, and nothing else
+   * @param sKey 
+   */
+  public void sort(final String sKey) {
+    List<DataObject> lSorted = new ArrayList<>();
+    lSorted.addAll(list);
+
+    /*
+    Logger.getLogger("sort").debug("Unsorted:");
+    for (int i=0;i<lSorted.size();i++) {
+      DataObjectMapElement oThis = (DataObjectMapElement) lSorted.get(i);
+      Logger.getLogger("sort").debug(i+": "+oThis.get(sKey).toString());
+    } */
+
+    // Sor the arraylist
+     Comparator c = new Comparator<DataObjectMapElement>() {
+
+      @Override
+      public int compare(DataObjectMapElement t, DataObjectMapElement t1) { 
+        String s1 = t.get(sKey).toString();
+        String s2 = t1.get(sKey).toString();
+        int iCmp = s1.compareToIgnoreCase(s2);
+        // Logger.getLogger("sort").debug(s1 + "-" + s2 + " = " + iCmp);
+        return iCmp;
+      }
+    };
+    // Sort it
+    Collections.sort(lSorted, c);
+    /*
+    Logger.getLogger("sort").debug("Sorted:");
+    for (int i=0;i<lSorted.size();i++) {
+      DataObjectMapElement oThis = (DataObjectMapElement) lSorted.get(i);
+      Logger.getLogger("sort").debug(i+": "+oThis.get(sKey).toString());
+    } */
+    // Clear the original list
+    list.clear();
+    // Convert ArrayList to DataObjectList
+    list.addAll(lSorted);  
+  }
 
 	public int size() {
 		return list.size();
