@@ -11,6 +11,7 @@ package nl.ru.crpx.project;
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.SaxonApiException;
@@ -246,6 +247,8 @@ public class ExecutePsdxStream extends ExecuteXml {
             // Possibly add the field to [arSub]
             if (!arSub.contains(sField)) arSub.add(sField);
           }
+          // Sort the sub-category list
+          Collections.sort(arSub);
         }
         // Get access to information on this QC item
         JSONObject oQcThis = this.crpThis.getListQCitem(iQC);
@@ -295,6 +298,8 @@ public class ExecutePsdxStream extends ExecuteXml {
           // Add the results to the "hit" list
           aHits.add(oResThis);
         }
+        // Sort the result based on the file name
+        aHits.sort("file");
         // Create the sub-totals
         DataObjectList aSubCount = new DataObjectList("count");
         for (int i=0;i<arSub.size(); i++) {aSubCount.add(arSubCount.get(i)); }
