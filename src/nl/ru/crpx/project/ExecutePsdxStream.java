@@ -16,6 +16,7 @@ import java.util.List;
 import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.XQueryEvaluator;
+import nl.ru.crpx.dataobject.DataFormat;
 import nl.ru.crpx.dataobject.DataObject;
 import nl.ru.crpx.dataobject.DataObjectList;
 import nl.ru.crpx.dataobject.DataObjectMapElement;
@@ -48,6 +49,8 @@ public class ExecutePsdxStream extends ExecuteXml {
   List<JobXqF> arJob = new ArrayList<>(); // A list of all the current XqF jobs running
   List<String> arRes = new ArrayList<>(); // The results of each job
   JSONArray arCount = new JSONArray();    // Array with the counts per file
+  // DataObjectList arHits = null;           // List of all the hits for an Xq job
+  // DataObjectList arMonitor = null;        // List of "hitinfo" lists per file
   JSONObject oProgress = null;            // Progress of this Xq job
   DataObjectMapElement dmProgress = null; // Progress of this Xq job
   // ========== constants ======================================================
@@ -71,6 +74,10 @@ public class ExecutePsdxStream extends ExecuteXml {
   public ExecutePsdxStream(CorpusResearchProject oProj) {
     // Do the initialisations for all Execute() classes
     super(oProj);
+    /*
+    arHits = new DataObjectList("hitlist");
+    arMonitor = new DataObjectList("filehits");
+    */
     
     // TODO: make sure we provide [intCurrentQCline] with the correct value!!
   }
@@ -106,6 +113,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       
       // Initialise the job array and the results array
       arJob.clear();  arRes.clear();
+      // arHits.clear(); arMonitor.clear();
 
       // Indicate we are working
       jobCaller.setJobStatus("working");
@@ -180,13 +188,36 @@ public class ExecutePsdxStream extends ExecuteXml {
       if (!monitorXqF(1, jobCaller)) return false;
       
       // Combine the results of the queries into a table
+      // NOTE: this may now be obsolete because of JobTable
       String sCombiJson = combineResults(arCount);
       jobCaller.setJobResult(sCombiJson);
       
       // Provide a dataobject table for better processing
       jobCaller.setJobTable(getResultsTable(arCount));
+      
+      /* ============
+      // Provide a dataobject list of all hits
+      arMonitor.sort("file");
+      int iHitCount = 0;
+      
+      for (int i=0;i<arMonitor.size();i++) {
+        DataObjectList arOne = (DataObjectList) ((DataObjectMapElement) arMonitor.get(i)).get("hits");
+        for (int j=0;j<arOne.size();j++) {
+          DataObjectMapElement elThis = (DataObjectMapElement) arOne.get(j);
+          iHitCount++;
+          DataObjectMapElement oOneHit = new DataObjectMapElement();
+          oOneHit.put("g", iHitCount);              // Global count number
+          oOneHit.put("file", elThis.get("file") ); // the file for this hit
+          oOneHit.put("qc", elThis.get("qc") );     // the QC line number
+          oOneHit.put("n", elThis.get("n") );       // the hit number within this file
+          arHits.add(oOneHit);
+        } 
+      }
+      jobCaller.setJobHits(arHits);
+      ========= */
 
       // Also provide the job count results (which are perhaps less interesting)
+      // NOTE: unclear whether this should be kept - superfluous?
       JSONObject oCount = new JSONObject();
       oCount.put("counts", arCount);
       jobCaller.setJobCount(oCount);
@@ -220,6 +251,8 @@ public class ExecutePsdxStream extends ExecuteXml {
     try {
       // Walk all the QC lines
       for (int iQC=0; iQC<arQuery.length; iQC++) {
+        // Initialise a counter for the hits
+        int iHitCount = 0;
         // Clear the arraylist of subcats
         arSub.clear(); arFile.clear();
         arJsonRes = new JSONObject[arLines.length()];
@@ -247,9 +280,9 @@ public class ExecutePsdxStream extends ExecuteXml {
             // Possibly add the field to [arSub]
             if (!arSub.contains(sField)) arSub.add(sField);
           }
-          // Sort the sub-category list
-          Collections.sort(arSub);
         }
+        // Sort the sub-category list
+        Collections.sort(arSub);
         // Get access to information on this QC item
         JSONObject oQcThis = this.crpThis.getListQCitem(iQC);
         // Reset the array that contains the counts for each sub-category
@@ -397,6 +430,7 @@ public class ExecutePsdxStream extends ExecuteXml {
           oResThis.put("sub", aResSub);
           aResFile.put(oResThis);
         }
+        
         oQCresults.put("hits", aResFile);
         // Add to the array with totals
         oTotal.put(oQCresults);
@@ -419,6 +453,7 @@ public class ExecutePsdxStream extends ExecuteXml {
    * 2) take it from the [arJob] list
    * 
    * @param iUntil
+   * @param jobCaller
    * @return 
    */
   private boolean monitorXqF(int iUntil, Job jobCaller) {
@@ -436,6 +471,18 @@ public class ExecutePsdxStream extends ExecuteXml {
             // Process the job results
             // arRes.add(sResultXqF);
             arCount.put(jThis.getJobCount());
+            
+            /*
+            // Add hits temporarily to the hit monitor
+            DataObjectList arFileHits = (DataObjectList) jThis.getJobHits();
+            // Are there any results?
+            if (arFileHits.size() > 0) {
+              DataObjectMapElement oFileHit = new DataObjectMapElement();
+              oFileHit.put("file", ((DataObjectMapElement) arFileHits.get(0)).get("file"));
+              oFileHit.put("hits", arFileHits);
+              // Add this one to the hit monitor
+              arMonitor.add(oFileHit);
+            }  */
             
             // ================= DEBUGGING =============
             if (oProgress==null) {
@@ -460,6 +507,8 @@ public class ExecutePsdxStream extends ExecuteXml {
             }
             // We have its results, so take it away from our job list
             arJob.remove(jThis);
+            // The job must also be removed to clear room
+            jThis.changeClientsWaiting(-1);
           }
         }
       }
@@ -518,6 +567,7 @@ public class ExecutePsdxStream extends ExecuteXml {
     XmlForest objProcType;      // Access to the XmlForest object allocated to me
     JSONArray[] arXqf;          // An array of JSONArray results for each QC item
     JSONObject[] arXqfSub;      // An array of JSONObject items containing subcat-count pairs
+    DataObjectList arHitList;   // List with hit information per hit: file // qc // number
     XQueryEvaluator[] arQeval;  // Our own query evaluators
     
     // Note: this uses [objProcType, which is a 'protected' variable from [Execute]
@@ -526,6 +576,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       CrpFile oCrpFile = RuBase.getCrpFile(iCrpFileIdx);
       // Get the file
       File fThis = oCrpFile.flThis;
+      String fName = fThis.getName();
       // Initialisations
       objProcType = oCrpFile.objProcType;
       ndxForest = new ByRef(null); ndxDbRes = new ByRef(null);
@@ -535,6 +586,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       intPtc = new ByRef(0);
       ndxDbList = new ArrayList<>();
       colParseJson = new JSONArray();
+      arHitList = new DataObjectList("hitlist");
       // Initialise the Out and Cmp arrays
       arOutExists = new boolean[arQuery.length + 2];
       arCmpExists = new boolean[arQuery.length + 2];
@@ -560,7 +612,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       // Start walking through the file...
       // (a) Read the first <forest>, including the <teiHeader>
       if (!objProcType.FirstForest(ndxForest, ndxHeader, strForestFile)) 
-        return errHandle.DoError("ExecuteQueriesFile could not process firest forest of " + fThis.getName());
+        return errHandle.DoError("ExecuteQueriesFile could not process firest forest of " + fName);
       // Store the [ndxHeader] in the CrpFile object
       oCrpFile.ndxHeader = ndxHeader.argValue;
       // Loop through the file in <forest> chunks
@@ -699,6 +751,12 @@ public class ExecutePsdxStream extends ExecuteXml {
                       }
                     }
                     arXqf[k].put(oThisRes);
+                    // Store the hit-information in the arHitList
+                    DataObjectMapElement oHitInfo = new DataObjectMapElement();
+                    oHitInfo.put("file", fName);
+                    oHitInfo.put("qc", k);
+                    oHitInfo.put("n", arXqf[k].length());
+                    arHitList.add(oHitInfo);
                   }
                 }
               }
@@ -711,7 +769,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       
       // TODO: combine the results of the queries
       JSONObject oHitInfo = new JSONObject();
-      oHitInfo.put("file", fThis.getName());
+      oHitInfo.put("file", fName);
       JSONObject oCombi;
       JSONArray arCombi = new JSONArray();
       for (int k=0;k<arQuery.length;k++) {
@@ -738,6 +796,15 @@ public class ExecutePsdxStream extends ExecuteXml {
       FileUtil.writeFile(fResultXqF, oHitInfo.toString());
       // Store the filename, so that the calling JobXq knows where the results are
       jobCaller.setJobResult(fResultXqF.getAbsolutePath());
+      
+      /* ==========
+      // Also store the list of hits in the job-caller
+      jobCaller.setJobHits(arHitList);
+      // Save the list of hits
+      sLoc = sDir + "/" + fThis.getName() + ".hitlist";
+      fResultXqF = new File(FileUtil.nameNormalize(sLoc));
+      FileUtil.writeFile(fResultXqF, arHitList.toString(DataFormat.JSON));
+              ========== */
 
       // Pass on the number of hits for this XqF job
       JSONArray arCount = new JSONArray();

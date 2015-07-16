@@ -9,8 +9,11 @@
 // My own name
 package nl.ru.crpx.project;
 // The external libraries that I need
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.nio.file.Paths;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -26,6 +29,7 @@ import javax.xml.parsers.*;
 import javax.xml.xpath.*;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.QName;
+import nl.ru.crpx.dataobject.DataFormat;
 import nl.ru.crpx.search.Job;
 import nl.ru.crpx.search.SearchManager;
 import nl.ru.crpx.tools.ErrHandle;
@@ -432,6 +436,34 @@ public class CorpusResearchProject {
       FileUtil.writeFile(fCountOut, sCount);
       // Show where this is written
       logger.debug("Counts are in: " + fCountOut.getAbsolutePath());
+      // =============================
+      // Get the table results
+      String sTable = jobCaller.getJobTable().toString(DataFormat.JSON);
+      File fTableOut = new File(this.DstDir + "/" + this.Name + ".table.json");
+      FileUtil.writeFile(fTableOut, sTable);
+      // Show where this is written
+      logger.debug("Table is in: " + fTableOut.getAbsolutePath());
+      // =============================
+      
+      // Write the table as an XML file (trial)
+      String sTableXmlLoc = this.DstDir + "/" + this.Name + ".table.xml";
+      BufferedWriter wHits = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(sTableXmlLoc), "UTF-8"));
+      jobCaller.getJobTable().serialize(wHits, DataFormat.XML, true);
+      wHits.close();
+      // Show where this is written
+      logger.debug("Table (xml) is in: " + sTableXmlLoc);
+      
+      /* ============
+      // Output the hits to a file
+      String sHitFile = this.DstDir + "/" + this.Name + ".hitlist.json";
+      BufferedWriter wHits = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(sHitFile), "UTF-8"));
+      jobCaller.getJobHits().serialize(wHits, DataFormat.JSON, true);
+      wHits.close();
+      // Show where this is written
+      logger.debug("Hitlist is in: " + sHitFile);
+      ========== */
+      
+      // =============================
       // Check if the query-execution resulted in an interrupt
       if (!bFlag || objEx.bInterrupt) { 
         errHandle.bInterrupt = true; 

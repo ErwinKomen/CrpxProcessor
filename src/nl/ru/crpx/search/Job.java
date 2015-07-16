@@ -59,6 +59,7 @@ public abstract class Job implements Comparable<Job> {
   protected JSONObject jobCount;            // Counts for this job
   protected JSONObject jobProgress;         // Details of where we are in this job
   protected DataObject jobTable;            // Tabular result 
+  protected DataObject jobHits;             // List of hits: [file // forestId // constId // index into [file].hits]
   protected int jobPtc;                     // Percentage progress for this job
   protected boolean reusable = true;        // The job can be re-used if it was not interrupted
   protected Integer jobTaskId = -1;         // The task-id of this job
@@ -302,6 +303,8 @@ public abstract class Job implements Comparable<Job> {
   public void setJobProgress(JSONObject oCount) { jobProgress = oCount;}
   public DataObject getJobTable() { return jobTable;}
   public void setJobTable(DataObject oTable) { jobTable = oTable;}
+  // public DataObject getJobHits() { return jobHits;}
+  // public void setJobHits(DataObject oHits) {jobHits = oHits;}
   public String getJobStatus() {return jobStatus;}
   public void setJobStatus(String sThis) { jobStatus = sThis;}
   public String getJobQuery() {return jobQuery;}
