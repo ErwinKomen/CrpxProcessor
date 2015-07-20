@@ -12,6 +12,7 @@ import java.io.File;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.SaxonApiException;
@@ -736,7 +737,6 @@ public class ExecutePsdxStream extends ExecuteXml {
                     if (!strEtreeCat.isEmpty()) {
                       // Keep track of counts for this subcat
                       arXqfSub[k].increment(strEtreeCat);
-
                     }
                     
                     // Get the oview line 
@@ -777,6 +777,35 @@ public class ExecutePsdxStream extends ExecuteXml {
         oCombi.put("qc", k+1);
         oCombi.put("count", arXqf[k].length());
         oCombi.put("results", arXqf[k]);
+        // gather the results-per-subcategory
+        JSONArray arPerCat = new JSONArray();
+        if (arXqfSub[k].length()>0) {
+          Iterator keys = arXqfSub[k].keys();
+          while (keys.hasNext()) {
+            String sCatName = keys.next().toString();
+            int iCatCount = arXqfSub[k].getInt(sCatName);
+            JSONObject oPerCat = new JSONObject();
+            oPerCat.put("cat", sCatName);
+            oPerCat.put("count", iCatCount);
+            // Walk the results for this QC, looking for those with cat=sCatName
+            JSONArray arCatRes = new JSONArray();
+            for (int j=0;j<arXqf[k].length(); j++) {
+              JSONObject oThis = arXqf[k].getJSONObject(j);
+              if (oThis.getString("cat").equals(sCatName)) {
+                // Add this object
+                JSONObject oAdd = new JSONObject();
+                oAdd.put("locs", oThis.getString("locs"));
+                oAdd.put("locw", oThis.getString("locw"));
+                oAdd.put("msg", oThis.getString("msg"));
+                arCatRes.put(oAdd);
+              }
+            }
+            oPerCat.put("results", arCatRes);
+            // Add this element to percat
+            arPerCat.put(oPerCat);
+          }
+        }
+        oCombi.put("percat", arPerCat);
         arCombi.put(oCombi);
       }
       oHitInfo.put("hits", arCombi);
