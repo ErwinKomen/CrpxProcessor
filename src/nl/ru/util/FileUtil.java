@@ -655,4 +655,49 @@ public class FileUtil {
       e.printStackTrace();
     }
   } 
+  
+  /**
+   * findFileInDirectory
+   *    Given directory sDir, find ONE (!!!) file named [sFile] in it
+   *
+   * 
+   * @param sDir
+   * @param sFile
+   * @return handle to [sFile]
+   */
+  public static String findFileInDirectory(String sDir, String sFile) {
+    List<String> lRes = new ArrayList<>();
+    
+    try {
+      // Check for item [sFile] inside "sDir"
+      Path dir = Paths.get(sDir);
+      try(DirectoryStream<Path> stream = Files.newDirectoryStream(dir, sFile)) {
+        // Do we have a hit?        
+        for (Path path : stream) {
+          // Return the FIRST file we get
+          return path.toAbsolutePath().toString();
+        }
+      } catch(IOException e) {
+        e.printStackTrace();
+      }
+      // Process all directories inside [sDir]
+      try(DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
+        for (Path path : stream) {
+          // Is this item a directory?
+          if (path.toFile().isDirectory()) {
+            // Look for items inside this directory
+            String sTry = findFileInDirectory(path.toString(), sFile);
+            if (!sTry.isEmpty()) return sTry;
+          }
+        }
+      } catch(IOException e) {
+        e.printStackTrace();
+      }
+      // Getting here means we have no success
+      return "";
+    } catch(Exception e) {
+      e.printStackTrace();
+      return "";
+    }
+  }
 }

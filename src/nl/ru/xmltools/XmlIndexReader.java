@@ -73,6 +73,7 @@ public class XmlIndexReader {
       throw new FileNotFoundException("XmlIndexReader exception" + ex.getMessage());
     }
   }
+  public String getFileName() { return (this.loc_fThis == null) ? "" : this.loc_fThis.getName(); }
   
   /**
    * doCheckIndex -- check if the indicated file has an index

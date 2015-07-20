@@ -148,6 +148,7 @@ public abstract class XmlForest {
   public abstract boolean FirstForest(ByRef<XmlNode> ndxForest, ByRef<XmlNode> ndxHeader, String strFile);
   public abstract boolean GetForestId(ByRef<XmlNode> ndxForest, ByRef<Integer> intForestId);
   public abstract boolean NextForest(ByRef<XmlNode> ndxForest);
+  public abstract boolean OneForest(ByRef<XmlNode> ndxForest, String sSentId);
   public abstract boolean IsEnd();
   public abstract boolean Percentage(ByRef<Integer> intPtc);
   public abstract String GetContext();

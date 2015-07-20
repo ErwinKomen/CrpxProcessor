@@ -6,6 +6,8 @@
 
 package nl.ru.xmltools;
 
+import java.util.ArrayList;
+import java.util.List;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathVariableResolver;
 import net.sf.saxon.om.NodeInfo;
@@ -17,6 +19,7 @@ import net.sf.saxon.s9api.XPathExecutable;
 import net.sf.saxon.s9api.XPathSelector;
 import net.sf.saxon.s9api.XdmItem;
 import net.sf.saxon.s9api.XdmNode;
+import net.sf.saxon.s9api.XdmValue;
 import nl.ru.crpx.tools.ErrHandle;
 
 /**
@@ -31,7 +34,7 @@ public class XmlNode extends XdmNode implements XPathVariableResolver {
   private XdmNode ndThis;                 // Myself
   /**
    *
-   * @param node    -- the NodeInfo associated with me (Interface)
+   * @param ndThis  -- the NodeInfo associated with me (Interface)
    * @param objProc -- the Processor that is used overall for Saxon processing
    */
   public XmlNode(XdmNode ndThis, Processor objProc) {
@@ -65,15 +68,48 @@ public class XmlNode extends XdmNode implements XPathVariableResolver {
       // Find the node
       XdmItem ndResult = oSelector.evaluateSingle();
       // Check what kind of item we have: atomic value or node
-      if (ndResult.isAtomicValue()) {
+      if (ndResult != null && ndResult.isAtomicValue()) {
         // The result is an atomic value, but we were expecting a node
         ndResult = null;
       } 
+      if (ndResult == null) {
+        return null;
+      }
       // Create an XmlNode with the result
       XmlNode ndBack = new XmlNode((XdmNode) ndResult, oProc);
       return ndBack;
     } catch (Exception ex) {
       errHandle.DoError("XmlNode - SelectSingleNode", ex, XmlNode.class);
+      return null;
+    }
+  }
+  
+    // Get a list of underlying nodes using an Xpath expression
+  public List<XmlNode> SelectNodes(String sPath) throws XPathExpressionException {
+    List<XmlNode> arBack = new ArrayList<>();
+    
+    try {
+      // Get to the indicated path
+      XPathExecutable oXpath = xpath.compile(sPath);
+      // Execute the path and return a result
+      XPathSelector oSelector = oXpath.load();
+      // Set the context
+      oSelector.setContextItem(this.ndThis);
+      // Find the nodes
+      XdmValue ndResults = oSelector.evaluate();
+      for (XdmItem ndResult : ndResults ) {
+        if (ndResult.isAtomicValue()) {
+          // Add as nothing
+          arBack.add(null);
+        } else {
+          // Add this item to the array as XmlNode
+          arBack.add(new XmlNode((XdmNode) ndResult, oProc));
+        }
+      }
+      // Return the results
+      return arBack;
+    } catch (Exception ex) {
+      errHandle.DoError("XmlNode - SelectNodes", ex, XmlNode.class);
       return null;
     }
   }

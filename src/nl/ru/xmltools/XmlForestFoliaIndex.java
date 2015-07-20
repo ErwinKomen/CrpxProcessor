@@ -144,6 +144,17 @@ public class XmlForestFoliaIndex extends XmlForest {
 
   @Override
   // ----------------------------------------------------------------------------------------------------------
+  // Name :  OneForest
+  // Goal :  Load the sentence with the indicated [sSentId] using an XmlReader 
+  // History:
+  // 20/Jul/2015  ERK Created for Java
+  // ----------------------------------------------------------------------------------------------------------
+  public boolean OneForest(ByRef<XmlNode> ndxForest, String sSentId) {
+    return false;
+  }
+  
+  @Override
+  // ----------------------------------------------------------------------------------------------------------
   // Name :  GetForestId
   // Goal :  Get the ID of the forest [ndxThis]
   // History:

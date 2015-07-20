@@ -1,6 +1,9 @@
 package nl.ru.crpx.search;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -16,6 +19,7 @@ import nl.ru.crpx.dataobject.DataObjectString;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.project.ExecutePsdxStream;
 import nl.ru.crpx.tools.General;
+import nl.ru.util.FileUtil;
 import nl.ru.util.JsonUtil;
 import nl.ru.util.MemoryUtil;
 import nl.ru.util.json.JSONArray;
@@ -269,6 +273,37 @@ public class SearchManager {
       // Return the extended path as a File object
       return new File(sPath);
     }
+  }
+  
+  /**
+   * getCorpusPartDir
+   *    Given a "lng" and "dir" specification, return 
+   *    the directory where these are found
+   * 
+   * @param sLng
+   * @param sPart
+   * @return 
+   */
+  public String getCorpusPartDir(String sLng, String sPart) {
+    // Get the directory associated with the Language Index
+    File fDir = getIndexDir(sLng);
+    if (fDir==null) return "";
+    // We need the directory as a string
+    String sTarget = fDir.getAbsolutePath();
+    // Get a sub directory or focus file
+    if (!sPart.isEmpty()) {
+      // Locate this part 'under' the language index directory
+      Path pStart = Paths.get(sTarget);
+      List<String> lInputFiles = new ArrayList<>();
+      FileUtil.getFileNames(lInputFiles, pStart, sPart);
+      // Validate result
+      if (lInputFiles.isEmpty()) 
+        return "";
+      // If anything comes out, then take only the *FIRST* hit!!!!
+      sTarget = lInputFiles.get(0);
+    }
+    // Return a handle to the target
+    return sTarget;
   }
 
   /**

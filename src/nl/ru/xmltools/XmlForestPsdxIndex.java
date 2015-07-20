@@ -150,6 +150,16 @@ public class XmlForestPsdxIndex extends XmlForest {
       return false;
     }
   }
+  @Override
+  // ----------------------------------------------------------------------------------------------------------
+  // Name :  OneForest
+  // Goal :  Load the sentence with the indicated [sSentId] using an XmlReader 
+  // History:
+  // 20/Jul/2015  ERK Created for Java
+  // ----------------------------------------------------------------------------------------------------------
+  public boolean OneForest(ByRef<XmlNode> ndxForest, String sSentId) {
+    return false;
+  }
 
   @Override
   // ----------------------------------------------------------------------------------------------------------
