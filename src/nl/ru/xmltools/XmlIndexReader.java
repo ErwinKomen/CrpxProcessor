@@ -1,7 +1,9 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * This software has been developed at the "Meertens Instituut"
+ *   for the CLARIN project "CorpusStudio-WebApplication".
+ * The application is based on the "CorpusStudio" program written by Erwin R. Komen
+ *   while working for the Radboud University Nijmegen.
+ * The program and the source can be freely used and re-distributed.
  */
 
 package nl.ru.xmltools;
@@ -15,6 +17,7 @@ import java.util.List;
 import net.sf.saxon.s9api.QName;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.tools.ErrHandle;
+import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
 
 /**
@@ -275,6 +278,41 @@ public class XmlIndexReader {
       return "";
     }
   }
+ 
+  /**
+   * getRelativeLine - read another line, relative to the currently loaded one
+   * 
+   * @param iOffset positive or negative offset 
+   * @param sSentId returns the @id of the sentence returned
+   * @return String containing the line
+   */
+  public String getRelativeLine(int iOffset, ByRef<String> sSentId) {
+    int iNewLine = 0;
+    try {
+      // Validate: does the file exist?
+      if (loc_fIndexFile == null || !loc_fIndexFile.exists() || arIndex==null || loc_fHeader == null || !loc_fHeader.exists()) {
+        errHandle.DoError("Cannot read 'relative' line for file - " + loc_fThis.getAbsolutePath());
+        return "";
+      }
+      // Implement the offset
+      iNewLine = iCurrentLine + iOffset;
+      // Validate
+      if (iNewLine >= arIndex.size()) {
+        this.EOF = true;
+        return "";
+      } else if (iNewLine < 0) return "";
+      // Okay this becomes the new line
+      iCurrentLine = iNewLine;
+      // Yes, we should be able to read it...
+      IndexEl elThis = arIndex.get(iCurrentLine);
+      sSentId.argValue = elThis.LineId;
+      return FileUtil.readFile(new File(elThis.sFile));    
+    } catch (Exception ex) {
+      errHandle.DoError("Could not read 'relative' line [" + iNewLine + "] of " + loc_fThis.getAbsolutePath(), ex, XmlIndexReader.class);
+      // Return failure
+      return "";
+    }
+  }
   
   /**
    * getOneLine - get the line with the indicated line @id value
@@ -294,8 +332,10 @@ public class XmlIndexReader {
       for (int i=0;i<arIndex.size();i++ ) {
         IndexEl objThis = arIndex.get(i);
         if (objThis.LineId.equals(sLineId)) {
+          // Make sure we note what the current line is
+          iCurrentLine = i;
           // Get this line and return it
-          return FileUtil.readFile(new File(objThis.sFile));
+          return FileUtil.readFile(new File(objThis.sFile), "utf-8");
         }
       }
       return "";      

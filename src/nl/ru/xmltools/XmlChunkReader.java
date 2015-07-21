@@ -8,9 +8,13 @@ package nl.ru.xmltools;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.log4j.Logger;
@@ -51,18 +55,22 @@ public class XmlChunkReader {
   // 24/apr/2015  ERK Created
   // ----------------------------------------------------------------------------------------------------------
   public XmlChunkReader(File fThis) throws FileNotFoundException {
-    // Create a buffered file reader, so that we know the position
-    FileReader plain = new FileReader (fThis);
-    reader = new BufferedReader( plain);
-    // lSize = reader.lines().count();
-    lFileLen = fThis.length();
-    // Now start reading for real
-    reader = new BufferedReader( new FileReader (fThis));
-    iLinesRead=0;
-    strTag = "";
-    EOF = false;
-    strLastLine = "";
-    ls = System.getProperty("line.separator");
+    try {
+      // Create a buffered file reader, so that we know the position
+      FileReader plain = new FileReader (fThis);
+      reader = new BufferedReader( plain);
+      // lSize = reader.lines().count();
+      lFileLen = fThis.length();
+      // Now start reading for real
+      reader = new BufferedReader(new InputStreamReader(new FileInputStream (fThis), "utf-8"));
+      iLinesRead=0;
+      strTag = "";
+      EOF = false;
+      strLastLine = "";
+      ls = System.getProperty("line.separator");
+    } catch (Exception ex) {
+      logger.error("XmlChunkReader problem",ex);
+    }
   }
 
   // ----------------------------------------------------------------------------------------------------------

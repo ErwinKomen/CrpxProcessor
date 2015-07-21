@@ -456,10 +456,19 @@ public class FileUtil {
   public static String readFile(File file) {
     return StringUtil.join(readLines(file), "\n");
   }
+  public static String readFile(File file, String encoding) {
+    return StringUtil.join(readLines(file, encoding), "\n");
+  }
   // ERK: added readFile with a filename string as input
   public static String readFile(String sName) {
     File file = new File(sName);
     List<String> lCombi = readLines(file);
+    return StringUtil.join(lCombi, "\n");
+  }
+  // ERK: added readFile with a filename string as input
+  public static String readFile(String sName, String encoding) {
+    File file = new File(sName);
+    List<String> lCombi = readLines(file, encoding);
     return StringUtil.join(lCombi, "\n");
   }
   public static int getLinesRead() { return iLineCount;}
@@ -470,7 +479,7 @@ public class FileUtil {
    * @param data what to write to the file
    */
   public static void writeFile(File file, String data) {
-    PrintWriter out = openForWriting(file);
+    PrintWriter out = openForWriting(file, "utf-8");
     try {
       out.print(data);
     } finally {

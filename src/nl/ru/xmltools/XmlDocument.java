@@ -54,6 +54,7 @@ public class XmlDocument {
   // ======= Access to the document we have loaded
   public XdmNode getNode() { return this.docxdm; }
   public String getDoc() { return this.sText; }
+  public Processor getProcessor() { return this.oProc;}
   // ----------------------------------------------------------------------------------------------------------
   // Name :  LoadXml
   // Goal :  Load a string into an XdmNode 
@@ -66,6 +67,8 @@ public class XmlDocument {
       this.docxdm = this.builder.build(new StreamSource(new StringReader(sXmlText)));
       this.sText = sXmlText;
     }  catch (SaxonApiException ex) {
+      logger.error("Problem attempting LoadXml", ex);
+    } catch (Exception ex) {
       logger.error("Problem attempting LoadXml", ex);
     }
   }

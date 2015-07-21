@@ -343,7 +343,21 @@ public class RuBase /* extends Job */ {
     // Call the generalized NodeText function
     return RuNodeText(objXp, ndStart, "");
   }
-  static String RuNodeText(XPathContext objXp, XdmNode ndStart, String strType) {
+  public static String RuNodeText(XPathContext objXp, XdmNode ndStart, String strType) {
+    try {
+      // Validate
+      if (ndStart == null) return "";
+      // Determine which CRP this is
+      CrpFile oCF = getCrpFile(objXp);
+      return RuNodeText(oCF.crpThis, ndStart, strType);
+    } catch (Exception ex) {
+      // Warn user
+      errHandle.DoError("RuBase/RuNodeText error", ex, RuBase.class);
+      // Return failure
+      return "";
+    }
+  }
+  public static String RuNodeText(CorpusResearchProject crpThis, XdmNode ndStart, String strType) {
     String sBack;           // Resulting string
     XPathSelector selectXp; // The actual selector we are using
     StringBuilder sBuild;   // Resulting string that is being built
@@ -353,10 +367,8 @@ public class RuBase /* extends Job */ {
       if (ndStart == null) return "";
       // Default value for array
       selectXp = null; sBuild = new StringBuilder();
-      // Determine which CRP this is
-      CrpFile oCF = getCrpFile(objXp);
       // Action depends on the kind of xml project we have
-      switch(oCF.crpThis.intProjType) {
+      switch(crpThis.intProjType) {
         case ProjPsdx:
           // Validate: this should be a <forest> or <eTree> node
           switch(ndStart.getNodeName().getLocalName()) {
@@ -408,10 +420,12 @@ public class RuBase /* extends Job */ {
           }
           break;
         default:
-          errHandle.DoError("RuNodeText: cannot process type " + oCF.crpThis.getProjectType(), RuBase.class);
+          errHandle.DoError("RuNodeText: cannot process type " + crpThis.getProjectType(), RuBase.class);
       }
       // Combine the result
       sBack = sBuild.toString();
+      // Possibly apply filtering
+      if (!strType.isEmpty()) sBack = RuConv(sBack, strType);
       // Build a string from the array
       return sBack;
     } catch (RuntimeException | SaxonApiException ex) {
