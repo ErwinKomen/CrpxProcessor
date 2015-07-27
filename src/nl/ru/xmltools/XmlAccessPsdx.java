@@ -6,17 +6,14 @@
 package nl.ru.xmltools;
 
 import java.util.List;
-import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.QName;
 import nl.ru.crpx.dataobject.DataObject;
 import nl.ru.crpx.dataobject.DataObjectList;
 import nl.ru.crpx.dataobject.DataObjectMapElement;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.xq.English;
-import nl.ru.crpx.xq.Extensions;
 import nl.ru.crpx.xq.RuBase;
 import nl.ru.util.ByRef;
-import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
 
 /**
@@ -54,6 +51,7 @@ public class XmlAccessPsdx extends XmlAccess {
    *      'fol': 'text following the hit'}
    * 
    * @param sLngName
+   * @param sLocs
    * @param sLocw
    * @return 
    */
@@ -129,6 +127,7 @@ public class XmlAccessPsdx extends XmlAccess {
    *    }
    * 
    * @param sLngName
+   * @param sLocs
    * @param sLocw
    * @return 
    */
