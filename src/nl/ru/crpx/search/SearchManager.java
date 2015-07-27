@@ -339,13 +339,13 @@ public class SearchManager {
    * @throws QueryException
    * @throws InterruptedException 
    */
-  public JobXqReUse searchXqReUse(CorpusResearchProject objPrj, String userId, SearchParameters par)
+  public JobXq searchXqReUse(CorpusResearchProject objPrj, String userId, SearchParameters par)
             throws QueryException, InterruptedException {
     // Only copy the query parameter
     SearchParameters parBasic = par.copyWithOnly("query");
     // Set the correct jobclass: this must be "JobXq" to allow the re-used jobs to be retrieved
     parBasic.put("jobclass", "JobXq");
-    return (JobXqReUse) search(objPrj, userId, parBasic, null, false);
+    return (JobXq) search(objPrj, userId, parBasic, null, false);
   }
   
   /** 
