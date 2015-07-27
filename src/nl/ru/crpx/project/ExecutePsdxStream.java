@@ -9,7 +9,6 @@
 package nl.ru.crpx.project;
 
 import java.io.File;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -17,7 +16,6 @@ import java.util.List;
 import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.XQueryEvaluator;
-import nl.ru.crpx.dataobject.DataFormat;
 import nl.ru.crpx.dataobject.DataObject;
 import nl.ru.crpx.dataobject.DataObjectList;
 import nl.ru.crpx.dataobject.DataObjectMapElement;
@@ -196,26 +194,6 @@ public class ExecutePsdxStream extends ExecuteXml {
       // Provide a dataobject table for better processing
       jobCaller.setJobTable(getResultsTable(arCount));
       
-      /* ============
-      // Provide a dataobject list of all hits
-      arMonitor.sort("file");
-      int iHitCount = 0;
-      
-      for (int i=0;i<arMonitor.size();i++) {
-        DataObjectList arOne = (DataObjectList) ((DataObjectMapElement) arMonitor.get(i)).get("hits");
-        for (int j=0;j<arOne.size();j++) {
-          DataObjectMapElement elThis = (DataObjectMapElement) arOne.get(j);
-          iHitCount++;
-          DataObjectMapElement oOneHit = new DataObjectMapElement();
-          oOneHit.put("g", iHitCount);              // Global count number
-          oOneHit.put("file", elThis.get("file") ); // the file for this hit
-          oOneHit.put("qc", elThis.get("qc") );     // the QC line number
-          oOneHit.put("n", elThis.get("n") );       // the hit number within this file
-          arHits.add(oOneHit);
-        } 
-      }
-      jobCaller.setJobHits(arHits);
-      ========= */
 
       // Also provide the job count results (which are perhaps less interesting)
       // NOTE: unclear whether this should be kept - superfluous?
@@ -473,17 +451,6 @@ public class ExecutePsdxStream extends ExecuteXml {
             // arRes.add(sResultXqF);
             arCount.put(jThis.getJobCount());
             
-            /*
-            // Add hits temporarily to the hit monitor
-            DataObjectList arFileHits = (DataObjectList) jThis.getJobHits();
-            // Are there any results?
-            if (arFileHits.size() > 0) {
-              DataObjectMapElement oFileHit = new DataObjectMapElement();
-              oFileHit.put("file", ((DataObjectMapElement) arFileHits.get(0)).get("file"));
-              oFileHit.put("hits", arFileHits);
-              // Add this one to the hit monitor
-              arMonitor.add(oFileHit);
-            }  */
             
             // ================= DEBUGGING =============
             if (oProgress==null) {

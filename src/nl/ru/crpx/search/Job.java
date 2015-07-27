@@ -185,6 +185,9 @@ public abstract class Job implements Comparable<Job> {
       case "JobXqF":
         search = new JobXqF(searchMan, userId, par);
         break;
+      case "JobXqReUse":
+        search = new JobXqReUse(searchMan, userId, par);
+        break;
       default:
         throw new QueryException("INTERNAL_ERROR",
                 "An internal error occurred. Please contact the administrator.\n" +

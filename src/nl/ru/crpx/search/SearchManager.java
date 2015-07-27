@@ -293,6 +293,8 @@ public class SearchManager {
     // Get a sub directory or focus file
     if (!sPart.isEmpty()) {
       // Locate this part 'under' the language index directory
+      sTarget = FileUtil.findFileInDirectory(sTarget, sPart);
+      /*
       Path pStart = Paths.get(sTarget);
       List<String> lInputFiles = new ArrayList<>();
       FileUtil.getFileNames(lInputFiles, pStart, sPart);
@@ -301,6 +303,7 @@ public class SearchManager {
         return "";
       // If anything comes out, then take only the *FIRST* hit!!!!
       sTarget = lInputFiles.get(0);
+      */
     }
     // Return a handle to the target
     return sTarget;
@@ -323,6 +326,26 @@ public class SearchManager {
     // Set the correct jobclass
     parBasic.put("jobclass", "JobXq");
     return (JobXq) search(objPrj, userId, parBasic, null, bCache);
+  }
+  
+  /**
+   * searchXqReUse
+   *    Locate and fetch tables stored after a previous search
+   * 
+   * @param objPrj
+   * @param userId
+   * @param par
+   * @return
+   * @throws QueryException
+   * @throws InterruptedException 
+   */
+  public JobXqReUse searchXqReUse(CorpusResearchProject objPrj, String userId, SearchParameters par)
+            throws QueryException, InterruptedException {
+    // Only copy the query parameter
+    SearchParameters parBasic = par.copyWithOnly("query");
+    // Set the correct jobclass: this must be "JobXq" to allow the re-used jobs to be retrieved
+    parBasic.put("jobclass", "JobXq");
+    return (JobXqReUse) search(objPrj, userId, parBasic, null, false);
   }
   
   /** 
@@ -419,6 +442,9 @@ public class SearchManager {
       // Now continue
       if (search == null) {
         // Not found in cache
+        
+        // Remove any old searches that can be removed
+        cache.removeOldSearches(); // try to free up space for next
 
         // Do we have enough memory to start a new search?
         long freeMegs = MemoryUtil.getFree() / 1000000;

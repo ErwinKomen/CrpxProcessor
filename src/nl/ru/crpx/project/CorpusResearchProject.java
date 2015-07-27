@@ -24,17 +24,20 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.parsers.*;
 import javax.xml.xpath.*;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.QName;
 import nl.ru.crpx.dataobject.DataFormat;
+import nl.ru.crpx.dataobject.DataObject;
+import nl.ru.crpx.dataobject.DataObjectList;
+import nl.ru.crpx.dataobject.DataObjectMapElement;
 import nl.ru.crpx.search.Job;
 import nl.ru.crpx.search.SearchManager;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.crpx.tools.General;
 import nl.ru.util.FileUtil;
+import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
 import nl.ru.xmltools.XmlForest.ForType;
 import static nl.ru.xmltools.XmlIO.WriteXml;
@@ -366,6 +369,62 @@ public class CorpusResearchProject {
   }
   
   /* ---------------------------------------------------------------------------
+   Name:    hasResults
+   Goal:    Check if this CRP already has valid results
+   History:
+   27/07/2015   ERK Created
+   --------------------------------------------------------------------------- */
+  public boolean hasResults(JSONObject oQuery) {
+    try {
+      // Check if there is a status file
+      File fStatus = new File(getResultFileName("status", "json"));
+      if (!fStatus.exists()) return false;
+      // Get the contents of the status file (which is json)
+      JSONObject oStatus = new JSONObject(FileUtil.readFile(fStatus));
+      // Check if the language and the dir coincide
+      if (oStatus.getString("lng").equals(oQuery.getString("lng"))) {
+        // Does the status contain a dir?
+        if (oStatus.has("dir")) {
+          // Requester must have "dir"
+          if (oQuery.has("dir")) {
+            // Are they equal?
+            return (oStatus.getString("dir").equals(oQuery.getString("dir")));
+          } 
+        } else {
+          // Requester may not have "dir" either
+          return (!oQuery.has("dir"));
+        }
+      }
+      // Getting here means: failure
+      return false;
+    } catch (Exception ex) {
+      errHandle.DoError("hasResults error:", ex, CorpusResearchProject.class);
+      return false;
+    }
+  }
+  /**
+   * getResultsOneTable
+   *    Find and return the results table specified by the parameters
+   * 
+   * @param sType   The type can be: "results", "count", "table"
+   * @return 
+   */
+  public String getResultsOneTable(String sType) {
+    try {
+      // Check if there is a status file
+      File fResultsFile = new File(getResultFileName(sType, "json"));
+      if (!fResultsFile.exists()) return "";
+      // Read the file
+      String sBack = FileUtil.readFile(fResultsFile, "utf-8");
+      // Return the results
+      return sBack;
+    } catch (Exception ex) {
+      errHandle.DoError("getResultsOneTable error:", ex, CorpusResearchProject.class);
+      return "";
+    }
+  }
+  
+  /* ---------------------------------------------------------------------------
    Name:    Execute
    Goal:    Handle the execution of this CRP
             - Do preparations, depending on the project type and execution type
@@ -376,8 +435,14 @@ public class CorpusResearchProject {
    --------------------------------------------------------------------------- */
   public boolean Execute(Job jobCaller, String sCallingUser) {
     boolean bFlag = true; // Flag with execution result
+    boolean bXml = false; // Write results as XML also 
     
     try {
+      // Determine status file location
+      String sStatusFileLoc = getResultFileName("status", "json");
+      File fStatusFile = new File(sStatusFileLoc);
+      // Remove any old status file
+      if (fStatusFile.exists()) fStatusFile.delete();
       // Set the starting time
       long startTime = System.currentTimeMillis();
       // Set the userid
@@ -422,7 +487,7 @@ public class CorpusResearchProject {
       // ========= Debugging =========
       // Get the job's OVERALL results
       String sResult = jobCaller.getJobResult();
-      File fResultOut = new File (this.DstDir + "/" + this.Name + ".results.json");
+      File fResultOut = new File (getResultFileName("results", "json"));
       FileUtil.writeFile(fResultOut, sResult);
       // Show where this is written
       logger.debug("Results are in: " + fResultOut.getAbsolutePath());
@@ -432,36 +497,35 @@ public class CorpusResearchProject {
       JSONObject objCount = new JSONObject();
       objCount.put("count", jobCaller.getJobCount());
       String sCount = objCount.toString(1);
-      File fCountOut = new File(this.DstDir + "/" + this.Name + ".count.json");
+      File fCountOut = new File(getResultFileName("count", "json"));
       FileUtil.writeFile(fCountOut, sCount);
       // Show where this is written
       logger.debug("Counts are in: " + fCountOut.getAbsolutePath());
       // =============================
       // Get the table results
       String sTable = jobCaller.getJobTable().toString(DataFormat.JSON);
-      File fTableOut = new File(this.DstDir + "/" + this.Name + ".table.json");
+      File fTableOut = new File(getResultFileName("table", "json"));
       FileUtil.writeFile(fTableOut, sTable);
       // Show where this is written
       logger.debug("Table is in: " + fTableOut.getAbsolutePath());
       // =============================
       
-      // Write the table as an XML file (trial)
-      String sTableXmlLoc = this.DstDir + "/" + this.Name + ".table.xml";
-      BufferedWriter wHits = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(sTableXmlLoc), "UTF-8"));
-      jobCaller.getJobTable().serialize(wHits, DataFormat.XML, true);
-      wHits.close();
-      // Show where this is written
-      logger.debug("Table (xml) is in: " + sTableXmlLoc);
+      if (bXml) {
+        // Write the table as an XML file (trial)
+        String sTableXmlLoc = getResultFileName("table", "xml") ;
+        BufferedWriter wHits = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(sTableXmlLoc), "UTF-8"));
+        jobCaller.getJobTable().serialize(wHits, DataFormat.XML, true);
+        wHits.close();
+        // Show where this is written
+        logger.debug("Table (xml) is in: " + sTableXmlLoc);
+      }
       
-      /* ============
-      // Output the hits to a file
-      String sHitFile = this.DstDir + "/" + this.Name + ".hitlist.json";
-      BufferedWriter wHits = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(sHitFile), "UTF-8"));
-      jobCaller.getJobHits().serialize(wHits, DataFormat.JSON, true);
-      wHits.close();
-      // Show where this is written
-      logger.debug("Hitlist is in: " + sHitFile);
-      ========== */
+      // Write a status file to indicate the results are valid
+      JSONObject oStatus = new JSONObject();
+      JSONObject oQuery = new JSONObject(jobCaller.getParameters().get("query"));
+      oStatus.put("lng", oQuery.getString("lng"));
+      if (oQuery.has("dir")) oStatus.put("dir", oQuery.getString("dir"));
+      FileUtil.writeFile(fStatusFile, oQuery.toString());
       
       // =============================
       // Check if the query-execution resulted in an interrupt
@@ -489,6 +553,20 @@ public class CorpusResearchProject {
       errHandle.DoError("Could not complete [Execute]", ex, CorpusResearchProject.class);
       return false;      
     }
+  }
+  
+  /**
+   * getResultFilename
+   *    Produce result table and status file names in a uniform way
+   * 
+   * @param sType
+   * @param sExt
+   * @return 
+   */
+  private String getResultFileName(String sType, String sExt) {
+    String sBack = this.DstDir + "/" + this.Name + "." + sType;
+    if (!sExt.isEmpty()) sBack += "." + sExt;
+    return sBack;
   }
   
   // ===================== Get and Set methods =================================
