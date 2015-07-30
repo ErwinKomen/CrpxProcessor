@@ -106,9 +106,15 @@ public class ExecutePsdxStream extends ExecuteXml {
       this.objProcType.setProcType(ForType.PsdxPerForest);
       ========================== */
       // Perform general setup
-      if (!super.ExecuteQueriesSetUp()) return false;
+      if (!super.ExecuteQueriesSetUp()) {
+        jobCaller.setJobErrors(errHandle.getErrList());
+        return false;
+      }
       // Perform setup part that is specifically for Xml/Xquery
-      if (!super.ExecuteXmlSetup()) return false;
+      if (!super.ExecuteXmlSetup()) {
+        jobCaller.setJobErrors(errHandle.getErrList());
+        return false;
+      }
       
       // Initialise the job array and the results array
       arJob.clear();  arRes.clear();

@@ -233,10 +233,25 @@ public class SearchManager {
   public List<String> getSearchParameterNames() {
     return searchParameterNames;
   }
-  // ============ Find a job with a particular id
+  // ============ Find a job with a particular id -- but it needs to be a jobxq
   public JobXq searchGetJobXq(String sJobId) {
     Job search = cache.getJob(Integer.parseInt(sJobId));
-    return (JobXq) search;
+    // Validate what we get back
+    if (search==null) return null;
+    // Check if it has parameters
+    if (search.par.isEmpty()) {
+      logger.debug("searchGetJobXq: job "+sJobId+" does not have [par] defined");
+      return null;
+    }
+    String sJobCl = search.par.getString("jobclass");
+    if (sJobCl.isEmpty()) {
+      logger.debug("searchGetJobXq: job "+sJobId+" does not have 'jobclass' defined in [par]");
+      return null;
+    }
+    if (sJobCl.toLowerCase().equals("jobxq"))
+      return (JobXq) search;
+    else
+      return null;
   }
 
   /**
@@ -339,13 +354,13 @@ public class SearchManager {
    * @throws QueryException
    * @throws InterruptedException 
    */
-  public JobXq searchXqReUse(CorpusResearchProject objPrj, String userId, SearchParameters par)
+  public JobXqReUse searchXqReUse(CorpusResearchProject objPrj, String userId, SearchParameters par)
             throws QueryException, InterruptedException {
     // Only copy the query parameter
     SearchParameters parBasic = par.copyWithOnly("query");
     // Set the correct jobclass: this must be "JobXq" to allow the re-used jobs to be retrieved
-    parBasic.put("jobclass", "JobXq");
-    return (JobXq) search(objPrj, userId, parBasic, null, false);
+    parBasic.put("jobclass", "JobXqReUse");
+    return (JobXqReUse) search(objPrj, userId, parBasic, null, false);
   }
   
   /** 
@@ -490,8 +505,8 @@ public class SearchManager {
         // Add the parent
         search.setParent(jobParent);
         
-        // Only *cache* the search if it is *not* an XqF one
-        if (!search.par.getString("jobclass").toLowerCase().equals("jobxqf"))
+        // Only *cache* the search if it is an Xq one
+        if (search.par.getString("jobclass").toLowerCase().equals("jobxq"))
           cache.put(search);
 
         // Update running jobs

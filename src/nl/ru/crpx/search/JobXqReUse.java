@@ -49,6 +49,8 @@ public class JobXqReUse extends Job {
     String sStatus = "started";  // My copy of the job status
     
     try {
+      // Show where we are
+      errHandle.debug("Performsearch: JobXqReUse");
       // Validate
       if (crpThis==null) { errHandle.DoError("There is no CRP"); return;}
       // Note start time

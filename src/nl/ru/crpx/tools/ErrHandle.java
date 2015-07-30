@@ -51,6 +51,23 @@ public class ErrHandle {
     // Return failure
     return false;
   }
+  public boolean DoError(List<JSONObject> arErr, Exception ex, Class cls) {
+    // Process all errors
+    for (int i=0;i<arErr.size();i++) {
+      JSONObject oThis = new JSONObject();
+      oThis.put("msg", arErr.get(i).toString());
+      if (ex==null) oThis.put("ex", ""); else oThis.put("ex", ex.getMessage());
+      if (cls==null) 
+        oThis.put("cls", "unknown");
+      else
+        oThis.put("cls", cls.getName());
+      // Add the object to the static stack
+      lErrStack.add(oThis);
+    }
+    Logger.getLogger(cls).error(arErr.toString(), ex);
+    // Return failure
+    return false;
+  }
   public boolean DoError(String msg, Class cls) {
     return DoError(msg, null, cls);
   }
@@ -59,6 +76,9 @@ public class ErrHandle {
   }
   public boolean DoError(String msg) {
     return DoError(msg, null, clsDefault);
+  }
+  public boolean DoError(List<JSONObject> arErr) {
+    return DoError(arErr, null, clsDefault);
   }
   public void debug(String msg) {
     logger.debug(msg);

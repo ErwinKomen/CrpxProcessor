@@ -121,6 +121,8 @@ public class ExecuteXml extends Execute {
         if (! (GetExec(qThis.QueryFile, qThis))) {
           CrpGlobal.LogOutput("Problem with executable in step " + (intI + 1), true);
           oXq.XqErrShow();
+          // Add the error to the error object
+          errHandle.DoError(oXq.lQerr);
           return false;
         }
         // Determine trace file name
@@ -310,9 +312,12 @@ public class ExecuteXml extends Execute {
         // There should be at least 1 file
         if (lInputFiles.isEmpty()) {
           // Give appropriate error message
-          logger.error("Neither the input directory that you have specified, nor its sub-directories contain any .psdx files:" + 
+          String sMsg = "Neither the input directory that you have specified, nor its sub-directories contain any .psdx files:" + 
                   "\r\n" + "\r\n" + "\t" + crpThis.getSrcDir() + "\r\n" + "\r\n" + 
-                  "(Note: input specification used is [" + sInputFile + "])");
+                  "(Note: input specification used is [" + sInputFile + "])";
+          logger.error(sMsg);
+          errHandle.DoError(sMsg);
+          errHandle.bInterrupt = true;
           bInterrupt = true;
           return false;
         }
