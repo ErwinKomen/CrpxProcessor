@@ -73,6 +73,16 @@ public class CorpusResearchProject {
       // Unidentified project
       return ProjType.None;
     }
+    public static String getName(ProjType prjType) {
+      switch(prjType) {
+        case ProjPsd: return "Penn-Psd";
+        case ProjPsdx: return "Xquery-Psdx";
+        case ProjNegra: return "Negra-Tig";
+        case ProjAlp: return "Alpino-Xml";
+        case ProjFolia: return "Folia-Xml";
+        default: return "";
+      }
+    }
   }
   public enum ProjOut {ProjBasic, ProjDbase, ProjStat, ProjTimbl}
   // ================== Publically available fields ==========================
