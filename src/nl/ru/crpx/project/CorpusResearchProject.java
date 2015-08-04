@@ -363,7 +363,7 @@ public class CorpusResearchProject {
       boolean bFlag = WriteXml(this.docProject, this.Location);
       
       // Adapt the [SaveDate] property of myself
-      this.SaveDate = "";
+      this.SaveDate = General.getSaveDate(this.flProject);
       // Return the result of writing
       return bFlag;
     } catch (Exception ex) {
@@ -599,7 +599,7 @@ public class CorpusResearchProject {
   public String getSave() { return this.SaveDate; }
   // Set string values
   public void setLocation(String sValue) { this.Location = sValue;}
-  public void setProjectType(String sValue) { this.ProjectType = sValue;}
+  public void setProjectType(String sValue) { if (setSetting("ProjectType", sValue)) { this.ProjectType = sValue;}}
   // Forest (processing) type handling
   public ForType getForType() { return this.forProcType; }
   public void setForType(ForType ftNew) { this.forProcType = ftNew; }
@@ -793,7 +793,8 @@ public class CorpusResearchProject {
     try {
       Node ndxThis = (Node) xpath.evaluate("./descendant::Setting[@Name='" + sName + "']", 
                                            this.docProject, XPathConstants.NODE);
-      ndxThis.setNodeValue(sValue);
+      // ndxThis.setNodeValue(sValue);
+      ndxThis.getAttributes().getNamedItem("Value").setNodeValue(sValue);
     } catch (XPathExpressionException ex) {
       logger.error("Problem with setSetting [" + sName + "]", ex);
     }
@@ -841,6 +842,86 @@ public class CorpusResearchProject {
     return simpleDateFormat.format(dtThis);
   }
   
+  /**
+   * doChange
+   *    Change the value of [sKey] to [sValue]
+   * 
+   * @param sKey
+   * @param sValue
+   * @return 
+   */
+  public boolean doChange(String sKey, String sValue) {
+    try {
+      // Validate
+      if (sKey.isEmpty()) return false;
+      switch (sKey.toLowerCase()) {
+        case "author": this.setAuthor(sValue); break;
+        case "comments": this.setComments(sValue); break;
+        case "datechanged": this.setDateChanged(stringToDate(sValue)); break;
+        case "datecreated": this.setDateCreated(stringToDate(sValue)); break;
+        case "follnum": this.setFollNum(Integer.parseInt(sValue)); break;
+        case "fortype": this.setForType(ForType.forValue(sValue)); break;
+        case "goal": this.setGoal(sValue); break;
+        case "name": this.setName(sValue); break;
+        case "precnum": this.setPrecNum(Integer.parseInt(sValue)); break;
+        case "projtype": this.setProjectType(sValue); break;
+        default:
+          errHandle.DoError("doChange: unknown key="+sKey, CorpusResearchProject.class);
+          return false;
+      }
+      // Save changes immediately and return the save status
+      return this.Save();
+    } catch (Exception ex) {
+      errHandle.DoError("doChange error:", ex, CorpusResearchProject.class);
+      return false;
+    }
+  }
+  /**
+   * doChange
+   *    Change a key/value item within one of the lists
+   * 
+   * @param sList   - Can be: Query, Definition, Constructor, DbFeat
+   * @param iListId - The id for the list's item
+   * @param sKey    - The key name *within* the list
+   * @param sValue  - The new value for the key *within* the list
+   * @return 
+   */
+  public boolean doChange(String sList, int iListId, String sKey, String sValue) {
+    List<JSONObject> lstThis = null;// The list of JSONObjects
+    String sFeatId;                 // Name of the field where the list's id is kept
+
+    try {
+      // Validate
+      if (sList.isEmpty() || iListId<0 || sKey.isEmpty()) return false;
+      // Find the list
+      switch (sList.toLowerCase() ) {
+        case "query": sFeatId = "QueryId"; lstThis = this.getListQuery(); break;
+        case "definition": sFeatId = "DefId"; lstThis = this.getListDef(); break;
+        case "qc": sFeatId = "QCid"; lstThis = this.getListQC(); break;
+        case "dbfeat": sFeatId = "DbFeatId"; lstThis = this.lDbFeatList; break;
+        default:
+          errHandle.DoError("doChange: unknown list="+sList, CorpusResearchProject.class);
+          return false;
+      }
+      // Get the item *within* the list
+      for (JSONObject oThis : lstThis) {
+        if (oThis.getInt(sFeatId) == iListId) {
+          // Check if the key is in this item
+          if (!oThis.has(sKey)) return  errHandle.DoError("doChange: unknown list key="+sKey, CorpusResearchProject.class);
+          // Set the key with the new value
+          oThis.put(sKey, sValue);
+          // Save changes immediately and return the save status
+          return this.Save();
+        }
+      }
+      
+      // Getting here means that we could not find the correct list/key combination
+      return false;
+    } catch (Exception ex) {
+      errHandle.DoError("doChange error:", ex, CorpusResearchProject.class);
+      return false;
+    }
+  }
  
   /* ---------------------------------------------------------------------------
    Name:    doSort

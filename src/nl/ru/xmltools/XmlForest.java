@@ -58,7 +58,8 @@ public abstract class XmlForest {
     NegraWholeFile(30), // Negra: whole file
     NegraPerS(31),      // Negra: per sentence
     PsdWholeFile(40),   // Treebank: whole file
-    PsdPerS(41);        // Treebank: per sentence
+    PsdPerS(41),        // Treebank: per sentence
+    Unknown(50);        // Unknown value
 
     private int intValue;
     private static java.util.HashMap<Integer, ForType> mappings;
@@ -81,6 +82,25 @@ public abstract class XmlForest {
     }
     public static ForType forValue(int value) {
       return getMappings().get(value);
+    }
+    public static ForType forValue(String sValue) {
+      switch (sValue.toLowerCase()) {
+        case "psdxwholefile": return PsdxWholeFile;
+        case "psdxperforest": return PsdxPerForest;
+        case "psdxperforgrp": return PsdxPerForgrp;
+        case "psdxindex": return PsdxIndex;
+        case "foliawholefile": return FoliaWholeFile;
+        case "foliaperdiv": return FoliaPerDiv;
+        case "foliaperpara": return FoliaPerPara;
+        case "foliapers": return FoliaPerS;
+        case "alpwholefile": return AlpWholeFile;
+        case "alppers": return AlpPerS;
+        case "negrawholefile": return NegraWholeFile;
+        case "negrapers": return NegraPerS;
+        case "psdwholefile": return PsdWholeFile;
+        case "psdpers": return PsdPerS;
+        default: return Unknown;
+      }
     }
   }
 // </editor-fold>
