@@ -29,15 +29,11 @@ import javax.xml.xpath.*;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.QName;
 import nl.ru.crpx.dataobject.DataFormat;
-import nl.ru.crpx.dataobject.DataObject;
-import nl.ru.crpx.dataobject.DataObjectList;
-import nl.ru.crpx.dataobject.DataObjectMapElement;
 import nl.ru.crpx.search.Job;
 import nl.ru.crpx.search.SearchManager;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.crpx.tools.General;
 import nl.ru.util.FileUtil;
-import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
 import nl.ru.xmltools.XmlForest.ForType;
 import static nl.ru.xmltools.XmlIO.WriteXml;
@@ -300,8 +296,17 @@ public class CorpusResearchProject {
       */
 
       // Check the project type
-      switch(this.ProjectType) {
-        case "Xquery-psdx": // Okay, we are able to process this kind of project
+      logger.debug("CRP CHECK: " + this.ProjectType + "=" + ProjType.getType(this.ProjectType));
+      switch(ProjType.getType(this.ProjectType)) {
+        case ProjPsdx: // Okay, we are able to process this kind of project
+          logger.debug("Processing type: " + this.ProjectType);
+          break;
+        case ProjAlp:
+        case ProjNegra:
+        case ProjPsd:
+        case ProjFolia:
+          // We will allow these types, but give a warning
+          logger.debug("Processing of this type has not yet been implemented: " + this.ProjectType);
           break;
         default: 
           return(errHandle.DoError("Sorry, cannot process projects of type [" + this.ProjectType + "]"));
@@ -868,25 +873,25 @@ public class CorpusResearchProject {
       switch (sKey.toLowerCase()) {
         case "author": if (!this.getAuthor().equals(sValue)) {this.setAuthor(sValue); bChanged =true; } 
           break;
-        case "comments": if (!this.getAuthor().equals(sValue)) {this.setComments(sValue);  bChanged =true; } 
+        case "comments": if (!this.getComments().equals(sValue)) {this.setComments(sValue);  bChanged =true; } 
           break;
         case "datechanged": 
           // Special treatment: don't signal change, otherwise date will get changed again
           this.setDateChanged(stringToDate(sValue)); bChanged=false; 
           break;
-        case "datecreated": if (!this.getAuthor().equals(sValue)) {this.setDateCreated(stringToDate(sValue));  bChanged =true; } 
+        case "datecreated": if (!dateToString(this.getDateCreated()).equals(sValue)) {this.setDateCreated(stringToDate(sValue));  bChanged =true; } 
           break;
-        case "follnum": if (!this.getAuthor().equals(sValue)) {this.setFollNum(Integer.parseInt(sValue));  bChanged =true; } 
+        case "follnum": if (this.getFollNum() != Integer.parseInt(sValue)) {this.setFollNum(Integer.parseInt(sValue));  bChanged =true; } 
           break;
-        case "fortype": if (!this.getAuthor().equals(sValue)) {this.setForType(ForType.forValue(sValue));  bChanged =true; } 
+        case "fortype": if (this.getForType()!= ForType.forValue(sValue)) {this.setForType(ForType.forValue(sValue));  bChanged =true; } 
           break;
-        case "goal": if (!this.getAuthor().equals(sValue)) {this.setGoal(sValue);  bChanged =true; } 
+        case "goal": if (!this.getGoal().equals(sValue)) {this.setGoal(sValue);  bChanged =true; } 
           break;
-        case "name": if (!this.getAuthor().equals(sValue)) {this.setName(sValue);  bChanged =true; } 
+        case "name": if (!this.getName().equals(sValue)) {this.setName(sValue);  bChanged =true; } 
           break;
-        case "precnum": if (!this.getAuthor().equals(sValue)) {this.setPrecNum(Integer.parseInt(sValue));  bChanged =true; } 
+        case "precnum": if (this.getPrecNum() != Integer.parseInt(sValue)) {this.setPrecNum(Integer.parseInt(sValue));  bChanged =true; } 
           break;
-        case "projtype": if (!this.getAuthor().equals(sValue)) {this.setProjectType(sValue);  bChanged =true; } 
+        case "projtype": if (!this.getProjectType().equals(sValue)) {this.setProjectType(sValue);  bChanged =true; } 
           break;
         default:
           errHandle.DoError("doChange: unknown key="+sKey, CorpusResearchProject.class);
