@@ -648,8 +648,8 @@ public class CorpusResearchProject {
   // ================ Date/Time values
   public Date getDateChanged() {return this.dtChanged;}
   public Date getDateCreated() {return this.dtCreated;}
-  public void setDateChanged(Date dValue) {if (setDateSetting("Changed", String.valueOf(dValue))) {this.dtChanged = dValue;}}
-  public void setDateCreated(Date dValue) {if (setDateSetting("Created", String.valueOf(dValue))) {this.dtCreated = dValue;}}
+  public void setDateChanged(Date dValue) {if (setDateSetting("Changed", dateToString(dValue))) {this.dtChanged = dValue;}}
+  public void setDateCreated(Date dValue) {if (setDateSetting("Created", dateToString(dValue))) {this.dtCreated = dValue;}}
   // ================ Query Constructor elements
   public int getListQCsize() { return lQueryConstructor.size(); }
   public List<JSONObject> getListQC() { return lQueryConstructor;}
@@ -861,26 +861,41 @@ public class CorpusResearchProject {
    * @return 
    */
   public boolean doChange(String sKey, String sValue) {
+    boolean bChanged = false;
     try {
       // Validate
       if (sKey.isEmpty()) return false;
       switch (sKey.toLowerCase()) {
-        case "author": this.setAuthor(sValue); break;
-        case "comments": this.setComments(sValue); break;
-        case "datechanged": this.setDateChanged(stringToDate(sValue)); break;
-        case "datecreated": this.setDateCreated(stringToDate(sValue)); break;
-        case "follnum": this.setFollNum(Integer.parseInt(sValue)); break;
-        case "fortype": this.setForType(ForType.forValue(sValue)); break;
-        case "goal": this.setGoal(sValue); break;
-        case "name": this.setName(sValue); break;
-        case "precnum": this.setPrecNum(Integer.parseInt(sValue)); break;
-        case "projtype": this.setProjectType(sValue); break;
+        case "author": if (!this.getAuthor().equals(sValue)) {this.setAuthor(sValue); bChanged =true; } 
+          break;
+        case "comments": if (!this.getAuthor().equals(sValue)) {this.setComments(sValue);  bChanged =true; } 
+          break;
+        case "datechanged": 
+          // Special treatment: don't signal change, otherwise date will get changed again
+          this.setDateChanged(stringToDate(sValue)); bChanged=false; 
+          break;
+        case "datecreated": if (!this.getAuthor().equals(sValue)) {this.setDateCreated(stringToDate(sValue));  bChanged =true; } 
+          break;
+        case "follnum": if (!this.getAuthor().equals(sValue)) {this.setFollNum(Integer.parseInt(sValue));  bChanged =true; } 
+          break;
+        case "fortype": if (!this.getAuthor().equals(sValue)) {this.setForType(ForType.forValue(sValue));  bChanged =true; } 
+          break;
+        case "goal": if (!this.getAuthor().equals(sValue)) {this.setGoal(sValue);  bChanged =true; } 
+          break;
+        case "name": if (!this.getAuthor().equals(sValue)) {this.setName(sValue);  bChanged =true; } 
+          break;
+        case "precnum": if (!this.getAuthor().equals(sValue)) {this.setPrecNum(Integer.parseInt(sValue));  bChanged =true; } 
+          break;
+        case "projtype": if (!this.getAuthor().equals(sValue)) {this.setProjectType(sValue);  bChanged =true; } 
+          break;
         default:
           errHandle.DoError("doChange: unknown key="+sKey, CorpusResearchProject.class);
           return false;
       }
-      // Save changes immediately and return the save status
-      return this.Save();
+      // the change date needs to be adapted
+      if (bChanged) this.setDateChanged(new Date());
+      // Return positively
+      return bChanged;
     } catch (Exception ex) {
       errHandle.DoError("doChange error:", ex, CorpusResearchProject.class);
       return false;
