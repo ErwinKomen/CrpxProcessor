@@ -28,6 +28,7 @@ import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.crpx.tools.FileIO;
 import nl.ru.util.ByRef;
+import nl.ru.xmltools.XmlAccess;
 import nl.ru.xmltools.XmlNode;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -55,6 +56,9 @@ public class Extensions extends RuBase {
   private static final QName loc_qnValue = new QName("", "", "value");
   private static final QName loc_qnFs = new QName("", "", "fs");
   private static final QName loc_qnF = new QName("", "", "f");
+  private static final QName loc_qnLabel = new QName("", "", "Label");
+  private static final QName loc_qnText = new QName("", "", "Text");
+  private static final QName loc_qnForest = new QName("", "", "forestId");
 
   // ============== CLASS initialization =======================================
   public Extensions(CorpusResearchProject objPrj) {
@@ -326,6 +330,57 @@ public class Extensions extends RuBase {
   }
 // </editor-fold>
 
+    
+// <editor-fold desc="ru:line">
+    // ------------------------------------------------------------------------------------
+    // Name:   line
+    // Goal:   Return a following or preceding line
+    // History:
+    // 15-05-2012  ERK Created for .NET
+    // 24-09-2013  ERK Added line with only 1 argument
+    // 21/May/2015 ERK Started adaptation for Java
+    // ------------------------------------------------------------------------------------
+    public static Node line(XPathContext objXp, NodeInfo node, int intLines) {
+      XdmNode ndSax;    // Myself, if I am a proper node
+      int nodeKind;     // The kind of object getting passed as argument
+
+      try {
+        // Validate
+        if (node == null) return null;
+        nodeKind = node.getNodeKind();
+        if (nodeKind != Type.ELEMENT) return null;
+        // Get the XdmNode representation of the node
+        ndSax = objSaxDoc.wrap(node);      
+        
+        return null;
+      } catch (Exception ex) {
+        // Show error
+        logger.error("Extensions/line: " + ex.getMessage());
+        // Return failure
+        return null;
+      }
+    }
+    public static Node line(XPathContext objXp, int intLines) {
+
+      try {
+        // Determine which CRP this is
+        CrpFile oCF = getCrpFile(objXp);
+        // Check what the current forest is
+        XmlNode ndxCurrentForest = oCF.ndxCurrentForest;
+        // Get the sentence id
+        String sLineId = oCF.currentSentId;
+        // Find the correct offset
+        // XmlAccess objXmlAcc = ;
+        
+        return null;
+      } catch (Exception ex) {
+        // Show error
+        logger.error("Extensions/line: " + ex.getMessage());
+        // Return failure
+        return null;
+      }
+    }
+// </editor-fold>
 // <editor-fold defaultstate="collapsed" desc="ru:matches">
   // ------------------------------------------------------------------------------------
   // Name:   matches
@@ -419,6 +474,42 @@ public class Extensions extends RuBase {
   }
 // </editor-fold>
 
+// <editor-fold desc="ru:periodgrp">
+  // ------------------------------------------------------------------------------------
+  // Name:   periodgrp
+  // Goal:   Get the period-group name depending on the division [strDiv] selected by the user
+  // History:
+  // 19-02-2013  ERK Created for .NET
+  // 01/sep/2015 ERK Transformed to Java
+  // ------------------------------------------------------------------------------------
+  public static String periodgrp(XPathContext objXp,Value varText) {
+    try {
+      return periodgrp(objXp, varText.getStringValue());
+    } catch (Exception ex) {
+      // Show error
+      logger.error("Extensions/periodgrp: " + ex.getMessage());
+      // Return failure
+      return "";
+    }
+  }
+  public static String periodgrp(XPathContext objXp,String strDiv) {
+    try {
+      // Validate
+      if (strDiv.isEmpty()) return "";
+      // use RuBase function
+      String sRes = RuPeriodGrp(objXp, strDiv);
+      // Return the result
+      return sRes;
+  
+    } catch (Exception ex) {
+      // Show error
+      logger.error("Extensions/periodgrp: " + ex.getMessage());
+      // Return failure
+      return "";
+    }
+  }
+// </editor-fold>
+
 // <editor-fold defaultstate="collapsed" desc="ru:NodeText">
   // ----------------------------------------------------------------------------------------------------------
   // Name :  NodeText
@@ -457,48 +548,82 @@ public class Extensions extends RuBase {
   }
 // </editor-fold>
     
-// <editor-fold desc="ru:line">
-    // ------------------------------------------------------------------------------------
-    // Name:   line
-    // Goal:   Return a following or preceding line
-    // History:
-    // 15-05-2012  ERK Created for .NET
-    // 24-09-2013  ERK Added line with only 1 argument
-    // 21/May/2015 ERK Started adaptation for Java
-    // ------------------------------------------------------------------------------------
-    public static Node line(XPathContext objXp, NodeInfo node, int intLines) {
-      XdmNode ndSax;    // Myself, if I am a proper node
-      int nodeKind;     // The kind of object getting passed as argument
+// <editor-fold desc="ru:refnum">
+  // ------------------------------------------------------------------------------------
+  // Name:   refnum
+  // Goal:   Get the "internal coreference" number of this node (it must be a node)
+  // History:
+  // 18-01-2013  ERK Created for .NET
+  // 01/sep/2015 ERK Transformed to Java
+  // ------------------------------------------------------------------------------------
+  public static String refnum(XPathContext objXp, NodeInfo node) {
+    XdmNode ndSax;    // Myself, if I am a proper node
+    int nodeKind;     // The kind of object getting passed as argument
 
-      try {
-        // Validate
-        if (node == null) return null;
-        nodeKind = node.getNodeKind();
-        if (nodeKind != Type.ELEMENT) return null;
-        // Get the XdmNode representation of the node
-        ndSax = objSaxDoc.wrap(node);      
-        
-        return null;
-      } catch (Exception ex) {
-        // Show error
-        logger.error("Extensions/line: " + ex.getMessage());
-        // Return failure
-        return null;
-      }
+    try {
+      // Validate
+      if (node == null) return null;
+      nodeKind = node.getNodeKind();
+      if (nodeKind != Type.ELEMENT) return null;
+      // Get the XdmNode representation of the node
+      ndSax = objSaxDoc.wrap(node);      
+      return refnum(objXp, ndSax);
+    } catch (Exception ex) {
+      // Show error
+      logger.error("Extensions/refnum: " + ex.getMessage());
+      // Return failure
+      return "";
     }
-    public static Node line(XPathContext objXp, int intLines) {
-
-      try {
-        // Validate
-        
-        return null;
-      } catch (Exception ex) {
-        // Show error
-        logger.error("Extensions/line: " + ex.getMessage());
-        // Return failure
-        return null;
+  }
+  private static String refnum(XPathContext objXp, XdmNode ndSax) {
+    XdmSequenceIterator colEleaf = null;  // Iterate through the children of <eTree>
+    XdmNode ndChild = null;
+    String sRes = "";
+    String sLabel = "";
+    String sLast = "";
+    String[] arParts;
+    
+    try {
+      // Validate
+      if (ndSax == null || !ndSax.getNodeName().toString().equals("eTree")) return "";
+      // Get the label of this node
+      sLabel = ndSax.getAttributeValue(loc_qnLabel);
+      // (1) Try get the number of the label
+      arParts = sLabel.split("-");
+      if (arParts.length>0) {
+        // Get the last part
+        sLast = arParts[arParts.length-1];
+        // Check if this is numeric
+        if (Integer.getInteger(sLast)>0) return sLast;
       }
+      // (2) the refnum is not part of the label
+      // Go to first <eLeaf> child
+      colEleaf = ndSax.axisIterator(Axis.CHILD, loc_qnF);
+      while (colEleaf.hasNext()) {
+        // Get this child
+        ndChild = (XdmNode) colEleaf.next();
+        if (ndChild.getNodeName().toString().equals("eLeaf")) {
+          // Get the value of the @Text attribute
+          sLabel = ndChild.getAttributeValue(loc_qnText);
+          arParts = sLabel.split("-");
+          if (sLabel.startsWith("*")) {
+            // Get the string following the last hyphen
+            sLast = arParts[arParts.length-1];
+            // Check if this is numeric
+            if (Integer.getInteger(sLast)>0) return sLast;
+          }
+        }
+      }     
+      // Return the result
+      return sRes;
+  
+    } catch (Exception ex) {
+      // Show error
+      logger.error("Extensions/refnum: " + ex.getMessage());
+      // Return failure
+      return "";
     }
+  }
 // </editor-fold>
 
 // <editor-fold defaultstate="collapsed" desc="Private functions">

@@ -128,6 +128,8 @@ public class CorpusResearchProject {
   List<JSONObject> lQueryConstructor = new ArrayList<>();
   List<JSONObject> lDbFeatList = new ArrayList<>();
   List<JSONObject> lPeriodInfo = new ArrayList<>();
+  List<JSONObject> lDivisionList = new ArrayList<>();
+  List<JSONObject> lMemberList = new ArrayList<>();
 
   // ==================== Class initialisations ================================
   public CorpusResearchProject(boolean bUseSaxon) {
@@ -287,6 +289,12 @@ public class CorpusResearchProject {
       // Load the list of database features
       ReadCrpList(lDbFeatList, "./descendant::DbFeatList/child::DbFeat", 
                   "DbFeatId;Name;Pre;QCid;FtNum", "");
+      // Load the list of divisions
+      ReadCrpList(lDivisionList, "./descendant::PeriodInfo/child::Division", 
+                  "DivisionId;Name;Descr", "");
+      // Load the list of members
+      ReadCrpList(lMemberList, "./descendant::Division/child::Member", 
+                  "MemberId;DivisionId;PeriodId;Period;Group;Order", "Text");
       // Check directories: this is no longer needed
       //   since we WILL NOT be using these directories anyway...
       /*
@@ -670,6 +678,12 @@ public class CorpusResearchProject {
   // ================ Database Feature list elements
   public int getListDbFeatSize() { return lDbFeatList.size(); }
   public JSONObject getListDbFeatItem(int iValue) {return lDbFeatList.get(iValue); }
+  // ================ Division list elements
+  public List<JSONObject> getListDivision() { return lDivisionList; }
+  public JSONObject getListDivisionItem(int iValue) {return lDivisionList.get(iValue); }
+  // ================ Member list elements
+  public List<JSONObject> getListMember() { return lMemberList; }
+  public JSONObject getListMemberItem(int iValue) {return lMemberList.get(iValue); }
   // ================ Other objects ============================================
   public SearchManager getSearchManager() {return this.searchMan; }
   public void setSearchManager(SearchManager oThis) {this.searchMan = oThis;}

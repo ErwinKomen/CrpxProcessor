@@ -20,6 +20,7 @@ import net.sf.saxon.s9api.XPathSelector;
 import net.sf.saxon.s9api.XdmItem;
 import net.sf.saxon.s9api.XdmNode;
 import nl.ru.crpx.project.CorpusResearchProject;
+import nl.ru.crpx.project.CorpusResearchProject.ProjType;
 import nl.ru.crpx.tools.ErrHandle;
 import static nl.ru.crpx.xq.English.VernToEnglish;
 import nl.ru.util.json.JSONObject;
@@ -435,6 +436,66 @@ public class RuBase /* extends Job */ {
       return "";
     }
   }
+  // ------------------------------------------------------------------------------------
+  // Name:   RuPeriodGrp
+  // Goal:   Get the period-group name depending on the division [strDiv] selected by the user
+  // History:
+  // 19-02-2013  ERK Created for .NET
+  // 01/sep/2015 ERK Transformed to Java
+  // ------------------------------------------------------------------------------------
+  static String RuPeriodGrp(XPathContext objXp,String strDiv) {
+    String strGroup = "";
+        
+    try  {
+      // Validate
+      if (strDiv.isEmpty()) return "";
+      // Determine which CRP this is
+      CrpFile oCF = getCrpFile(objXp);
+      CorpusResearchProject crpThis = oCF.crpThis;
+      // Initialize, depending on project type
+      switch(oCF.crpThis.intProjType) {
+        case ProjPsdx:
+          // Get the division id with this name
+          List<JSONObject> lDiv = crpThis.getListDivision();
+          for (JSONObject oOneDiv : lDiv) {
+            // Is this the correct division?
+            if (oOneDiv.getString("Name").equals(strDiv)) {
+              // Get the id of this division
+              int intDivId = oOneDiv.getInt("DivisionId");
+              // Get the current period
+              String strCurrentPeriod = oCF.currentPeriod;
+              // Get the group name to which the current period belongs
+              List<JSONObject> lMem = crpThis.getListMember();
+              for (JSONObject oOneMem : lMem) {
+                if (oOneMem.getInt("DivisionId") == intDivId && oOneDiv.getString("Period").equals(strCurrentPeriod)) {
+                  // Pick out the group name from here
+                  strGroup = oOneMem.getString("Group");
+                  break;
+                }
+              }
+              break;
+            }
+          }
+          break;
+        case ProjNegra:
+          return "";
+        case ProjFolia:
+          return "";
+        case ProjPsd:
+          return "";
+        default:
+          return "";
+      }
+      // Return the result
+      return strGroup;      
+    } catch (Exception ex) {
+      // Warn user
+      errHandle.DoError("RuBase/RuPeriodGrp error", ex, RuBase.class);
+      // Return failure
+      return "";
+    }      
+  }
+
 // </editor-fold>
 // <editor-fold defaultstate="collapsed" desc="Support functions for Extensions">
 

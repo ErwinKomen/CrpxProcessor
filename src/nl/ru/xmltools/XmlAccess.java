@@ -72,5 +72,6 @@ public abstract class XmlAccess {
   public abstract DataObject getHitSyntax(String sLngName, String sLocs, String sLocw);
   public abstract JSONObject getHitContext(String sLngName, String sLocs, String sLocw, int iPrecNum, int iFollNum);
   public abstract boolean hasAncestor(XmlNode ndThis, String sType, String sValue);
+  public abstract XmlNode getOffsetNode(String sLocs, int iOffset);
   
 }

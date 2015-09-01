@@ -31,9 +31,11 @@ public class CrpFile {
   public File flThis;                   // File that is being treated
   public int QCcurrentLine;             // Current QC line of project being executed
   public XmlNode ndxCurrentForest;      // The sentence element we are now working on
+  public String currentSentId;          // ID of the currently treated sentence
   public XmlNode ndxHeader;             // The header object of this file
   public DocumentBuilder oSaxDoc;       // The document-builder used for this CRP-File combination
   public XmlForest objProcType;         // My own copy of the XmlForest processor
+  public String currentPeriod;          // Downwards compatibility: current period
   // ================= Local variables =========================================
   private Processor objSaxon;           // The processor (shared among threads)
   private ErrHandle errHandle;          // My own access to the error handler
@@ -47,6 +49,7 @@ public class CrpFile {
       this.flThis = fFile;
       this.QCcurrentLine = -1;
       this.ndxCurrentForest = null;
+      this.currentPeriod = "";
       // Set the processor
       this.objSaxon = oProc;
       // Create a new document builder

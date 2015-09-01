@@ -193,6 +193,31 @@ public class XmlAccessPsdx extends XmlAccess {
   }
   
   /**
+   * getOffsetNode
+   *    Get the sentence that is [iOffset] away from the current one
+   * 
+   * @param sLocs
+   * @param iOffset
+   * @return 
+   */
+  @Override
+  public XmlNode getOffsetNode(String sLocs, int iOffset) {
+    try {
+      // Should at least read current sentence
+      if (!readSent(sLocs)) return null;
+      // Check if this is not the current sentence
+      if (iOffset!=0) {
+        if (!readOffsetSent(iOffset)) return null;
+      }
+      // Return the result
+      return ndxSent;
+
+    } catch (Exception ex) {
+      logger.error("getOffsetNode failed", ex);
+      return null;
+    }
+  }
+  /**
    * getHitContext
    *    Given the sentence in [ndxSentence] get a JSON representation of 
    *    this sentence that includes:
@@ -201,6 +226,7 @@ public class XmlAccessPsdx extends XmlAccess {
    *      'fol': 'text following the hit'}
 
    * @param sLngName
+   * @param sLocs
    * @param sLocw
    * @param iPrecNum
    * @param iFollNum

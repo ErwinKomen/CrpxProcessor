@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import javax.xml.xpath.XPathExpressionException;
 import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.XQueryEvaluator;
@@ -56,6 +57,7 @@ public class ExecutePsdxStream extends ExecuteXml {
   private static final QName loc_xq_EtreeId = new QName("", "", "TreeId");
   private static final QName loc_xq_Section = new QName("", "", "Section");
   private static final QName loc_xq_Location = new QName("", "", "Location");
+  private static final QName loc_xq_subtype = new QName("", "", "subtype");
 
   // ============ Local variables for "XqF" ====================================
   // (none apparently)
@@ -587,6 +589,15 @@ public class ExecutePsdxStream extends ExecuteXml {
       // (a) Read the first <forest>, including the <teiHeader>
       if (!objProcType.FirstForest(ndxForest, ndxHeader, strForestFile)) 
         return errHandle.DoError("ExecuteQueriesFile could not process firest forest of " + fName);
+      
+      // Downwards compatibility: determine (if possible) the CurrentPeriod
+      oCrpFile.currentPeriod = "";
+      XmlNode ndxCreation = ndxHeader.argValue.SelectSingleNode("./descendant::creation");
+      if (ndxCreation != null) {
+        String sSubType = ndxCreation.getAttributeValue(loc_xq_subtype);
+        oCrpFile.currentPeriod = sSubType;
+      }
+      
       // Store the [ndxHeader] in the CrpFile object
       oCrpFile.ndxHeader = ndxHeader.argValue;
       // Loop through the file in <forest> chunks
@@ -605,6 +616,8 @@ public class ExecutePsdxStream extends ExecuteXml {
         strExpPsd = ""; strExpText = ""; intLastId = -1;
         // Make this forest available to the Xquery Extensions connected with *this* thread
         oCrpFile.ndxCurrentForest = ndxForest.argValue;
+        // Make the current sentence id available too
+        oCrpFile.currentSentId = String.valueOf(intForestId);
         // Check for start of section if this is a database?
         if (this.bIsDbase) {
           String strNextFile = "";  // points to the next file
@@ -826,7 +839,7 @@ public class ExecutePsdxStream extends ExecuteXml {
 
       // Return positively
       return true;
-    } catch (RuntimeException | SaxonApiException ex) {
+    } catch (RuntimeException | SaxonApiException | XPathExpressionException ex) {
       // Warn user
       errHandle.DoError("ExecutePsdxStream/ExecuteQueriesFile runtime error: " + ex.getMessage() + "\r\n");
       // Return failure
