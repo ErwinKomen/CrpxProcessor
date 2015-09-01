@@ -14,7 +14,7 @@ import net.sf.saxon.expr.XPathContext;
 import net.sf.saxon.om.NodeInfo;
 import net.sf.saxon.s9api.Axis;
 import net.sf.saxon.s9api.QName;
-import net.sf.saxon.s9api.SaxonApiException;
+// import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.SaxonApiUncheckedException;
 import net.sf.saxon.s9api.XdmAtomicValue;
 import net.sf.saxon.s9api.XdmNode;
