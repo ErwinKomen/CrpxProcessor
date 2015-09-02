@@ -6,15 +6,19 @@
 
 package nl.ru.crpx.xq;
 
+import java.io.StringReader;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import net.sf.saxon.expr.XPathContext;
 import net.sf.saxon.om.NodeInfo;
+import net.sf.saxon.om.SequenceIterator;
 import net.sf.saxon.s9api.Axis;
 import net.sf.saxon.s9api.QName;
-// import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.SaxonApiUncheckedException;
 import net.sf.saxon.s9api.XdmAtomicValue;
 import net.sf.saxon.s9api.XdmNode;
@@ -28,11 +32,14 @@ import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.crpx.tools.FileIO;
 import nl.ru.util.ByRef;
+import static nl.ru.util.StringUtil.isNumeric;
 import nl.ru.xmltools.XmlAccess;
 import nl.ru.xmltools.XmlNode;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 
 /**
  *
@@ -56,6 +63,7 @@ public class Extensions extends RuBase {
   private static final QName loc_qnValue = new QName("", "", "value");
   private static final QName loc_qnFs = new QName("", "", "fs");
   private static final QName loc_qnF = new QName("", "", "f");
+  private static final QName loc_qnEleaf = new QName("", "", "eLeaf");
   private static final QName loc_qnLabel = new QName("", "", "Label");
   private static final QName loc_qnText = new QName("", "", "Text");
   private static final QName loc_qnForest = new QName("", "", "forestId");
@@ -340,6 +348,7 @@ public class Extensions extends RuBase {
     // 24-09-2013  ERK Added line with only 1 argument
     // 21/May/2015 ERK Started adaptation for Java
     // ------------------------------------------------------------------------------------
+  /*
     public static Node line(XPathContext objXp, NodeInfo node, int intLines) {
       XdmNode ndSax;    // Myself, if I am a proper node
       int nodeKind;     // The kind of object getting passed as argument
@@ -359,20 +368,38 @@ public class Extensions extends RuBase {
         // Return failure
         return null;
       }
-    }
+    } */
     public static Node line(XPathContext objXp, int intLines) {
-
+      XmlNode ndxRes = null;
+      Node ndxBack = null;
       try {
         // Determine which CRP this is
         CrpFile oCF = getCrpFile(objXp);
-        // Check what the current forest is
-        XmlNode ndxCurrentForest = oCF.ndxCurrentForest;
-        // Get the sentence id
-        String sLineId = oCF.currentSentId;
-        // Find the correct offset
-        // XmlAccess objXmlAcc = ;
+        if (intLines == 0) 
+          ndxRes = oCF.ndxCurrentForest;
+        else {
+          switch(oCF.crpThis.intProjType) {
+            case ProjPsdx:
+              String sNewSentId = String.valueOf(Integer.parseInt(oCF.currentSentId) + intLines);
+              ByRef<XmlNode> ndxNew = new ByRef(null);
+              if (oCF.objProcType.OneForest(ndxNew, sNewSentId)) {
+                ndxRes = ndxNew.argValue;
+              }
+              break;
+          }
+        }
         
-        return null;
+        // Convert Xdm or Xml node to Node
+        if (ndxRes == null)
+          ndxBack = null;
+        else {
+          //ndxBack = (Node) ndxRes.getUnderlyingNode(); // dbuilder.parse(ndxRes.toString());
+          //ndxBack = (Node) ndxRes.getExternalNode();
+          ndxBack = dbuilder.parse(new InputSource(new StringReader(ndxRes.toString())));
+        }
+        
+        // Return the result
+        return ndxBack;
       } catch (Exception ex) {
         // Show error
         logger.error("Extensions/line: " + ex.getMessage());
@@ -557,10 +584,19 @@ public class Extensions extends RuBase {
   // 01/sep/2015 ERK Transformed to Java
   // ------------------------------------------------------------------------------------
   public static String refnum(XPathContext objXp, NodeInfo node) {
+    // NodeInfo node;
     XdmNode ndSax;    // Myself, if I am a proper node
     int nodeKind;     // The kind of object getting passed as argument
 
     try {
+      /* if (lstNode.getLength() ==0) {
+        ndSax = (XdmNode) lstNode.item(0);
+        return refnum(objXp, ndSax);
+      } else {
+        ndSax = (XdmNode) lstNode.item(0);
+        return refnum(objXp, ndSax);
+      }
+      */
       // Validate
       if (node == null) return null;
       nodeKind = node.getNodeKind();
@@ -568,12 +604,28 @@ public class Extensions extends RuBase {
       // Get the XdmNode representation of the node
       ndSax = objSaxDoc.wrap(node);      
       return refnum(objXp, ndSax);
+      
+      
     } catch (Exception ex) {
       // Show error
       logger.error("Extensions/refnum: " + ex.getMessage());
       // Return failure
       return "";
     }
+  }
+  
+  public static String refnum(XPathContext objXp, SequenceIterator sIt) {
+    int iCheck = 0;
+    try {
+      while (sIt.next() != null) {
+        iCheck++;
+      }
+      logger.debug("refnum length = " + iCheck);
+    } catch (XPathException ex) {
+      Logger.getLogger(Extensions.class.getName()).log(Level.SEVERE, null, ex);
+    }
+      
+    return "";
   }
   private static String refnum(XPathContext objXp, XdmNode ndSax) {
     XdmSequenceIterator colEleaf = null;  // Iterate through the children of <eTree>
@@ -594,11 +646,11 @@ public class Extensions extends RuBase {
         // Get the last part
         sLast = arParts[arParts.length-1];
         // Check if this is numeric
-        if (Integer.getInteger(sLast)>0) return sLast;
+        if (isNumeric(sLast)) return sLast;
       }
       // (2) the refnum is not part of the label
       // Go to first <eLeaf> child
-      colEleaf = ndSax.axisIterator(Axis.CHILD, loc_qnF);
+      colEleaf = ndSax.axisIterator(Axis.CHILD, loc_qnEleaf);
       while (colEleaf.hasNext()) {
         // Get this child
         ndChild = (XdmNode) colEleaf.next();
@@ -610,7 +662,7 @@ public class Extensions extends RuBase {
             // Get the string following the last hyphen
             sLast = arParts[arParts.length-1];
             // Check if this is numeric
-            if (Integer.getInteger(sLast)>0) return sLast;
+            if (isNumeric(sLast)) return sLast;
           }
         }
       }     

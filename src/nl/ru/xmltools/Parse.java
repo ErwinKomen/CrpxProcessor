@@ -119,7 +119,7 @@ public class Parse {
   // 13/may/2015 ERK Re-written for JAVA
   // ----------------------------------------------------------------------------------------------------------
   public boolean DoParseXq(Query qThis, XQueryEvaluator qEval, DocumentBuilder objSaxDoc, Configuration xconfig, CrpFile oCrpThis,
-        XmlNode ndxThis, JSONArray colBackJson, boolean bReset) throws SaxonApiException {
+        XmlNode ndxThis, JSONArray colBackJson, boolean bReset) {
     String strQname = "(empty)";    // Initialize the query name
     XQueryEvaluator objQuery;
     XdmDestination oDest;           // Query output object
@@ -147,7 +147,11 @@ public class Parse {
       DynamicQueryContext dqc = objQuery.getUnderlyingQueryContext();
       dqc.setParameter("crpfile", oCrpThis);
       // Execute the query with the set context items
-      objQuery.run(new DOMDestination(pdxDoc));
+      try {
+        objQuery.run(new DOMDestination(pdxDoc));
+      } catch (SaxonApiException ex) {
+        return errHandle.DoError("Runtime error while executing [" + strQname + "]: ", ex, Parse.class);
+      }
       /* } */
       // Get all the <forest> results from the [pdxDoc] answer
       NodeList ndList = pdxDoc.getElementsByTagName("forest");

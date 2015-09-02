@@ -158,7 +158,38 @@ public class XmlForestPsdxIndex extends XmlForest {
   // 20/Jul/2015  ERK Created for Java
   // ----------------------------------------------------------------------------------------------------------
   public boolean OneForest(ByRef<XmlNode> ndxForest, String sSentId) {
-    return false;
+    XmlNode ndxWork;      // Working node
+    String strNext = "";  // Another chunk of <forest>
+
+    try {
+      // Validate
+      if (loc_pdxThis == null)  return false;
+      // Check for end of stream
+      if (IsEnd()) {
+        ndxForest.argValue = null;
+        return true;
+      }
+      // More validateion
+      if (loc_xrdFile==null) return false;
+      // Read this <forest>
+      strNext = loc_xrdFile.getOneLine(sSentId);
+      // Double check what we got
+      if (strNext == null || strNext.length() == 0) {
+        ndxForest.argValue = null;
+        return true;
+      }      
+      // Load this line...
+      loc_pdxThis.LoadXml(strNext);
+      // Find and return the indicated sentence
+      ndxForest.argValue = loc_pdxThis.SelectSingleNode(loc_path_Forest);
+      // Return positively
+      return true;
+    } catch (Exception ex) {
+      // Warn user
+      objErr.DoError("XmlForest/OneForest error: " + ex.getMessage() + "\r\n");
+      // Return failure
+      return false;
+    }
   }
 
   @Override
@@ -224,18 +255,14 @@ public class XmlForestPsdxIndex extends XmlForest {
 
     try {
       // Validate
-      if (loc_pdxThis == null) {
-        return false;
-      }
+      if (loc_pdxThis == null)  return false;
       // Check for end of stream
       if (IsEnd()) {
         ndxForest.argValue = null;
         return true;
       }
       // More validateion
-      if (loc_xrdFile==null) {
-        return false;
-      }
+      if (loc_xrdFile==null) return false;
       // Try to read another piece of <forest> xml
       if (! loc_xrdFile.EOF) {
         // Read this <forest>

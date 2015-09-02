@@ -19,7 +19,9 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.text.Collator;
 import java.text.Normalizer;
+import java.text.NumberFormat;
 import java.text.ParseException;
+import java.text.ParsePosition;
 import java.text.RuleBasedCollator;
 import java.util.Iterator;
 import java.util.Map;
@@ -192,6 +194,13 @@ public class StringUtil {
     return cs == null || cs.length() == 0;
   }
    
+  public static boolean isNumeric(String str)
+  {
+    NumberFormat formatter = NumberFormat.getInstance();
+    ParsePosition pos = new ParsePosition(0);
+    formatter.parse(str, pos);
+    return str.length() == pos.getIndex();
+  }
 	/**
 	 * Abbreviates a string for display if necessary.
 	 *

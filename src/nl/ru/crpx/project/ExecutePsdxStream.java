@@ -545,6 +545,7 @@ public class ExecutePsdxStream extends ExecuteXml {
     JSONObject[] arXqfSub;      // An array of JSONObject items containing subcat-count pairs
     DataObjectList arHitList;   // List with hit information per hit: file // qc // number
     XQueryEvaluator[] arQeval;  // Our own query evaluators
+    JSONObject oTemp = new JSONObject();
     
     // Note: this uses [objProcType, which is a 'protected' variable from [Execute]
     try {
@@ -607,6 +608,8 @@ public class ExecutePsdxStream extends ExecuteXml {
         // Get a percentage of where we are
         if (!objProcType.Percentage(intPtc)) return errHandle.DoError("Could not find out where we are");
         
+        // =========== DEBUG
+        oTemp.put("forestId", intForestId.argValue);
        
         // TODO: convey the status to a global status gathering object for this Execute object??
         
@@ -617,7 +620,7 @@ public class ExecutePsdxStream extends ExecuteXml {
         // Make this forest available to the Xquery Extensions connected with *this* thread
         oCrpFile.ndxCurrentForest = ndxForest.argValue;
         // Make the current sentence id available too
-        oCrpFile.currentSentId = String.valueOf(intForestId);
+        oCrpFile.currentSentId = String.valueOf(intForestId.argValue);
         // Check for start of section if this is a database?
         if (this.bIsDbase) {
           String strNextFile = "";  // points to the next file
@@ -641,6 +644,9 @@ public class ExecutePsdxStream extends ExecuteXml {
         if (bDoForest) {
           // Yes, start processing this <forest> for all queries in [arQuery]
           for (int k=0;k<this.arQuery.length;k++) {
+            // =========== DEBUG
+            oTemp.put("k", k);
+            oTemp.put("query", arQuery[k].Name);
             // Make the QC line number available
             oCrpFile.QCcurrentLine = k+1;
             // Make sure there is no interrupt
@@ -839,9 +845,13 @@ public class ExecutePsdxStream extends ExecuteXml {
 
       // Return positively
       return true;
-    } catch (RuntimeException | SaxonApiException | XPathExpressionException ex) {
+    } catch (RuntimeException | XPathExpressionException ex) {
+      // ============ DEBUG
+      logger.debug("forestId=" + oTemp.getInt("forestId") + 
+              " k=" + oTemp.getInt("k") + 
+              " query=" + oTemp.getString("query"));
       // Warn user
-      errHandle.DoError("ExecutePsdxStream/ExecuteQueriesFile runtime error: " + ex.getMessage() + "\r\n");
+      errHandle.DoError("ExecutePsdxStream/ExecuteQueriesFile runtime error: " + ex.getMessage()+ "\r\n");
       // Return failure
       return false;
     } 
