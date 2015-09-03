@@ -57,15 +57,21 @@ public class ErrHandle {
   
   public boolean DoError(List<JSONObject> arErr, Exception ex, Class cls) {
     // Validate
-    if (arErr != null) {
+    if (arErr == null) {
+      // Debugging
+      int i=1;
+    } else {
       // Process all errors
       for (int i=0;i<arErr.size();i++) {
         JSONObject oThis = new JSONObject();
         JSONObject arOneErr = arErr.get(i);
         if (arOneErr.has("msg") && arOneErr.has("ex") && arOneErr.has("cls")) {
+          oThis = arOneErr;
+          /*
           oThis.put("msg", arOneErr.getString("msg"));
           oThis.put("cls", arOneErr.getString("cls"));
           oThis.put("ex", arOneErr.getString("ex"));
+                  */
         } else {
           oThis.put("msg", arErr.get(i).toString());
           if (ex==null) oThis.put("ex", ""); else oThis.put("ex", ex.getMessage());
@@ -77,7 +83,9 @@ public class ErrHandle {
         // Add the object to the static stack
         addErr(oThis);
       }
-      Logger.getLogger(cls).error(arErr.toString(), ex);
+      synchronized(arErr) {
+        Logger.getLogger(cls).error(arErr.toString(), ex);
+      }
     }
     // Return failure
     return false;
@@ -128,7 +136,8 @@ public class ErrHandle {
     oErr.put("cls", "Extensions");
     oErr.put("ex", "");
     // Add the error to the list
-    lErrStack.add(oErr);
+    addErr(oErr);
+    // lErrStack.add(oErr);
     // Return failure
     return false;
   }
@@ -157,15 +166,29 @@ public class ErrHandle {
   private void addErr(JSONObject oThis) {
     boolean bFound = false;
     
-    // Check if this object is not already  on the stack (prevent equal objects)
-    for (int i=0;i<lErrStack.size();i++) {
-      if (oThis.getString("msg").equals(lErrStack.get(i).getString("msg")) &&
-              oThis.getString("cls").equals(lErrStack.get(i).getString("cls")) &&
-              oThis.getString("ex").equals(lErrStack.get(i).getString("ex"))) {
-        bFound = true; break;
+    synchronized(lErrStack) {
+      // If this object is an Xquery error object, it should come FIRST
+      if (oThis.has("Type") && oThis.has("Name")) {
+        // Yes, this is an Xquery error object -- do we have one already?
+        if (lErrStack.size() > 0) {
+          if (!lErrStack.get(0).has("Type") && !lErrStack.get(0).has("Name")) {
+            // The first one in the stack is not the Xquery error, so insert it there
+            lErrStack.add(0, oThis);
+            return;
+          }
+        }
       }
+
+      // Check if this object is not already  on the stack (prevent equal objects)
+      for (int i=0;i<lErrStack.size();i++) {
+        if (oThis.getString("msg").equals(lErrStack.get(i).getString("msg")) &&
+                oThis.getString("cls").equals(lErrStack.get(i).getString("cls")) &&
+                oThis.getString("ex").equals(lErrStack.get(i).getString("ex"))) {
+          bFound = true; break;
+        }
+      }
+      // Add the object to the static stack
+      if (!bFound) lErrStack.add(oThis);
     }
-    // Add the object to the static stack
-    if (!bFound) lErrStack.add(oThis);
   }
 }
