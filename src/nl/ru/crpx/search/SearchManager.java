@@ -379,6 +379,9 @@ public class SearchManager {
   public JobXqF searchXqF(CorpusResearchProject objPrj, String userId, SearchParameters par,
           Job myParent) 
           throws QueryException, InterruptedException {
+    // Validate interrupt
+    if (objPrj.errHandle.bInterrupt) 
+      return null;
     // Only copy the query parameter
     SearchParameters parBasic = par.copyWithOnly("query");
     // Then add the "file" parameter

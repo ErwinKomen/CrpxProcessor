@@ -146,6 +146,9 @@ public class Parse {
       // Set the dynamic context: a pointer to the CrpFile
       DynamicQueryContext dqc = objQuery.getUnderlyingQueryContext();
       dqc.setParameter("crpfile", oCrpThis);
+      // Additional parameters to identify the query
+      dqc.setParameter("qfile", qThis.QueryFile);
+      dqc.setParameter("sentid", ndxThis.getAttributeValue(loc_xq_forestId));
       // Execute the query with the set context items
       try {
         objQuery.run(new DOMDestination(pdxDoc));

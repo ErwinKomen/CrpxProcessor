@@ -6,6 +6,7 @@
 package nl.ru.crpx.xq;
 
 import java.io.File;
+import javax.xml.parsers.DocumentBuilderFactory;
 import net.sf.saxon.s9api.DocumentBuilder;
 import net.sf.saxon.s9api.Processor;
 import nl.ru.crpx.project.CorpusResearchProject;
@@ -34,6 +35,7 @@ public class CrpFile {
   public String currentSentId;          // ID of the currently treated sentence
   public XmlNode ndxHeader;             // The header object of this file
   public DocumentBuilder oSaxDoc;       // The document-builder used for this CRP-File combination
+  public DocumentBuilderFactory oDocFac;// The DOM document-builder used for this CRP-File combination
   public XmlForest objProcType;         // My own copy of the XmlForest processor
   public String currentPeriod;          // Downwards compatibility: current period
   // ================= Local variables =========================================
@@ -54,6 +56,7 @@ public class CrpFile {
       this.objSaxon = oProc;
       // Create a new document builder
       oSaxDoc = objSaxon.newDocumentBuilder();
+      oDocFac = DocumentBuilderFactory.newInstance();
       // Create a new xml-processor type
       // Set the XmlForest element correctly
       switch (this.crpThis.getForType()) {

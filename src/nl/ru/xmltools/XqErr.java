@@ -6,10 +6,12 @@
 
 package nl.ru.xmltools;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import nl.ru.crpx.project.Qinfo;
 import static nl.ru.crpx.project.CrpGlobal.Status;
+import nl.ru.crpx.tools.FileIO;
 import nl.ru.util.ByRef;
 import nl.ru.util.json.JSONException;
 import nl.ru.util.json.JSONObject;
@@ -72,6 +74,9 @@ public class XqErr {
     try {
       // Validate
       if (arQinfo == null) return "(empty query array)";
+      // Make sure we only have the local part of the file
+      // strFile = (new File(strFile)).getName();
+      strFile = FileIO.getFileNameWithoutExtension(strFile);
       // Remove the temp prefix
       if (strFile.startsWith("temp_")) { strFile = strFile.substring(5);}
       // Visit all the queries
@@ -137,28 +142,54 @@ public class XqErr {
   // ----------------------------------------------------------------------------------------------------------
   public void AddXqErr(ByRef<String> strType, ByRef<String> strName, ByRef<Integer> intLocalPos, 
            ByRef<Integer> intCol, String strDescr, String strQuery) {
-    String strCode;   // What we report to the user
-    
     try {
-      // Make a combined description
-      strCode = "Error executing query " + strQuery + ":" + "\r\n";
-      strCode += "The error is in the [" + strType.argValue + "] called [" + strName.argValue + "]" + "\r\n";
-      strCode += "Line number: " + intLocalPos.argValue + "\r\n";
-      strCode += "Position: " + intCol.argValue + "\r\n";
-      strCode += "Xquery error message:" + "\r\n" + strDescr;
-      // Compile the error into a JSONObject
-      JSONObject oErr = new JSONObject();
-      oErr.put("Type", strType.argValue);
-      oErr.put("Name", strName.argValue);
-      oErr.put("Line", intLocalPos.argValue);
-      oErr.put("Col", intCol.argValue);
-      oErr.put("Descr", strDescr);
-      oErr.put("Code", strCode);
+      JSONObject oErr = getXqErrObject(strType.argValue, strName.argValue, intLocalPos.argValue,
+              intCol.argValue, strDescr, strQuery);
       // Add the error to the global Qerr list
       this.lQerr.add(oErr);
     }  catch (JSONException ex) {
       // Warn user
-      logger.error("ExecutePsdxStream/ExecuteQueries error", ex);
+      logger.error("XqErr/ExecuteQueries error", ex);
+    }
+  }
+  
+  /**
+   * getXqErrObject
+   *    Construct an Xquery error object
+   * 
+   * @param strType
+   * @param strName
+   * @param iLocalPos
+   * @param iCol
+   * @param sDescr
+   * @param sQuery
+   * @return 
+   */
+  public JSONObject getXqErrObject(String strType, String strName, int iLocalPos, 
+          int iCol, String sDescr, String sQuery) {
+    JSONObject oErr = new JSONObject();
+    String strCode;   // What we report to the user
+
+    try {
+      // Make a combined description
+      strCode = "Error executing query " + sQuery + ":" + "\r\n";
+      strCode += "The error is in the [" + strType + "] called [" + strName + "]" + "\r\n";
+      strCode += "Line number: " + iLocalPos + "\r\n";
+      strCode += "Position: " + iCol + "\r\n";
+      strCode += "Xquery error message:" + "\r\n" + sDescr;
+      // Compile the error into a JSONObject
+      oErr.put("Type", strType);
+      oErr.put("Name", strName);
+      oErr.put("Line", iLocalPos);
+      oErr.put("Col", iCol);
+      oErr.put("Descr", sDescr);
+      oErr.put("Code", strCode);
+      // Return this object
+      return oErr;
+    }  catch (JSONException ex) {
+      // Warn user
+      logger.error("XqErr/getXqErrObject error", ex);
+      return null;
     }
   }
 

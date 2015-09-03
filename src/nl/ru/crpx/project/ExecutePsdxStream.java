@@ -97,6 +97,9 @@ public class ExecutePsdxStream extends ExecuteXml {
     int iPtc;       // Percentage progress
     
     try {
+      // Reset the error handler
+      jobCaller.crpThis.errHandle.clearErr();
+      errHandle.clearErr();
       // Set the job for global access within Execute > ExecuteXml > ExecutePsdxStream
       this.objSearchJob = jobCaller;
       oProgress = new JSONObject();
@@ -131,6 +134,14 @@ public class ExecutePsdxStream extends ExecuteXml {
         // Where are we?
         iPtc = (100 * (i+1)) / lSource.size();
         jobCaller.setJobPtc(iPtc);
+        
+        // Watch for errors resulting from the XqF search
+        synchronized(errHandle) {
+          if (errHandle.bInterrupt) {
+            jobCaller.setJobErrors(errHandle.getErrList());
+            return false;
+          }
+        }
         
         // ================= DEBUGGING =============
         if (oProgress==null) {
@@ -169,12 +180,26 @@ public class ExecutePsdxStream extends ExecuteXml {
         try {
           // Initiate the XqF job
           search = searchMan.searchXqF(crpThis, userId, searchXqFpar, jobCaller);
+          // Check on the interrupt 
+          synchronized(jobCaller.crpThis.errHandle) {
+            if (jobCaller.crpThis.errHandle.bInterrupt) {
+              errHandle.bInterrupt = true;
+              errHandle.DoError(jobCaller.crpThis.errHandle.getErrList());
+            }
+          }
         } catch (QueryException ex) {
           // Return error and failure
           return errHandle.DoError("Failed to execute file ", ex, ExecutePsdxStream.class);
         } catch (InterruptedException ex) {
           // Interruption as such should not be such a problem, I think
           return errHandle.DoError("Interrupted during sleep: " + ex.getMessage());
+        }
+        // Watch for errors resulting from the XqF search
+        synchronized(errHandle) {
+          if (errHandle.bInterrupt) {
+            jobCaller.setJobErrors(errHandle.getErrList());
+            return false;
+          }
         }
         
         synchronized(search) {
@@ -650,7 +675,10 @@ public class ExecutePsdxStream extends ExecuteXml {
             // Make the QC line number available
             oCrpFile.QCcurrentLine = k+1;
             // Make sure there is no interrupt
-            if (errHandle.bInterrupt) return false;
+            if (errHandle.bInterrupt) {
+              jobCaller.setJobErrors(errHandle.getErrList());
+              return false;
+            }
             // Get the input node for the current query
             int iInputLine = arQuery[k].InputLine;
             bHasInput = (arQuery[k].InputCmp) ? arCmpExists[iInputLine] : arOutExists[iInputLine];
@@ -676,6 +704,19 @@ public class ExecutePsdxStream extends ExecuteXml {
                 // Parse this forest
                 bParsed = this.objParseXq.DoParseXq(arQuery[k], arQeval[k], this.objSaxDoc, this.xconfig, oCrpFile, 
                         ndxForest.argValue, colParseJson, true);
+                // Make sure there is no interrupt
+                if (errHandle.bInterrupt) {
+                  jobCaller.setJobErrors(errHandle.getErrList());
+                  return false;
+                }
+                // There may have been an interrupt from the CRP
+                if (oCrpFile.crpThis.errHandle.bInterrupt) {
+                  // Copy the error to the Execute ERRHANDLE object
+                  errHandle.DoError(oCrpFile.crpThis.errHandle.getErrList());
+                  jobCaller.setJobErrors(oCrpFile.crpThis.errHandle.getErrList());
+                  // Return false
+                  return false;
+                }
               }
               
               // Now is the time to execute stack movement for colRuStack

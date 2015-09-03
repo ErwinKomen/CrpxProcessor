@@ -7,18 +7,20 @@
 package nl.ru.crpx.xq;
 
 import java.io.StringReader;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.stream.StreamSource;
 import net.sf.saxon.expr.XPathContext;
+import net.sf.saxon.om.Item;
 import net.sf.saxon.om.NodeInfo;
 import net.sf.saxon.om.SequenceIterator;
 import net.sf.saxon.s9api.Axis;
 import net.sf.saxon.s9api.QName;
+import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.SaxonApiUncheckedException;
 import net.sf.saxon.s9api.XdmAtomicValue;
 import net.sf.saxon.s9api.XdmNode;
@@ -33,12 +35,10 @@ import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.crpx.tools.FileIO;
 import nl.ru.util.ByRef;
 import static nl.ru.util.StringUtil.isNumeric;
-import nl.ru.xmltools.XmlAccess;
 import nl.ru.xmltools.XmlNode;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
 /**
@@ -395,14 +395,17 @@ public class Extensions extends RuBase {
         else {
           //ndxBack = (Node) ndxRes.getUnderlyingNode(); // dbuilder.parse(ndxRes.toString());
           //ndxBack = (Node) ndxRes.getExternalNode();
-          ndxBack = dbuilder.parse(new InputSource(new StringReader(ndxRes.toString())));
+          // ndxBack = dbuilder.parse(new InputSource(new StringReader(ndxRes.toString())));
+          ndxBack = oCF.oDocFac.newDocumentBuilder().parse(new InputSource(new StringReader(ndxRes.toString())));
+          // ndxBack = oCF.oSaxDoc.build(new InputSource(new StringReader(ndxRes.toString())));
+          // ndxBack = (Node) oCF.oSaxDoc.build(new StreamSource(new StringReader(ndxRes.toString()))).getUnderlyingNode();
         }
         
         // Return the result
         return ndxBack;
       } catch (Exception ex) {
         // Show error
-        logger.error("Extensions/line: " + ex.getMessage());
+        errHandle.DoError("Extensions/line: " + ex.getMessage());
         // Return failure
         return null;
       }
@@ -425,7 +428,7 @@ public class Extensions extends RuBase {
       return matches(varText.getStringValue(), strPattern.getStringValue());
     } catch (Exception ex) {
       // Show error
-      logger.error("Extensions/matches error: " + ex.getMessage() + "\r\n");
+      errHandle.DoError("Extensions/matches error: ", ex, Extensions.class);
       return false;
     }
   } 
@@ -449,7 +452,7 @@ public class Extensions extends RuBase {
       return false;
     } catch (Exception ex) {
       // Show error
-      logger.error("Extensions/matches error: " + ex.getMessage() + "\r\n");
+      errHandle.DoError("Extensions/matches error: " , ex, Extensions.class);
       return false;
     }
   }
@@ -459,7 +462,7 @@ public class Extensions extends RuBase {
       return matches(varText.getStringValue(), strPattern.getStringValue(), strPatternNo.getStringValue());
     } catch (Exception ex) {
       // Show error
-      logger.error("Extensions/matches error: " + ex.getMessage() + "\r\n");
+      errHandle.DoError("Extensions/matches error: " , ex, Extensions.class);
       return false;
     }
   }
@@ -495,7 +498,7 @@ public class Extensions extends RuBase {
       return false;
     } catch (Exception ex) {
       // Show error
-      logger.error("Extensions/matches error: " + ex.getMessage() + "\r\n");
+      errHandle.DoError("Extensions/matches error: " , ex, Extensions.class);
       return false;
     }
   }
@@ -514,7 +517,7 @@ public class Extensions extends RuBase {
       return periodgrp(objXp, varText.getStringValue());
     } catch (Exception ex) {
       // Show error
-      logger.error("Extensions/periodgrp: " + ex.getMessage());
+      errHandle.DoError("Extensions/periodgrp error: " , ex, Extensions.class);
       // Return failure
       return "";
     }
@@ -530,7 +533,7 @@ public class Extensions extends RuBase {
   
     } catch (Exception ex) {
       // Show error
-      logger.error("Extensions/periodgrp: " + ex.getMessage());
+      errHandle.DoError("Extensions/periodgrp error: " , ex, Extensions.class);
       // Return failure
       return "";
     }
@@ -589,40 +592,40 @@ public class Extensions extends RuBase {
     int nodeKind;     // The kind of object getting passed as argument
 
     try {
-      /* if (lstNode.getLength() ==0) {
-        ndSax = (XdmNode) lstNode.item(0);
-        return refnum(objXp, ndSax);
-      } else {
-        ndSax = (XdmNode) lstNode.item(0);
-        return refnum(objXp, ndSax);
-      }
-      */
       // Validate
       if (node == null) return null;
       nodeKind = node.getNodeKind();
       if (nodeKind != Type.ELEMENT) return null;
       // Get the XdmNode representation of the node
       ndSax = objSaxDoc.wrap(node);      
-      return refnum(objXp, ndSax);
-      
-      
+      return refnum(objXp, ndSax);   
     } catch (Exception ex) {
       // Show error
-      logger.error("Extensions/refnum: " + ex.getMessage());
+      errHandle.DoError("Extensions/refnum error: " , ex, Extensions.class);
       // Return failure
       return "";
     }
   }
-  
+  // This definition serves to identify a bad call to the function
   public static String refnum(XPathContext objXp, SequenceIterator sIt) {
+    ErrHandle errCaller = getCrpFile(objXp).crpThis.errHandle;
     int iCheck = 0;
     try {
       while (sIt.next() != null) {
         iCheck++;
       }
       logger.debug("refnum length = " + iCheck);
+      String sMsg = "The ru:refnum() function must be called with only 1 (one) node. It now receives a sequence of "+iCheck;
+      
+      synchronized(errCaller) {
+        errCaller.DoError(sMsg, "refnum", objXp);
+        errCaller.bInterrupt = true;
+      }
+      errHandle.DoError(sMsg , "refnum",objXp);
+      errHandle.bInterrupt = true;
     } catch (XPathException ex) {
-      Logger.getLogger(Extensions.class.getName()).log(Level.SEVERE, null, ex);
+      errHandle.DoError("Extensions/refnum error: " , ex, Extensions.class);
+      errHandle.bInterrupt = true;
     }
       
     return "";
@@ -671,7 +674,7 @@ public class Extensions extends RuBase {
   
     } catch (Exception ex) {
       // Show error
-      logger.error("Extensions/refnum: " + ex.getMessage());
+      errHandle.DoError("Extensions/refnum error: " , ex, Extensions.class);
       // Return failure
       return "";
     }

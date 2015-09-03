@@ -20,7 +20,7 @@ import net.sf.saxon.s9api.XPathSelector;
 import net.sf.saxon.s9api.XdmItem;
 import net.sf.saxon.s9api.XdmNode;
 import nl.ru.crpx.project.CorpusResearchProject;
-import nl.ru.crpx.project.CorpusResearchProject.ProjType;
+// import nl.ru.crpx.project.CorpusResearchProject.ProjType;
 import nl.ru.crpx.tools.ErrHandle;
 import static nl.ru.crpx.xq.English.VernToEnglish;
 import nl.ru.util.json.JSONObject;
@@ -467,7 +467,7 @@ public class RuBase /* extends Job */ {
               // Get the group name to which the current period belongs
               List<JSONObject> lMem = crpThis.getListMember();
               for (JSONObject oOneMem : lMem) {
-                if (oOneMem.getInt("DivisionId") == intDivId && oOneDiv.getString("Period").equals(strCurrentPeriod)) {
+                if (oOneMem.getInt("DivisionId") == intDivId && oOneMem.getString("Period").equals(strCurrentPeriod)) {
                   // Pick out the group name from here
                   strGroup = oOneMem.getString("Group");
                   break;

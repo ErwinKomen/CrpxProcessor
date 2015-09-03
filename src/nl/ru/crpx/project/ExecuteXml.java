@@ -27,6 +27,7 @@ import static nl.ru.crpx.tools.FileIO.getFileNameWithoutExtension;
 import static nl.ru.crpx.project.CrpGlobal.Status;
 import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
+import nl.ru.util.json.JSONObject;
 import nl.ru.xmltools.Parse;
 import nl.ru.xmltools.XqErr;
 // </editor-fold>
@@ -265,6 +266,7 @@ public class ExecuteXml extends Execute {
           intCol.argValue = listener.colNum(i);
           // Determine where this error is occurring
           String strLoc = oXq.getXqErrLoc(arQinfo, strFile, iLineNum, strType, strDQname, intLocalPos, intCol);
+          // NOTE: some of the results return ByRef in [strType], [strDQname]
           // Add this error to the list
           oXq.AddXqErr(strType, strDQname, intLocalPos, intCol, listener.getMsg(i), strFile);
         }
@@ -280,6 +282,41 @@ public class ExecuteXml extends Execute {
       return false;
     }
   }
+  
+  /**
+   * getErrorLoc
+   *    Given an error in query [strFile], at context [iLine, iCol]
+   *    provide a JSON error object containing the type (def/query)
+   *    and the position within this item
+   * 
+   * @param strFile
+   * @param iLine
+   * @param iCol
+   * @return 
+   */
+  public JSONObject GetErrorLoc(String strFile, String sMsg, int iLine, int iCol) {
+    ByRef<String> strType = new ByRef("");
+    ByRef<String> strDQname = new ByRef("");
+    ByRef<Integer> intLocalPos = new ByRef(0);
+    ByRef<Integer> intLocalCol = new ByRef(iCol);
+    JSONObject oBack;
+    
+    try {
+      // Determine where this error is occurring
+      String strLoc = oXq.getXqErrLoc(arQinfo, strFile, iLine, strType, strDQname, intLocalPos, intLocalCol);
+      // NOTE: some of the results return ByRef (e.g [strType], [strDQname])
+      // Get the JSON error object
+      oBack = oXq.getXqErrObject(strType.argValue, strDQname.argValue, 
+              intLocalPos.argValue, intLocalCol.argValue, sMsg, strFile);
+    
+      // Return the result
+      return oBack;
+    } catch (Exception ex) {
+      errHandle.DoError("ExecuteXml/GetErrorLoc", ex);
+      return null;
+    }
+  }
+  
   // ----------------------------------------------------------------------------------------------------------
   // Name :  BuildSource
   // Goal :  Build an array of source files 
