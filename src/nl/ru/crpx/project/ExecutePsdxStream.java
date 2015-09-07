@@ -26,6 +26,7 @@ import nl.ru.crpx.search.JobXqF;
 import nl.ru.crpx.search.QueryException;
 import nl.ru.crpx.search.SearchParameters;
 import nl.ru.crpx.xq.CrpFile;
+import nl.ru.crpx.xq.LexDict;
 import nl.ru.crpx.xq.RuBase;
 import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
@@ -97,9 +98,6 @@ public class ExecutePsdxStream extends ExecuteXml {
     int iPtc;       // Percentage progress
     
     try {
-      // Reset the error handler
-      jobCaller.crpThis.errHandle.clearErr();
-      errHandle.clearErr();
       // Set the job for global access within Execute > ExecuteXml > ExecutePsdxStream
       this.objSearchJob = jobCaller;
       oProgress = new JSONObject();
@@ -134,14 +132,6 @@ public class ExecutePsdxStream extends ExecuteXml {
         // Where are we?
         iPtc = (100 * (i+1)) / lSource.size();
         jobCaller.setJobPtc(iPtc);
-        
-        // Watch for errors resulting from the XqF search
-        synchronized(errHandle) {
-          if (errHandle.bInterrupt) {
-            jobCaller.setJobErrors(errHandle.getErrList());
-            return false;
-          }
-        }
         
         // ================= DEBUGGING =============
         if (oProgress==null) {
@@ -180,26 +170,12 @@ public class ExecutePsdxStream extends ExecuteXml {
         try {
           // Initiate the XqF job
           search = searchMan.searchXqF(crpThis, userId, searchXqFpar, jobCaller);
-          // Check on the interrupt 
-          synchronized(jobCaller.crpThis.errHandle) {
-            if (jobCaller.crpThis.errHandle.bInterrupt) {
-              errHandle.bInterrupt = true;
-              errHandle.DoError(jobCaller.crpThis.errHandle.getErrList());
-            }
-          }
         } catch (QueryException ex) {
           // Return error and failure
           return errHandle.DoError("Failed to execute file ", ex, ExecutePsdxStream.class);
         } catch (InterruptedException ex) {
           // Interruption as such should not be such a problem, I think
           return errHandle.DoError("Interrupted during sleep: " + ex.getMessage());
-        }
-        // Watch for errors resulting from the XqF search
-        synchronized(errHandle) {
-          if (errHandle.bInterrupt) {
-            jobCaller.setJobErrors(errHandle.getErrList());
-            return false;
-          }
         }
         
         synchronized(search) {
@@ -570,7 +546,6 @@ public class ExecutePsdxStream extends ExecuteXml {
     JSONObject[] arXqfSub;      // An array of JSONObject items containing subcat-count pairs
     DataObjectList arHitList;   // List with hit information per hit: file // qc // number
     XQueryEvaluator[] arQeval;  // Our own query evaluators
-    JSONObject oTemp = new JSONObject();
     
     // Note: this uses [objProcType, which is a 'protected' variable from [Execute]
     try {
@@ -633,8 +608,6 @@ public class ExecutePsdxStream extends ExecuteXml {
         // Get a percentage of where we are
         if (!objProcType.Percentage(intPtc)) return errHandle.DoError("Could not find out where we are");
         
-        // =========== DEBUG
-        oTemp.put("forestId", intForestId.argValue);
        
         // TODO: convey the status to a global status gathering object for this Execute object??
         
@@ -645,7 +618,7 @@ public class ExecutePsdxStream extends ExecuteXml {
         // Make this forest available to the Xquery Extensions connected with *this* thread
         oCrpFile.ndxCurrentForest = ndxForest.argValue;
         // Make the current sentence id available too
-        oCrpFile.currentSentId = String.valueOf(intForestId.argValue);
+        oCrpFile.currentSentId = String.valueOf(intForestId);
         // Check for start of section if this is a database?
         if (this.bIsDbase) {
           String strNextFile = "";  // points to the next file
@@ -669,16 +642,10 @@ public class ExecutePsdxStream extends ExecuteXml {
         if (bDoForest) {
           // Yes, start processing this <forest> for all queries in [arQuery]
           for (int k=0;k<this.arQuery.length;k++) {
-            // =========== DEBUG
-            oTemp.put("k", k);
-            oTemp.put("query", arQuery[k].Name);
             // Make the QC line number available
             oCrpFile.QCcurrentLine = k+1;
             // Make sure there is no interrupt
-            if (errHandle.bInterrupt) {
-              jobCaller.setJobErrors(errHandle.getErrList());
-              return false;
-            }
+            if (errHandle.bInterrupt) return false;
             // Get the input node for the current query
             int iInputLine = arQuery[k].InputLine;
             bHasInput = (arQuery[k].InputCmp) ? arCmpExists[iInputLine] : arOutExists[iInputLine];
@@ -704,19 +671,6 @@ public class ExecutePsdxStream extends ExecuteXml {
                 // Parse this forest
                 bParsed = this.objParseXq.DoParseXq(arQuery[k], arQeval[k], this.objSaxDoc, this.xconfig, oCrpFile, 
                         ndxForest.argValue, colParseJson, true);
-                // Make sure there is no interrupt
-                if (errHandle.bInterrupt) {
-                  jobCaller.setJobErrors(errHandle.getErrList());
-                  return false;
-                }
-                // There may have been an interrupt from the CRP
-                if (oCrpFile.crpThis.errHandle.bInterrupt) {
-                  // Copy the error to the Execute ERRHANDLE object
-                  errHandle.DoError(oCrpFile.crpThis.errHandle.getErrList());
-                  jobCaller.setJobErrors(oCrpFile.crpThis.errHandle.getErrList());
-                  // Return false
-                  return false;
-                }
               }
               
               // Now is the time to execute stack movement for colRuStack
@@ -859,6 +813,37 @@ public class ExecutePsdxStream extends ExecuteXml {
       // Store the filename, so that the calling JobXq knows where the results are
       jobCaller.setJobResult(fResultXqF.getAbsolutePath());
       
+      // Get the lexicon results for this XqF into a JSON object
+      JSONObject oLexInfo = new JSONObject();
+      oLexInfo.put("file", fName);
+      // oLexInfo.put("subtype", oCrpFile.currentPeriod);   // Dit doen of niet?  
+      JSONObject oLexCombi;
+      JSONArray arLexCombi = new JSONArray();
+      for (int k=0;k<oCrpFile.lstLexDict.size();k++) {
+        // Do we have entries for this QC?
+        oLexCombi = new JSONObject();
+        LexDict ldThis = oCrpFile.lstLexDict.get(k);
+        oLexCombi.put("QC", ldThis.QC);
+        JSONArray arLexDict = new JSONArray();
+        for (int m=0;m<ldThis.lDict.size();m++) {
+          JSONObject oLexEl = new JSONObject();
+          oLexEl.put("word", ldThis.getWord(m));
+          oLexEl.put("pos", ldThis.getPos(m));
+          oLexEl.put("freq", ldThis.getFreq(m));
+          // Add this element to the current dictionary
+          arLexDict.put(oLexEl);
+        }
+        oLexCombi.put("dict", arLexDict);
+        // Add this dictionary to the others
+        arLexCombi.put(oLexCombi);
+      }
+      oLexInfo.put("lexdicts", arLexCombi);      
+      
+      // Store the lexicon results for this XqF in a separate file
+      sLoc = sDir + "/" + fThis.getName() + ".lex";
+      File fLexDictXqF = new File(FileUtil.nameNormalize(sLoc));
+      FileUtil.writeFile(fLexDictXqF, oLexInfo.toString());
+      
       /* ==========
       // Also store the list of hits in the job-caller
       jobCaller.setJobHits(arHitList);
@@ -886,13 +871,9 @@ public class ExecutePsdxStream extends ExecuteXml {
 
       // Return positively
       return true;
-    } catch (RuntimeException | XPathExpressionException ex) {
-      // ============ DEBUG
-      logger.debug("forestId=" + oTemp.getInt("forestId") + 
-              " k=" + oTemp.getInt("k") + 
-              " query=" + oTemp.getString("query"));
+    } catch (RuntimeException | /* SaxonApiException |*/ XPathExpressionException ex) {
       // Warn user
-      errHandle.DoError("ExecutePsdxStream/ExecuteQueriesFile runtime error: " + ex.getMessage()+ "\r\n");
+      errHandle.DoError("ExecutePsdxStream/ExecuteQueriesFile runtime error: " + ex.getMessage() + "\r\n");
       // Return failure
       return false;
     } 

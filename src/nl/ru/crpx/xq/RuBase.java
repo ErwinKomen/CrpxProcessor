@@ -20,7 +20,7 @@ import net.sf.saxon.s9api.XPathSelector;
 import net.sf.saxon.s9api.XdmItem;
 import net.sf.saxon.s9api.XdmNode;
 import nl.ru.crpx.project.CorpusResearchProject;
-// import nl.ru.crpx.project.CorpusResearchProject.ProjType;
+import nl.ru.crpx.project.CorpusResearchProject.ProjType;
 import nl.ru.crpx.tools.ErrHandle;
 import static nl.ru.crpx.xq.English.VernToEnglish;
 import nl.ru.util.json.JSONObject;
@@ -254,15 +254,23 @@ public class RuBase /* extends Job */ {
   // 29/apr/2015 ERK Implemented for Java
   // ------------------------------------------------------------------------------------
   static boolean RuAddLex(XPathContext objXp, String strLexeme, String strPos, int intQC) {
-    String strFile;     // Which file to use
-    String strOut;      // What we append
+    // String strFile;     // Which file to use
+    // String strOut;      // What we append
+    LexDict ldThis;     // Reference to my lexdict
     
     try {
       // Try initialize
-      if (!RuInitLex()) return false;
+      // if (!RuInitLex()) return false;
       // Determine file name
       // strFile = strRuLexFile + "_QC" + intQC + ".xml";
       // TODO:  Check if we need a preamble
+      
+      // Get the LexDict object for this CrpFile combination
+      ldThis = getCrpFile(objXp).getLexDictQC(intQC);
+      // Validate
+      if (ldThis == null) {errHandle.DoError("RuAddLex: could not find lexdict for line " + intQC); return false;}
+      // Add the word/pos combination to the lexdict for this QC line
+      ldThis.Add(strLexeme, strPos);
       
       // Return positively
       return true;
@@ -274,7 +282,8 @@ public class RuBase /* extends Job */ {
     }
   }
   static boolean RuAddLex(XPathContext objXp, String strLexeme, String strPos) {
-    int intCurrentQCline = (int) objXp.getController().getUserData("QCline", "QCline");
+    // int intCurrentQCline = (int) objXp.getController().getUserData("QCline", "QCline");
+    int intCurrentQCline = ((CrpFile) objXp.getController().getParameter("crpfile")).QCcurrentLine;
     return RuAddLex(objXp, strLexeme, strPos, intCurrentQCline);
   }
   // ----------------------------------------------------------------------------------------------------------
@@ -467,7 +476,7 @@ public class RuBase /* extends Job */ {
               // Get the group name to which the current period belongs
               List<JSONObject> lMem = crpThis.getListMember();
               for (JSONObject oOneMem : lMem) {
-                if (oOneMem.getInt("DivisionId") == intDivId && oOneMem.getString("Period").equals(strCurrentPeriod)) {
+                if (oOneMem.getInt("DivisionId") == intDivId && oOneDiv.getString("Period").equals(strCurrentPeriod)) {
                   // Pick out the group name from here
                   strGroup = oOneMem.getString("Group");
                   break;
