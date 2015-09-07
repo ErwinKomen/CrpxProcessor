@@ -6,6 +6,7 @@
 package nl.ru.crpx.xq;
 
 import java.io.File;
+import javax.xml.parsers.DocumentBuilderFactory;
 import java.util.ArrayList;
 import java.util.List;
 import net.sf.saxon.s9api.DocumentBuilder;
@@ -36,6 +37,7 @@ public class CrpFile {
   public String currentSentId;          // ID of the currently treated sentence
   public XmlNode ndxHeader;             // The header object of this file
   public DocumentBuilder oSaxDoc;       // The document-builder used for this CRP-File combination
+  public DocumentBuilderFactory oDocFac;// The DOM document-builder used for this CRP-File combination
   public XmlForest objProcType;         // My own copy of the XmlForest processor
   public String currentPeriod;          // Downwards compatibility: current period
   public List<LexDict> lstLexDict;      // One ru:lex() dictionary per QC
@@ -62,6 +64,7 @@ public class CrpFile {
       this.objSaxon = oProc;
       // Create a new document builder
       oSaxDoc = objSaxon.newDocumentBuilder();
+      oDocFac = DocumentBuilderFactory.newInstance();
       // Create a new xml-processor type
       // Set the XmlForest element correctly
       switch (this.crpThis.getForType()) {

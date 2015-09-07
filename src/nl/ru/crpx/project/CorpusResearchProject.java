@@ -120,7 +120,7 @@ public class CorpusResearchProject {
   private SearchManager searchMan;        // The manager associated with this CRP
   private PrjTypeManager prjTypeManager;  // Project type manager associated with this CRP
   private String userId;                  // ID of calling user
-  private Execute objEx = null;           // Execution object
+  private ExecuteXml objEx = null;           // Execution object
   private static Processor objSaxon = null;             // The saxon processor (for global reference)
   // Each project contains a number of lists
   List<JSONObject> lDefList = new ArrayList<>();
@@ -695,7 +695,7 @@ public class CorpusResearchProject {
   public void setSearchManager(SearchManager oThis) {this.searchMan = oThis;}
   public PrjTypeManager getPrjTypeManager() {return prjTypeManager;}
   public void setPrjTypeManager(PrjTypeManager oThis) { this.prjTypeManager = oThis;}
-  public Execute getExe() { return this.objEx; }
+  public ExecuteXml getExe() { return this.objEx; }
   public Processor getSaxProc() { return this.objSaxon; }
   public String getHitsDir() {
     // Calculate the directory where the .hits files are to be located for this project
