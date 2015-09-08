@@ -332,7 +332,7 @@ public class StringUtil {
 		int start = 0;
 		for (int i = 0; i < source.length(); i++) {
 			char c = source.charAt(i);
-			if (c == '<' || c == '>' || c == '&' || c == '"') {
+			if (c == '<' || c == '>' || c == '&' || c == '"' || c == '\'') {
 				sb.append(source.substring(start, i));
 				switch (c) {
 				case '<':
@@ -346,6 +346,9 @@ public class StringUtil {
 					break;
 				case '"':
 					sb.append("&quot;");
+					break;
+				case '\'':
+					sb.append("''");
 					break;
 				}
 				start = i + 1;

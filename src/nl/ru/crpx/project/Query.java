@@ -8,6 +8,7 @@ import java.util.List;
 import net.sf.saxon.query.XQueryExpression;
 import net.sf.saxon.s9api.XQueryEvaluator;
 import net.sf.saxon.s9api.XQueryExecutable;
+import nl.ru.util.json.JSONObject;
 
 /**
  *
@@ -32,7 +33,9 @@ public class Query {
   public String Descr;           // The description to appear in the HTML table's row header
   public String Args;            // Arguments for the JAVA CS process => EXTINCT??
   public String HtmlFile;        // Name of temporary html file containing output for this query
-  public List<String> Examp;         // Collection of examples belonging to this QC step
+  public List<JSONObject> DbFeat;// Ordered (!) list of database output features
+  public int DbFeatSize;         // Number of automatically produced features (so those that have FtNum >0)
+  public List<String> Examp;     // Collection of examples belonging to this QC step
   public String[][] CatExamp;    // Collection of subcategories in this QC step
   public XQueryExecutable Exe;   // The executable query
   public XQueryExpression Exp;   // Compiled Query

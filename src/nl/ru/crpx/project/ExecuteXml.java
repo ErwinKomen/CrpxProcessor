@@ -27,6 +27,8 @@ import static nl.ru.crpx.tools.FileIO.getFileNameWithoutExtension;
 import static nl.ru.crpx.project.CrpGlobal.Status;
 import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
+import nl.ru.util.StringUtil;
+import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
 import nl.ru.xmltools.Parse;
 import nl.ru.xmltools.XqErr;
@@ -206,6 +208,43 @@ public class ExecuteXml extends Execute {
       DoError("ExecuteXml/ExecuteXmlSetup error: " + ex.getMessage() + "\r\n");
       // Return failure
       return false;
+    }
+  }
+  
+  public String getResultXml(JSONObject oRes) {
+    StringBuilder bThis = new StringBuilder();
+    
+    try {
+      // Add the opening <Result> one
+      bThis.append("<Result ResId=\"1\" File\"").append(oRes.getString("File") + "\" " + 
+        "TextId\"" + StringUtil.escapeXmlChars(oRes.getString("TextId")) + "\" " +
+        "Search\"" + StringUtil.escapeXmlChars(oRes.getString("Search")) + "\" " +
+        "Cat\"" + StringUtil.escapeXmlChars(oRes.getString("cat")) + "\" " +
+        "forestId\"" + oRes.getString("locs") + "\" " +
+        "eTreeId\"" + oRes.getString("locw") + "\" " +
+        "Notes\"-\" " +
+        "Period\"" + oRes.getString("Period") + "\">\n");
+      // Add underlying nodes: Text, Psd, Pde
+      bThis.append("  <Text>").append(StringUtil.escapeXmlChars(oRes.getString("Text"))).append("</Text>\n" );
+      bThis.append("  <Psd>").append(StringUtil.escapeXmlChars(oRes.getString("Psd"))).append("</Psd>\n" );
+      bThis.append("  <Pde>").append(StringUtil.escapeXmlChars(oRes.getString("Pde"))).append("</Pde>\n" );
+      // Start adding underlying <Feature> nodes
+      JSONArray arFs = oRes.getJSONArray("fs");
+      for (int i=0;i< arFs.length(); i++) {
+        JSONObject oOneF = arFs.getJSONObject(i);
+        bThis.append("  <Feature Name=\"" + 
+          StringUtil.escapeXmlChars(oOneF.getString("nme")) + "\" Value=\"" +
+          StringUtil.escapeXmlChars(oOneF.getString("val")) + "\" />\n");
+      }
+      // Add ending tag for this result
+      bThis.append("</Result>\n");
+      // Return the result
+      return bThis.toString();
+    } catch (Exception ex) {
+      // Show error
+      DoError("ExecuteXml/getResultXml error: " + ex.getMessage() + "\r\n");
+      // Return failure
+      return "";
     }
   }
 // </editor-fold>

@@ -110,6 +110,55 @@ public class Parse {
       return "";
     }
   }
+  
+  // ----------------------------------------------------------------------------------------------------------
+  // Name :  GetPde
+  // Goal :  Get the "PDE" (modern English) text of the current sentence node
+  //         Psdx:   Get the stuff that is between <seg>...</seg> 
+  //         Negra:  Combine all the terminal nodes in the correct order
+  // History:
+  // 20-02-2010   ERK Created for .NET
+  // 23/apr/2015  ERK Adapted for Java
+  // ----------------------------------------------------------------------------------------------------------
+  public String GetPde(XmlNode ndThis) {
+    XmlNode ndxOrg;   // The div/seg node we are looking for
+    NodeList ndxTrm;  // List of terminal nodes
+    String strProjType; // The project type we are dealing with
+    
+    try {
+      // Validate: Does the node exist?
+      if (ndThis == null) return "";
+      // Action depends on project type
+      strProjType = crpThis.getProjectType();
+      switch(strProjType.toLowerCase()) {
+        case "xquery-psdx":
+          // Try find the 'org' segment
+          ndxOrg = ndThis.SelectSingleNode("./child::div[@lang='eng']/child::seg");
+          // Check the reply
+          if (ndxOrg == null) return "";
+          // The node has been found, so return the innertext
+          return ndxOrg.getNodeValue();
+        case "folia-psdx":
+          break;
+        case "negra-tig":
+          break;
+        default:
+          // Cannot handle this
+          errHandle.DoError("modParse/GetPde: Can not handle project type " + strProjType, Parse.class);
+          return "";
+      }
+      
+      return "";
+    } catch (DOMException ex) {
+      // Warn user
+      errHandle.DoError("Parse/GetPde DOM error", ex, Parse.class);
+      // Return failure
+      return "";
+    } catch (XPathExpressionException ex) {
+      errHandle.DoError("Parse/GetPde xpath error", ex, Parse.class);
+      return "";
+    }
+  }
   // ----------------------------------------------------------------------------------------------------------
   // Name :  DoParse
   // Goal :  Perform one Xquery on one XML node
@@ -165,26 +214,6 @@ public class Parse {
 
         // Creeer een JSONObject
         JSONObject jsBack = new JSONObject();
-        /* ==== oude methode (teveel ruimte) =====
-        jsBack.put("file", attrList.getNamedItem("File").getNodeValue());
-        jsBack.put("forestId", attrList.getNamedItem("forestId").getNodeValue());
-        jsBack.put("eTreeId", attrList.getNamedItem("eTreeId").getNodeValue());
-        jsBack.put("Loc", attrList.getNamedItem("Location").getNodeValue());
-        // The following are only added if they actually are defined
-        if (attrList.getNamedItem("Cat") != null)
-          jsBack.put("Cat", attrList.getNamedItem("Cat").getNodeValue());
-        if (attrList.getNamedItem("Msg") != null)
-          jsBack.put("Msg", attrList.getNamedItem("Msg").getNodeValue());
-          ================================== */
-        // New method, economizing on space!
-        /*
-        jsBack.put("loc", attrList.getNamedItem("forestId").getNodeValue() + 
-                "." + attrList.getNamedItem("eTreeId").getNodeValue());
-        */
-        /*  == Debugging == 
-        jsBack.put("file", attrList.getNamedItem("File").getNodeValue());
-                       */
-        
         // Store the details needed for each hit: location, category, message
         jsBack.put("locs", attrList.getNamedItem("forestId").getNodeValue());
         jsBack.put("locw", attrList.getNamedItem("eTreeId").getNodeValue());

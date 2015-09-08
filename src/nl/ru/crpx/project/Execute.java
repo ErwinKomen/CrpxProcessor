@@ -124,6 +124,8 @@ public class Execute extends CrpGlobal {
       } 
       // Verify the QC consistency
       if (!VerifyQC()) return;
+      // Sort the dbfeatlist on the FtNum
+      if (!crpThis.doSort("DbFeatList", "FtNum")) return;
       // Reset interruption
       bInterrupt = false;
       // Reset output file initialisation
@@ -260,6 +262,9 @@ public class Execute extends CrpGlobal {
         oQuery.NoExmp = (getJsonString(oThis, "NoExmp").equals("True"));
         // Get the description
         oQuery.Descr = getJsonString(oThis, "Result");
+        // Get an ordered list of database output features for this QC line
+        oQuery.DbFeat = this.crpThis.getListDbFeat(oQuery.Line);
+        oQuery.DbFeatSize = this.crpThis.getListDbFeatSize(oQuery.Line, true);
         // Calculate the input file
         strInput = getJsonString(oThis, "Input");
         // Divide the name into two parts

@@ -15,16 +15,18 @@ import java.util.Iterator;
 import java.util.List;
 import javax.xml.xpath.XPathExpressionException;
 import net.sf.saxon.s9api.QName;
-import net.sf.saxon.s9api.SaxonApiException;
+// import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.XQueryEvaluator;
 import nl.ru.crpx.dataobject.DataObject;
 import nl.ru.crpx.dataobject.DataObjectList;
+import nl.ru.crpx.dataobject.DataObjectMapAttribute;
 import nl.ru.crpx.dataobject.DataObjectMapElement;
 import nl.ru.crpx.search.Job;
 import nl.ru.crpx.search.JobXq;
 import nl.ru.crpx.search.JobXqF;
 import nl.ru.crpx.search.QueryException;
 import nl.ru.crpx.search.SearchParameters;
+import nl.ru.crpx.tools.FileIO;
 import nl.ru.crpx.xq.CrpFile;
 import nl.ru.crpx.xq.LexDict;
 import nl.ru.crpx.xq.RuBase;
@@ -32,6 +34,8 @@ import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
 import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
+import nl.ru.xmltools.XmlAccess;
+import nl.ru.xmltools.XmlAccessPsdx;
 import nl.ru.xmltools.XmlForest;
 import nl.ru.xmltools.XmlNode;
 
@@ -545,7 +549,9 @@ public class ExecutePsdxStream extends ExecuteXml {
     JSONArray[] arXqf;          // An array of JSONArray results for each QC item
     JSONObject[] arXqfSub;      // An array of JSONObject items containing subcat-count pairs
     DataObjectList arHitList;   // List with hit information per hit: file // qc // number
+    JSONArray[] arDbRes;        // Array with RESULT elements
     XQueryEvaluator[] arQeval;  // Our own query evaluators
+    XmlAccess objXmlAcc = null; // Access to the XML file
     
     // Note: this uses [objProcType, which is a 'protected' variable from [Execute]
     try {
@@ -570,6 +576,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       // Initialise the array of JSONArray results and some other arrays
       arXqf = new JSONArray[arQuery.length];
       arXqfSub = new JSONObject[arQuery.length];
+      arDbRes = new JSONArray[arQuery.length];
       arQeval = new XQueryEvaluator[arQuery.length];
       for (int i=0; i< arXqf.length; i++) { 
         // Initialise the JSON array for this query
@@ -578,6 +585,8 @@ public class ExecutePsdxStream extends ExecuteXml {
         arQeval[i] = arQuery[i].Exe.load();
         // Initialise the JSONObject containing sub-cat counts per QC-item
         arXqfSub[i] = new JSONObject();
+        // Initialize JSON array for database output
+        arDbRes[i] = new JSONArray();
       }
       
       // Validate existence of file
@@ -591,6 +600,9 @@ public class ExecutePsdxStream extends ExecuteXml {
       if (!objProcType.FirstForest(ndxForest, ndxHeader, strForestFile)) 
         return errHandle.DoError("ExecuteQueriesFile could not process firest forest of " + fName);
       
+      // This is when we can also read the textid
+      String sTextId = objProcType.getCurrentTxtId();
+
       // Downwards compatibility: determine (if possible) the CurrentPeriod
       oCrpFile.currentPeriod = "";
       XmlNode ndxCreation = ndxHeader.argValue.SelectSingleNode("./descendant::creation");
@@ -640,6 +652,8 @@ public class ExecutePsdxStream extends ExecuteXml {
         }
         // Should this forest be processed? (modMain 2937)
         if (bDoForest) {
+          // String sForestLoc = ndxForest.argValue.getAttributeValue(loc_xq_Location);
+          String sForestLoc = objProcType.getCurrentLoc();
           // Yes, start processing this <forest> for all queries in [arQuery]
           for (int k=0;k<this.arQuery.length;k++) {
             // Make the QC line number available
@@ -672,7 +686,6 @@ public class ExecutePsdxStream extends ExecuteXml {
                 bParsed = this.objParseXq.DoParseXq(arQuery[k], arQeval[k], this.objSaxDoc, this.xconfig, oCrpFile, 
                         ndxForest.argValue, colParseJson, true);
               }
-              
               // Now is the time to execute stack movement for colRuStack
               // TODO: RuStackExecute()
               
@@ -711,6 +724,14 @@ public class ExecutePsdxStream extends ExecuteXml {
                   ndxForestBack = ndxForest.argValue;
                   // Check if the result is usable
                   if (ndxForestBack == null) return false;
+                  // If a database should be created, then we need to do some more
+                  if (arQuery[k].DbFeatSize>0) {
+                    // Get the context
+                    
+                    // Get the syntax of this line
+                    
+                    
+                  }
                   // Walk all the results that come from the parsing
                   // Note: there may be multiple *hits* within one <forest>, each
                   //       returning its own <eTree> node (that's the general idea)
@@ -744,6 +765,49 @@ public class ExecutePsdxStream extends ExecuteXml {
                     oHitInfo.put("qc", k);
                     oHitInfo.put("n", arXqf[k].length());
                     arHitList.add(oHitInfo);
+                    
+                    // Do we need to process database information for this step?
+                    int iQCid = intOviewLine+1;
+                    if (crpThis.getListDbFeatSize(iQCid, false)>0) {
+                      // We need to process database information for this hit
+                      JSONObject oDbRes = new JSONObject();
+                      oDbRes.put("File",     fName);
+                      oDbRes.put("TextId",   sTextId);
+                      oDbRes.put("Search",   sForestLoc);
+                      oDbRes.put("cat",      oThisRes.getString("cat"));
+                      oDbRes.put("locs",     oThisRes.getString("locs"));
+                      oDbRes.put("locw",     oThisRes.getString("locw"));
+                      oDbRes.put("Period",   oCrpFile.currentPeriod);
+                      
+                      
+                      oDbRes.put("Text",     objProcType.GetContext());
+                      oDbRes.put("Psd",      objProcType.GetSyntax());
+                      oDbRes.put("Pde",      objProcType.GetPde(ndxForest));
+                      
+                      // Get the feature values and double-check
+                      String arFtVal[] = oThisRes.getString("msg").split(";");
+                      if (arFtVal.length != arQuery[k].DbFeatSize) {
+                        // TODO: figure out what to do
+                      }
+                      // Get the list of features for this QC
+                      JSONArray arFs = new JSONArray();
+                      for (int q=0;q<arQuery[k].DbFeat.size(); q++) {
+                        JSONObject oFtInfo = arQuery[k].DbFeat.get(q);
+                        JSONObject oFeat = new JSONObject();
+                        oFeat.put("nme", oFtInfo.getString("Name"));
+                        int iFtNum = oFtInfo.getInt("FtNum");
+                        if (iFtNum < 1) {
+                          oFeat.put("val", "");
+                        } else {
+                          oFeat.put("val", arFtVal[iFtNum-1]);
+                        }
+                        arFs.put(oFeat);
+                      }
+                      oDbRes.put("fs",arFs);
+                      
+                      // Add the object to the array
+                      arDbRes[k].put(oDbRes);
+                    }
                   }
                 }
               }
@@ -843,6 +907,25 @@ public class ExecutePsdxStream extends ExecuteXml {
       sLoc = sDir + "/" + fThis.getName() + ".lex";
       File fLexDictXqF = new File(FileUtil.nameNormalize(sLoc));
       FileUtil.writeFile(fLexDictXqF, oLexInfo.toString());
+      
+      // Check and output database for this file
+      for (int k=0;k<arQuery.length;k++) {
+        if (arQuery[k].DbFeatSize>0) {
+          int iQCid = arQuery[k].OviewLine + 1; // The id of the QC (starting from '1')
+          String sQcName = arQuery[k].Descr;    // The 'Result' name of this QC
+          // Yes, output database for this QC
+          sLoc = sDir + "/" + sTextId + "_" + sQcName + "_Dbase.xml";
+          File fDbaseXqF = new File(FileUtil.nameNormalize(sLoc));
+          StringBuilder bThis = new StringBuilder();
+          String sResText = "";
+          for (int i=0;i<arDbRes[k].length(); i++) {
+            // Add this item
+            bThis.append(getResultXml(arDbRes[k].getJSONObject(i)));
+          }
+          // Save this one
+          FileUtil.writeFile(fDbaseXqF, bThis.toString());
+        }
+      }
       
       /* ==========
       // Also store the list of hits in the job-caller

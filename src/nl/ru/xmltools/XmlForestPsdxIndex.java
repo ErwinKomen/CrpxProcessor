@@ -466,4 +466,26 @@ public class XmlForestPsdxIndex extends XmlForest {
       return "";
     }
   }
+  
+  // ----------------------------------------------------------------------------------------------------------
+  // Name :  GetSyntax
+  // Goal :  Get the syntax of the current line
+  // History:
+  // 08-09-2015  ERK Created
+  // ----------------------------------------------------------------------------------------------------------
+  @Override
+  public String GetSyntax() {
+    return "";
+  }
+
+  // ----------------------------------------------------------------------------------------------------------
+  // Name :  GetPde
+  // Goal :  Get the PDE (present-day English translation) of the current line
+  // History:
+  // 08-09-2015  ERK Created
+  // ----------------------------------------------------------------------------------------------------------
+  @Override
+  public String GetPde(ByRef<XmlNode> ndxForest) {
+    return objParse.GetPde(ndxForest.argValue);
+  }
 }

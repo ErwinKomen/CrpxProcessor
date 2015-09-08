@@ -683,6 +683,39 @@ public class CorpusResearchProject {
   public JSONObject getListDefItem(int iValue) {return lDefList.get(iValue); }
   // ================ Database Feature list elements
   public int getListDbFeatSize() { return lDbFeatList.size(); }
+  public int getListDbFeatSize(int iQC, boolean bOnlyCalculated) { 
+    int iSize = 0;    // Size of the list
+    // Walk the list
+    for (int i=0;i< lDbFeatList.size();i++) {
+      // Does this element pertain to the indicated QC?
+      if (bOnlyCalculated) {
+        if (lDbFeatList.get(i).getInt("QCid") == iQC && 
+            lDbFeatList.get(i).getInt("FtNum") >0) iSize++;
+      } else {
+        if (lDbFeatList.get(i).getInt("QCid") == iQC) iSize++;
+      }
+    }
+    // Return the total size
+    return iSize;
+  }
+  public List<JSONObject> getListDbFeat(int iQC) {
+    // Create a list
+    List<JSONObject> lstBack = new ArrayList<>();
+    // Validate
+    int iSize = getListDbFeatSize(iQC, false);
+    if (iSize>0) {
+      // Walk the list
+      for (int i=0;i< lDbFeatList.size();i++) {
+        // Does this element pertain to the indicated QC?
+        if (lDbFeatList.get(i).getInt("QCid") == iQC) {
+          // Copy this element to the new (sorted) list
+          lstBack.add(lDbFeatList.get(i));
+        }          
+      }
+    }
+    // Return the list that includes only elements for this QC
+    return lstBack;
+  }
   public JSONObject getListDbFeatItem(int iValue) {return lDbFeatList.get(iValue); }
   // ================ Division list elements
   public List<JSONObject> getListDivision() { return lDivisionList; }
@@ -997,6 +1030,10 @@ public class CorpusResearchProject {
       case "DefList":
         if (sField.equals("DefId")) {
           Collections.sort(this.lDefList, new IntIdComparator("DefId") {});
+        }
+      case "DbFeatList":
+        if (sField.equals("FtNum")) {
+          Collections.sort(this.lDbFeatList, new IntIdComparator("FtNum") {});
         }
         break;
       default:
