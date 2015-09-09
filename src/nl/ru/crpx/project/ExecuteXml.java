@@ -211,6 +211,60 @@ public class ExecuteXml extends Execute {
     }
   }
   
+  /**
+   * getResultXml
+   *    Create one dtabase <Result> line on the basis of the filename, the textId
+   *      and the JSON object that has been produced during execution
+   *    
+   * @param sFileName
+   * @param sTextId
+   * @param lstFtInfo
+   * @param oXqf
+   * @return 
+   */
+  public String getResultXml(String sFileName, String sTextId, 
+          String sSubType, List<JSONObject> lstFtInfo, JSONObject oXqf) {
+    StringBuilder bThis = new StringBuilder();
+    
+    try {
+      // Add the opening <Result> one
+      bThis.append("<Result ResId=\"1\" File\"").append(sFileName + "\" " + 
+        "TextId=\"" + sTextId + "\" " +
+        "Search=\"" + oXqf.getString("locl") + "\" " +
+        "Cat=\"" + StringUtil.escapeXmlChars(oXqf.getString("cat")) + "\" " +
+        "forestId=\"" + oXqf.getString("locs") + "\" " +
+        "eTreeId=\"" + oXqf.getString("locw") + "\" " +
+        "Notes=\"-\" " +
+        "Period=\"" + sSubType + "\">\n");
+      // Add underlying nodes: Text, Psd, Pde
+      bThis.append("  <Text>").append(StringUtil.escapeXmlChars(oXqf.getString("con"))).append("</Text>\n" );
+      bThis.append("  <Psd>").append(StringUtil.escapeXmlChars(oXqf.getString("syn"))).append("</Psd>\n" );
+      bThis.append("  <Pde>").append(StringUtil.escapeXmlChars(oXqf.getString("eng"))).append("</Pde>\n" );
+      // Start adding underlying <Feature> nodes
+      String[] arFs = oXqf.getString("msg").split(";");
+      // Walk through the list of Feature Info JSON objects
+      for (int q=0;q<lstFtInfo.size(); q++) {
+        // Get the number of this feature
+        int iFtNum = lstFtInfo.get(q).getInt("FtNum");
+        // Get the feature value belonging to this feature
+        String sValue = "";
+        if (iFtNum > 0) sValue = StringUtil.escapeXmlChars(arFs[iFtNum-1]);
+        // Store the results
+        bThis.append("  <Feature Name=\"" + 
+          lstFtInfo.get(q).getString("Name") + "\" Value=\"" +
+          sValue + "\" />\n");
+      }
+      // Add ending tag for this result
+      bThis.append("</Result>\n");
+      // Return the result
+      return bThis.toString();
+    } catch (Exception ex) {
+      // Show error
+      errHandle.DoError("ExecuteXml/getResultXml error: ", ex);
+      // Return failure
+      return "";
+    }
+  }  
   public String getResultXml(JSONObject oRes) {
     StringBuilder bThis = new StringBuilder();
     

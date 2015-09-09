@@ -127,12 +127,12 @@ public class FileUtil {
    * @return write interface into the file
    */
   public static PrintWriter openForAppend(File file, String encoding) {
-          try {
-                  return new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(
-                                  file, true), encoding)));
-          } catch (Exception e) {
-                  throw new RuntimeException(e);
-          }
+    try {
+      return new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(
+                      file, true), encoding)));
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**

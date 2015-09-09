@@ -223,7 +223,7 @@ public class XmlIndexReader {
         return "";
       }
       // Load the header and return it
-      return FileUtil.readFile(loc_fHeader);
+      return FileUtil.readFile(loc_fHeader, "utf-8");
     } catch (Exception ex) {
       errHandle.DoError("Could not read header " + loc_fThis.getAbsolutePath(), ex, XmlIndexReader.class);
       // Return failure
@@ -244,7 +244,7 @@ public class XmlIndexReader {
         return "";
       }
       iCurrentLine = 0;
-      return FileUtil.readFile(new File(arIndex.get(iCurrentLine).sFile));      
+      return FileUtil.readFile(new File(arIndex.get(iCurrentLine).sFile), "utf-8");      
     } catch (Exception ex) {
       errHandle.DoError("Could not read first line of " + loc_fThis.getAbsolutePath(), ex, XmlIndexReader.class);
       // Return failure
@@ -271,7 +271,7 @@ public class XmlIndexReader {
         return "";
       }
       // Yes, we should be able to read it...
-      return FileUtil.readFile(new File(arIndex.get(iCurrentLine).sFile));      
+      return FileUtil.readFile(new File(arIndex.get(iCurrentLine).sFile), "utf-8");      
     } catch (Exception ex) {
       errHandle.DoError("Could not read next line [" + iCurrentLine + "] of " + loc_fThis.getAbsolutePath(), ex, XmlIndexReader.class);
       // Return failure
@@ -306,7 +306,7 @@ public class XmlIndexReader {
       // Yes, we should be able to read it...
       IndexEl elThis = arIndex.get(iCurrentLine);
       sSentId.argValue = elThis.LineId;
-      return FileUtil.readFile(new File(elThis.sFile));    
+      return FileUtil.readFile(new File(elThis.sFile), "utf-8");    
     } catch (Exception ex) {
       errHandle.DoError("Could not read 'relative' line [" + iNewLine + "] of " + loc_fThis.getAbsolutePath(), ex, XmlIndexReader.class);
       // Return failure

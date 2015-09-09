@@ -418,7 +418,7 @@ public class XmlForestPsdxIndex extends XmlForest {
     String strPrec;   // Preceding context
     String strFoll;   // Following context
     String strBack;   // What we return
-    int intI;         // Counter
+    //int intI;         // Counter
 
     try {
       // Initialisations
@@ -429,7 +429,7 @@ public class XmlForestPsdxIndex extends XmlForest {
       // Add the preceding context
       if (objJob.intPrecNum > 0) {
         // Attempt to get the preceding context
-        for (intI = 0; intI < objJob.intPrecNum; intI++) {
+        for (int intI = 0; intI < objJob.intPrecNum; intI++) {
           // Only load existing context
           if (loc_arPrecCnt[intI].Seg != null && loc_arPrecCnt[intI].Seg.length() > 0) {
             strPrec += "[" + loc_arPrecCnt[intI].Loc + "]" + loc_arPrecCnt[intI].Seg;
@@ -439,7 +439,7 @@ public class XmlForestPsdxIndex extends XmlForest {
       // Add the following context
       if (objJob.intFollNum > 0) {
         // Attempt to get the preceding context
-        for (intI = 0; intI < objJob.intFollNum; intI++) {
+        for (int intI = 0; intI < objJob.intFollNum; intI++) {
           if (loc_arFollCnt[intI].Seg != null && loc_arFollCnt[intI].Seg.length() > 0) {
             strFoll += "[" + loc_arFollCnt[intI].Loc + "]" + loc_arFollCnt[intI].Seg;
           }

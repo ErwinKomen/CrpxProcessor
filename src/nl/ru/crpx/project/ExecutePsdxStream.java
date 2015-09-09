@@ -9,13 +9,13 @@
 package nl.ru.crpx.project;
 
 import java.io.File;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import javax.xml.xpath.XPathExpressionException;
 import net.sf.saxon.s9api.QName;
-// import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.XQueryEvaluator;
 import nl.ru.crpx.dataobject.DataObject;
 import nl.ru.crpx.dataobject.DataObjectList;
@@ -526,6 +526,7 @@ public class ExecutePsdxStream extends ExecuteXml {
     boolean bHasInput = false;  // Does this line have input?
     boolean bParsed = false;    // Line has been parsed
     String strForestFile;       // Name of this file
+    String strSubType;          // Subtype for this file
     String strExpPsd;           // 
     String strExpText;          // 
     String strTreeId;           // The @id of the Node that results from parsing
@@ -565,6 +566,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       ndxForest = new ByRef(null); ndxDbRes = new ByRef(null);
       ndxHeader = new ByRef(null);
       strForestFile = fThis.getAbsolutePath();
+      strSubType = oCrpFile.currentPeriod;
       intForestId = new ByRef(-1);
       intPtc = new ByRef(0);
       ndxDbList = new ArrayList<>();
@@ -765,6 +767,7 @@ public class ExecutePsdxStream extends ExecuteXml {
                       oThisRes.put("con", objProcType.GetContext());
                       oThisRes.put("eng",  objProcType.GetPde(ndxForest));
                       oThisRes.put("syn",  objProcType.GetSyntax(ndxForest));
+                      oThisRes.put("locl", sForestLoc);
                     }
                     
                     // Store the computed output for this hit into the array
@@ -925,22 +928,38 @@ public class ExecutePsdxStream extends ExecuteXml {
       File fLexDictXqF = new File(FileUtil.nameNormalize(sLoc));
       FileUtil.writeFile(fLexDictXqF, oLexInfo.toString());
       
-      // Check and output database for this file
+      // Check each line for a DATABASE OUTPUT
       for (int k=0;k<arQuery.length;k++) {
-        if (arQuery[k].DbFeatSize>0) {
+        // Check this line for a database output
+        int iDbFtSize = arQuery[k].DbFeatSize;
+        if (iDbFtSize>0) {
+          // There is a database output: make it
+
+          // Create the name for this output line
+          // String sQcName = arQuery[k].Descr;    // The 'Result' name of this QC
+          // sLoc = sDir + "/" + sTextId + "_" + sQcName + "_Dbase.xml";
           int iQCid = arQuery[k].OviewLine + 1; // The id of the QC (starting from '1')
-          String sQcName = arQuery[k].Descr;    // The 'Result' name of this QC
-          // Yes, output database for this QC
-          sLoc = sDir + "/" + sTextId + "_" + sQcName + "_Dbase.xml";
+          sLoc = sDir + "/" + sTextId + "_QC" + iQCid + "_Dbase.xml";
+          // Get a file handle to the normalized full path of this database file
           File fDbaseXqF = new File(FileUtil.nameNormalize(sLoc));
+          // Start with a buffered output to this file
+          PrintWriter pThis = FileUtil.openForAppend(fDbaseXqF);
+          
+          for (int i=0;i<arXqf[k].length(); i++) {
+            // Add this item
+            pThis.append(getResultXml(fName, sTextId, strSubType, 
+                    arQuery[k].DbFeat, arXqf[k].getJSONObject(i)));
+          }
+          pThis.close();
+          /*
           StringBuilder bThis = new StringBuilder();
-          String sResText = "";
           for (int i=0;i<arDbRes[k].length(); i++) {
             // Add this item
             bThis.append(getResultXml(arDbRes[k].getJSONObject(i)));
           }
           // Save this one
           FileUtil.writeFile(fDbaseXqF, bThis.toString());
+          */
         }
       }
       
