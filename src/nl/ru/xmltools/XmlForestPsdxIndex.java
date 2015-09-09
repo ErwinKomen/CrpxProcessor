@@ -474,7 +474,7 @@ public class XmlForestPsdxIndex extends XmlForest {
   // 08-09-2015  ERK Created
   // ----------------------------------------------------------------------------------------------------------
   @Override
-  public String GetSyntax() {
+  public String GetSyntax(ByRef<XmlNode> ndxForest) {
     return "";
   }
 

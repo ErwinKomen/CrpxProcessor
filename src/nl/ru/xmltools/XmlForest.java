@@ -172,7 +172,7 @@ public abstract class XmlForest {
   public abstract boolean IsEnd();
   public abstract boolean Percentage(ByRef<Integer> intPtc);
   public abstract String GetContext();
-  public abstract String GetSyntax();
+  public abstract String GetSyntax(ByRef<XmlNode> ndxForest);
   public abstract String GetPde(ByRef<XmlNode> ndxForest);
   public String getCurrentLoc() { return this.loc_cntThis.Loc; }
   public String getCurrentSeg() { return this.loc_cntThis.Seg; }

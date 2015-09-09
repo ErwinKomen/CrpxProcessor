@@ -548,7 +548,7 @@ public class ExecutePsdxStream extends ExecuteXml {
     XmlForest objProcType;      // Access to the XmlForest object allocated to me
     JSONArray[] arXqf;          // An array of JSONArray results for each QC item
     JSONObject[] arXqfSub;      // An array of JSONObject items containing subcat-count pairs
-    DataObjectList arHitList;   // List with hit information per hit: file // qc // number
+    // DataObjectList arHitList;   // List with hit information per hit: file // qc // number
     JSONArray[] arDbRes;        // Array with RESULT elements
     XQueryEvaluator[] arQeval;  // Our own query evaluators
     XmlAccess objXmlAcc = null; // Access to the XML file
@@ -569,7 +569,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       intPtc = new ByRef(0);
       ndxDbList = new ArrayList<>();
       colParseJson = new JSONArray();
-      arHitList = new DataObjectList("hitlist");
+      // arHitList = new DataObjectList("hitlist");
       // Initialise the Out and Cmp arrays
       arOutExists = new boolean[arQuery.length + 2];
       arCmpExists = new boolean[arQuery.length + 2];
@@ -758,31 +758,49 @@ public class ExecutePsdxStream extends ExecuteXml {
                         // TODO: calculate correct numbers for the sub-categorization...
                       }
                     }
+                    
+                    // Check if a database output is required
+                    if (arQuery[k].DbFeatSize>0) {
+                      // A database output is required, so we need to add context, syntax and pde
+                      oThisRes.put("con", objProcType.GetContext());
+                      oThisRes.put("eng",  objProcType.GetPde(ndxForest));
+                      oThisRes.put("syn",  objProcType.GetSyntax(ndxForest));
+                    }
+                    
+                    // Store the computed output for this hit into the array
                     arXqf[k].put(oThisRes);
+                    
+                    /*
                     // Store the hit-information in the arHitList
                     DataObjectMapElement oHitInfo = new DataObjectMapElement();
                     oHitInfo.put("file", fName);
                     oHitInfo.put("qc", k);
                     oHitInfo.put("n", arXqf[k].length());
                     arHitList.add(oHitInfo);
+                    */
                     
+                    /* ===========================
                     // Do we need to process database information for this step?
                     int iQCid = intOviewLine+1;
+                    
                     if (crpThis.getListDbFeatSize(iQCid, false)>0) {
                       // We need to process database information for this hit
                       JSONObject oDbRes = new JSONObject();
-                      oDbRes.put("File",     fName);
-                      oDbRes.put("TextId",   sTextId);
-                      oDbRes.put("Search",   sForestLoc);
+                      // Information that is constant on the level of a text:
+                      oDbRes.put("File",     fName);      // <forest @File>
+                      oDbRes.put("TextId",   sTextId);    // <forest @TextId>
+                      oDbRes.put("Search",   sForestLoc); // <forest @Location>
+                      oDbRes.put("Period",   oCrpFile.currentPeriod);
+                      
+                      // Information specific for this sentence
+                      oDbRes.put("Text",     objProcType.GetContext());
+                      oDbRes.put("Pde",      objProcType.GetPde(ndxForest));
+                      
+                      // Information unique to this hit
                       oDbRes.put("cat",      oThisRes.getString("cat"));
                       oDbRes.put("locs",     oThisRes.getString("locs"));
                       oDbRes.put("locw",     oThisRes.getString("locw"));
-                      oDbRes.put("Period",   oCrpFile.currentPeriod);
-                      
-                      
-                      oDbRes.put("Text",     objProcType.GetContext());
-                      oDbRes.put("Psd",      objProcType.GetSyntax());
-                      oDbRes.put("Pde",      objProcType.GetPde(ndxForest));
+                      oDbRes.put("Psd",      objProcType.GetSyntax(ndxForest));
                       
                       // Get the feature values and double-check
                       String arFtVal[] = oThisRes.getString("msg").split(";");
@@ -808,6 +826,7 @@ public class ExecutePsdxStream extends ExecuteXml {
                       // Add the object to the array
                       arDbRes[k].put(oDbRes);
                     }
+                    ====================== */
                   }
                 }
               }
@@ -867,9 +886,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       // N.B: the path to this file must contain the project's name
       String sDir = this.crpThis.getHitsDir();
       File fResultDir = new File(sDir);
-      if (!fResultDir.exists()) {
-        fResultDir.mkdir();
-      }
+      if (!fResultDir.exists()) { fResultDir.mkdir(); }
       String sLoc = sDir + "/" + fThis.getName() + ".hits";
       File fResultXqF = new File(FileUtil.nameNormalize(sLoc));
       // Write the results to a file (give number of spaces to "toString" for 'pretty-print')

@@ -133,6 +133,7 @@ public class Parse {
       switch(strProjType.toLowerCase()) {
         case "xquery-psdx":
           // Try find the 'org' segment
+          // This assumes that [ndThis] is of type <forest>
           ndxOrg = ndThis.SelectSingleNode("./child::div[@lang='eng']/child::seg");
           // Check the reply
           if (ndxOrg == null) return "";
