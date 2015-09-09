@@ -97,6 +97,7 @@ public class CorpusResearchProject {
   private String Author = "";       // Author of this project
   private String ProjectType = "";  // The type of project (one of several)
   private String SaveDate = "";     // The date + time when this CRP was last saved
+  private String sHitsDir = "";     // Directory where hits are stored
   private File QueryDir = null;     // Location of temporal queries
   private File DstDir = null;       // Destination directory
   private File SrcDir = null;       // Directory where the psdx files are located
@@ -731,11 +732,26 @@ public class CorpusResearchProject {
   public ExecuteXml getExe() { return this.objEx; }
   public Processor getSaxProc() { return this.objSaxon; }
   public String getHitsDir() {
-    // Calculate the directory where the .hits files are to be located for this project
-    String sProjectFileName = Paths.get(this.getLocation()).getFileName().toString();
-    sProjectFileName = sProjectFileName.substring(0, sProjectFileName.lastIndexOf("."));
-    String sDir = this.getDstDir() + "/"+ sProjectFileName + "/hits";
-    return sDir;
+    // Do we have a hitsdir defined?
+    if (this.sHitsDir.isEmpty()) {
+      // Calculate the directory where the .hits files are to be located for this project
+      String sProjectFileName = Paths.get(this.getLocation()).getFileName().toString();
+      sProjectFileName = sProjectFileName.substring(0, sProjectFileName.lastIndexOf("."));
+      String sDir = this.getDstDir() + "/"+ sProjectFileName + "/hits";
+      // Define our hitsdir
+      this.sHitsDir = sDir;
+    }
+    // Return whatever value the HitsDir for this CRP has now
+    return this.sHitsDir;
+  }
+  public String getDbaseName(int iQCid) {
+    return this.getHitsDir() + "/" + this.getName() + "_QC" + iQCid + "_Dbase.xml";
+  }
+  public String getDbaseName(int iQCid, String sFileName) {
+    return this.getHitsDir() + "/" + sFileName + "_QC" + iQCid + "_Dbase.xml";
+  }
+  public String getLexName(String sFileName) {
+    return this.getHitsDir() + "/" + sFileName + ".lex";
   }
   // =================== Text extension ========================================
   public String getTextExt() {

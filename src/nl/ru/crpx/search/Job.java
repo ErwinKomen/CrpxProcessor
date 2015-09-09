@@ -57,10 +57,12 @@ public abstract class Job implements Comparable<Job> {
   protected String currentuserId;           // Who created this job?
   protected String jobQuery;                // The query string associated with this job (passed on via SearchParameters)
   protected JSONObject jobCount;            // Counts for this job
+  protected JSONObject jobList;             // Results for this Xqf job
   protected JSONObject jobProgress;         // Details of where we are in this job
   protected List<JSONObject> jobErrList;    // List of errors
   protected DataObject jobTable;            // Tabular result 
   protected DataObject jobHits;             // List of hits: [file // forestId // constId // index into [file].hits]
+  protected DataObject jobDbList;           // List of databases per QC line
   protected int jobPtc;                     // Percentage progress for this job
   protected boolean reusable = true;        // The job can be re-used if it was not interrupted
   protected Integer jobTaskId = -1;         // The task-id of this job
@@ -303,10 +305,14 @@ public abstract class Job implements Comparable<Job> {
   public void setJobResult(String sData) { jobResult = sData;}
   public JSONObject getJobCount() { return jobCount;}
   public void setJobCount(JSONObject oCount) { jobCount = oCount;}
+  public JSONObject getJobList() { return jobList;}
+  public void setJobList(JSONObject oCount) { jobList = oCount;}
   public JSONObject getJobProgress() { return jobProgress;}
   public void setJobProgress(JSONObject oCount) { jobProgress = oCount;}
   public DataObject getJobTable() { return jobTable;}
   public void setJobTable(DataObject oTable) { jobTable = oTable;}
+  public DataObject getJobDbList() { return jobDbList; }
+  public void setJobDbList(DataObject oList) { jobDbList = oList;}
   public List<JSONObject> getJobErrors() { return jobErrList;}
   public void setJobErrors(List<JSONObject> arErr) {jobErrList = arErr;}
   // public DataObject getJobHits() { return jobHits;}

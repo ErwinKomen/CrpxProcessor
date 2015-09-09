@@ -223,25 +223,32 @@ public class ExecuteXml extends Execute {
    * @return 
    */
   public String getResultXml(String sFileName, String sTextId, 
-          String sSubType, List<JSONObject> lstFtInfo, JSONObject oXqf) {
+          String sSubType, List<JSONObject> lstFtInfo, JSONObject oXqf, int iResId) {
     StringBuilder bThis = new StringBuilder();
     
     try {
+      String sSearch = (oXqf.has("locl")) ? oXqf.getString("locl") : "";
+      String sCat = (oXqf.has("cat")) ? StringUtil.escapeXmlChars(oXqf.getString("cat")) : "";
+      String sContext = (oXqf.has("con")) ? StringUtil.escapeXmlChars(oXqf.getString("con")) : "";
+      String sSyntax = (oXqf.has("syn")) ? StringUtil.escapeXmlChars(oXqf.getString("syn")) : "";
+      String sEnglish = (oXqf.has("eng")) ? StringUtil.escapeXmlChars(oXqf.getString("eng")) : "";
+      String sMsg = (oXqf.has("msg")) ? oXqf.getString("msg") : "";
+      
       // Add the opening <Result> one
-      bThis.append("<Result ResId=\"1\" File\"").append(sFileName + "\" " + 
+      bThis.append("<Result ResId=\"" + iResId + "\" File=\"").append(sFileName + "\" " + 
         "TextId=\"" + sTextId + "\" " +
-        "Search=\"" + oXqf.getString("locl") + "\" " +
-        "Cat=\"" + StringUtil.escapeXmlChars(oXqf.getString("cat")) + "\" " +
+        "Search=\"" + sSearch + "\" " +
+        "Cat=\"" + sCat + "\" " +
         "forestId=\"" + oXqf.getString("locs") + "\" " +
         "eTreeId=\"" + oXqf.getString("locw") + "\" " +
         "Notes=\"-\" " +
         "Period=\"" + sSubType + "\">\n");
       // Add underlying nodes: Text, Psd, Pde
-      bThis.append("  <Text>").append(StringUtil.escapeXmlChars(oXqf.getString("con"))).append("</Text>\n" );
-      bThis.append("  <Psd>").append(StringUtil.escapeXmlChars(oXqf.getString("syn"))).append("</Psd>\n" );
-      bThis.append("  <Pde>").append(StringUtil.escapeXmlChars(oXqf.getString("eng"))).append("</Pde>\n" );
+      bThis.append("  <Text>").append(sContext).append("</Text>\n" );
+      bThis.append("  <Psd>").append(sSyntax).append("</Psd>\n" );
+      bThis.append("  <Pde>").append(sEnglish).append("</Pde>\n" );
       // Start adding underlying <Feature> nodes
-      String[] arFs = oXqf.getString("msg").split(";");
+      String[] arFs = sMsg.split(";");
       // Walk through the list of Feature Info JSON objects
       for (int q=0;q<lstFtInfo.size(); q++) {
         // Get the number of this feature
