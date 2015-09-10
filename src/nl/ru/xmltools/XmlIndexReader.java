@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import net.sf.saxon.s9api.QName;
 import nl.ru.crpx.project.CorpusResearchProject;
+import nl.ru.crpx.project.CorpusResearchProject.ProjType;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
@@ -54,7 +55,7 @@ public class XmlIndexReader {
   // History:
   // 10/jun/2015  ERK Created
   // ----------------------------------------------------------------------------------------------------------
-  public XmlIndexReader(File fThis, CorpusResearchProject prjThis, XmlDocument pdxThis) throws FileNotFoundException  {
+  public XmlIndexReader(File fThis, CorpusResearchProject prjThis, XmlDocument pdxThis, ProjType ptThis) throws FileNotFoundException  {
     try {
       // Set the error handler
       this.errHandle = prjThis.errHandle;
@@ -64,7 +65,7 @@ public class XmlIndexReader {
       // Validate existence of file
       if (!fThis.exists()) throw new FileNotFoundException("XmlIndexReader cannot find file " + fThis.getAbsolutePath());
       // Make sure an up-to-date index exists
-      if (!doCheckIndex(fThis))  throw new FileNotFoundException("XmlIndexReader cannot create an index " + fThis.getAbsolutePath());
+      if (!doCheckIndex(fThis, ptThis))  throw new FileNotFoundException("XmlIndexReader cannot create an index " + fThis.getAbsolutePath());
       // Read the index file into a data structure
       if (!readIndex()) throw new FileNotFoundException("XmlIndexReader could not read the index");
       // Initialise numbers
@@ -85,7 +86,7 @@ public class XmlIndexReader {
    * @param fThis - file that we want to read
    * @return 
    */
-  private boolean doCheckIndex(File fThis) {
+  private boolean doCheckIndex(File fThis, ProjType ptThis) {
     int iIndexLine = 0;   // index line used to make a file name
     
     try {
@@ -94,10 +95,10 @@ public class XmlIndexReader {
       // Set the directory used for the index
       String strFile = fThis.getAbsolutePath();
       // Get the file extension that is expected for this file
-      int iExt = strFile.lastIndexOf(crpThis.getTextExt());
+      int iExt = strFile.lastIndexOf(crpThis.getTextExt(ptThis));
       // Validate
       if (iExt==0) throw new FileNotFoundException("XmlIndexReader doesn't find expected extension [" + 
-              crpThis.getTextExt() + "] in " + fThis.getName());
+              crpThis.getTextExt(ptThis) + "] in " + fThis.getName());
       // Set the directory name correctly
       loc_sIndexDir = strFile.substring(0, iExt);
       loc_fIndexDir = new File(loc_sIndexDir);
@@ -116,7 +117,7 @@ public class XmlIndexReader {
         // Create an XmlChunkReader to do this
         XmlChunkReader rdThis = new XmlChunkReader(fThis);
         // First read the header
-        String sTagHeader = crpThis.getTagHeader();
+        String sTagHeader = crpThis.getTagHeader(ptThis);
         if (!sTagHeader.isEmpty()) {
           // Since the header tag is defined, it is obligatory
           if (! (rdThis.ReadToFollowing(sTagHeader))) {
@@ -132,11 +133,11 @@ public class XmlIndexReader {
         // Add header file name to IndexData (this is a separate starting line)
         sIndexData.append(sHeaderFile).append("\n");
         // Copy and create chunks for each line
-        String sTagLine = crpThis.getTagLine();
-        QName qAttrLineId = crpThis.getAttrLineId();
-        QName qAttrConstId = crpThis.getAttrConstId();
-        String sPathLine = crpThis.getNodeLine();
-        String sLastNode = crpThis.getNodeLast();
+        String sTagLine = crpThis.getTagLine(ptThis);
+        QName qAttrLineId = crpThis.getAttrLineId(ptThis);
+        QName qAttrConstId = crpThis.getAttrConstId(ptThis);
+        String sPathLine = crpThis.getNodeLine(ptThis);
+        String sLastNode = crpThis.getNodeLast(ptThis);
         while (!rdThis.EOF ) {
           // Read to the following start-of-line
           rdThis.ReadToFollowing(sTagLine);

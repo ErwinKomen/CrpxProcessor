@@ -82,6 +82,20 @@ public class FileIO {
 
     return fileExtension;
   }
+  // ================== Find the directory belonging to the full file
+  public static String getDirectory(String sFile) {
+
+    String separator = System.getProperty("file.separator");
+
+    int indexOfLastSeparator = sFile.lastIndexOf(separator);
+    String dirname;
+    if (indexOfLastSeparator>=0)
+      dirname = sFile.substring(0, indexOfLastSeparator);
+    else
+      dirname = "";
+
+    return dirname;
+  }
   public static InputStream getProjectDirectory(Class clsThis, String sFile) {
     InputStream is = clsThis.getClassLoader().getResourceAsStream(sFile);
     return is;

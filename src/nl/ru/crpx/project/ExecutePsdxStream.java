@@ -131,7 +131,8 @@ public class ExecutePsdxStream extends ExecuteXml {
 
       // Indicate we are working
       jobCaller.setJobStatus("working");
-      oProgress.put("total", lSource.size());
+      setProgress(jobCaller, "", "", -1, -1, lSource.size());
+      // oProgress.put("total", lSource.size());
       
       // Visit all the source files stored in [lSource]
       for (int i=0;i<lSource.size(); i++) {
@@ -147,11 +148,14 @@ public class ExecutePsdxStream extends ExecuteXml {
         
         // Take this input file
         File fInput = new File(lSource.get(i));
+        String sShort = FileIO.getFileNameWithoutExtension(lSource.get(i));
+        setProgress(jobCaller, sShort, "", i+1, -1, -1);
+        /*
         synchronized(oProgress) {
           oProgress.put("start", fInput.getName());
           oProgress.put("count", i+1);
           jobCaller.setJobProgress(oProgress);
-        }
+        } */
         // Add the combination of File/CRP to the stack
         CrpFile oCrpFile = new CrpFile(this.crpThis, fInput, objSaxon, (JobXq) jobCaller);
         RuBase.setCrpCaller(oCrpFile);
@@ -201,16 +205,27 @@ public class ExecutePsdxStream extends ExecuteXml {
       // Monitor the end of the jobs
       if (!monitorXqF(1, jobCaller)) return false;
       
+      // Give the final progress indication
+      setProgress(jobCaller, "", lSource.get(lSource.size()-1), -1, lSource.size(), -1);
+      /*
+      synchronized(oProgress) {
+        oProgress.put("finish",lSource.get(lSource.size()-1));
+        oProgress.put("ready", oProgress.getInt("total"));
+        jobCaller.setJobProgress(oProgress);
+      } */
+      
       // Combine the results of the queries into a table
       // NOTE: this may now be obsolete because of JobTable
+      setProgress(jobCaller, "", "combining results...", -1,-1,-1);
       String sCombiJson = combineResults(arCount);
       jobCaller.setJobResult(sCombiJson);
       
       // Provide a dataobject table for better processing
+      setProgress(jobCaller, "", "making table...", -1,-1,-1);
       jobCaller.setJobTable(getResultsTable(arCount));
       
       // If a DATABASE needs to be created, combine the parts that have been made already
-      makeResultsDbaseList(dlDbase, arTotal);
+      makeResultsDbaseList(jobCaller, dlDbase, arTotal);
       jobCaller.setJobDbList(dlDbase);
 
       // Also provide the job count results (which are perhaps less interesting)
@@ -230,13 +245,43 @@ public class ExecutePsdxStream extends ExecuteXml {
   }
   
   /**
+   * setProgress
+   *    Set the elements of the [oProgress] object, and pass on the progress
+   *    information to the @jobCaller
+   * 
+   * @param jobCaller
+   * @param sStart
+   * @param sFinish
+   * @param iCount
+   * @param iTotal
+   * @param iReady 
+   */
+  private void setProgress(Job jobCaller, String sStart, String sFinish, 
+          int iCount, int iReady, int iTotal) {
+    try {
+      // Give the final progress indication
+      synchronized(oProgress) {
+        if (!sStart.isEmpty()) oProgress.put("start", sStart);
+        if (!sFinish.isEmpty()) oProgress.put("finish", sFinish);
+        if (iCount>=0) oProgress.put("count", iCount);
+        if (iTotal>=0) oProgress.put("total", iTotal);
+        if (iReady>=0) oProgress.put("ready", iReady);
+        jobCaller.setJobProgress(oProgress);
+      }
+    } catch (Exception ex) {
+      // Warn user
+      errHandle.DoError("ExecutePsdxStream/setProgress error: ", ex, ExecutePsdxStream.class);
+    }
+  }
+  
+  /**
    * makeResultsDbaseList
    *    Combine all database-parts for each QC line
    * 
    * @param lstBack     - The dataobject list we will be returning with the dbase information
    * @param arListTotal - Array of all individual .setJobList() objects
    */
-  private void makeResultsDbaseList(DataObjectList lstBack, JSONArray arListTotal) {
+  private void makeResultsDbaseList(Job jobCaller, DataObjectList lstBack, JSONArray arListTotal) {
     PrintWriter[] arPwCombi = new PrintWriter[arQuery.length];
     
     try {
@@ -262,10 +307,20 @@ public class ExecutePsdxStream extends ExecuteXml {
                   " <Analysis></Analysis>\n</General>\n";
           pCombi.append(sIntro);
           arPwCombi[i] = pCombi;
+          
+          // Create an object to store the information on this database
+          DataObjectMapElement oDbase = new DataObjectMapElement();
+          oDbase.put("file", sCombi);
+          oDbase.put("query", arQuery[i].Name);
+          oDbase.put("qcname", arQuery[i].Descr);
+          oDbase.put("qcid", iQCid);
+          oDbase.put("n", arListTotal.length());
+          lstBack.add(oDbase);
         } else 
           arPwCombi[i] = null;
       }
 
+      setProgress(jobCaller, "", "extracting databases...", -1,-1,-1);
       // Get to the list for all files
       for (int i=0;i<arListTotal.length();i++) {
         // Start counting result id
@@ -277,6 +332,9 @@ public class ExecutePsdxStream extends ExecuteXml {
         String sTextId = oListOneFile.getString("textid");
         String sSubType = oListOneFile.getString("subtype");
         JSONArray arHits = oListOneFile.getJSONArray("hits");
+        // Show where we are
+        String sShort = FileIO.getFileNameWithoutExtension(sFileName);
+        setProgress(jobCaller, sShort, "", i+1,-1,-1);
         // Walk the "hits" array: one item for each QC
         for (int j=0;j<arHits.length(); j++) {
           // Get this item
@@ -309,7 +367,7 @@ public class ExecutePsdxStream extends ExecuteXml {
           arPwCombi[i].close();
         } 
       }
-      // COmbine
+      // The result information is in [lstBack]
     } catch (Exception ex) {
       // Warn user
       errHandle.DoError("ExecutePsdxStream/makeResultsDbaseList error: ", ex, ExecutePsdxStream.class);
@@ -450,6 +508,7 @@ public class ExecutePsdxStream extends ExecuteXml {
     JSONObject arJsonSub[];
     
     try {
+      //
       // Walk an object for all QC lines
       JSONArray oTotal = new JSONArray();
       // Walk all the QC lines
@@ -574,11 +633,15 @@ public class ExecutePsdxStream extends ExecuteXml {
             // =========================================
             
             // Note that it has finished for others too
+            setProgress(jobCaller, "", RuBase.getCrpFile(jThis.intCrpFileId).flThis.getName(), 
+                    -1, arCount.length(), -1);
+            /*
             synchronized(oProgress) {
               oProgress.put("finish",RuBase.getCrpFile(jThis.intCrpFileId).flThis.getName());
               oProgress.put("ready", arCount.length());
               jobCaller.setJobProgress(oProgress);
             }
+            */
             // We have its results, so take it away from our job list
             arJob.remove(jThis);
             // The job must also be removed to clear room

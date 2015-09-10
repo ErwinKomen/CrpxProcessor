@@ -9,11 +9,19 @@
 package nl.ru.crpx.project;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import net.sf.saxon.s9api.DocumentBuilder;
+import net.sf.saxon.s9api.Processor;
+import nl.ru.crpx.project.CorpusResearchProject.ProjType;
 // import static nl.ru.crpx.project.CrpGlobal.DoError;
 // import static nl.ru.crpx.project.CrpGlobal.Status;
 import nl.ru.util.ByRef;
+import nl.ru.xmltools.XmlDocument;
+import nl.ru.xmltools.XmlIndexReader;
 import nl.ru.xmltools.XmlNode;
 
 /**
@@ -26,12 +34,25 @@ public class Dbase extends CrpGlobal {
   private String loc_strDbCurrentFile;  // File name of the current database <entry>
   private List<String> loc_colDbFiles;  // Collection of files that have been read
   private XmlNode loc_ndxDbRes;         //
+  private XmlIndexReader oXmlIndexRd;   // An indexed reader to the database XML file
+  private XmlDocument pdxThis;          // Local place for an XmlDocument
+  protected Processor objSaxon;             // Local access to the processor
+  protected DocumentBuilder objSaxDoc;      // My own document-builder
+  private CorpusResearchProject oCrp;
+  
   // ================= Class initialisation ====================================
-  public Dbase() {
+  public Dbase(CorpusResearchProject oCrp) {
     loc_strDbSource = "";
     loc_strDbCurrentFile = "";
     loc_colDbFiles = new ArrayList<>();
     loc_ndxDbRes = null;
+    oXmlIndexRd = null;
+    this.oCrp = oCrp;
+    // Get the processor
+    this.objSaxon = oCrp.getSaxProc();
+    // Create a document builder
+    this.objSaxDoc = this.objSaxon.newDocumentBuilder();
+    pdxThis = new XmlDocument(this.objSaxDoc, this.objSaxon);
   }
 // <editor-fold desc="Corpus database as input">
   // ---------------------------------------------------------------------------------------------------------
@@ -55,6 +76,8 @@ public class Dbase extends CrpGlobal {
       loc_strDbSource = fDbSource.getAbsolutePath();
       // Validate
       if (! fDbSource.exists()) return false;
+      // Create an XmlIndexreader for this file 
+      oXmlIndexRd = new XmlIndexReader(fDbSource, oCrp, this.pdxThis, ProjType.Dbase);
       // Scan the whole database for availability of files...
       if (! (DbaseFileScan(fDbSource))) {
         return false;
@@ -99,12 +122,12 @@ public class Dbase extends CrpGlobal {
         }
       } */
       return true;
-    } catch (RuntimeException ex) {
+    } catch (RuntimeException | FileNotFoundException ex) {
       // Show there is something wrong
       DoError("Dbase/DbaseQueryInit error: " + ex.getMessage() + "\r\n");
       // Return failure
       return false;
-    }
+    } 
   }
   // ---------------------------------------------------------------------------------------------------------
   // Name :  DbaseFileScan

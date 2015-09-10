@@ -43,6 +43,7 @@ public class CrpxProcessor {
   public static File dirInput = null;     // Main directory where the psdx files are located
   public static File dirOutput = null;    // Directory where the output of this query will be put
   public static File dirQuery = null;     // Directory where the queries (temporarily) are put
+  public static File flDbase = null;      // Input file for databaseproject
   // =================== instance variables ==================================
   private static JSONObject config;           // Configuration object
   private static SearchManager searchManager; // The search manager we make
@@ -106,6 +107,14 @@ public class CrpxProcessor {
                 usage(); return;
                 }
               }
+              break;
+            case "dbase": // Specify a database as input file
+              // Validate argument
+              i++; if (i>args.length-1) {logger.error("Option --dbase should be followed by a database location"); usage(); return; }
+              // Get the argument
+              String sDbaseLoc = args[i];
+              dirInput = new File(FileIO.getDirectory(sDbaseLoc));
+              flDbase = new File(sDbaseLoc);
               break;
             case "outputdir":
               // We next expect the actual directory to follow
@@ -261,6 +270,10 @@ public class CrpxProcessor {
         String sMsg = prjThis.errHandle.getErrList().toString();
         errHandle.DoError("List of errors:\n" + sMsg);
         return false;
+      }
+      // Is a database as input specified?
+      if (flDbase != null) {
+        prjThis.setSource(flDbase.toString());
       }
       // Show the project has been loaded
       errHandle.debug("Successfully loaded project " + 

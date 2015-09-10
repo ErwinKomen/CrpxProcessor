@@ -57,7 +57,7 @@ public class CorpusResearchProject {
   private static String sGregorianFormat = "yyyy-MM-dd'T'HH:mm:ss";
   // ================== Enumerations in use ==================================
   public enum ProjType {
-    ProjPsd, ProjPsdx, ProjNegra, ProjAlp, ProjFolia, None;
+    ProjPsd, ProjPsdx, ProjNegra, ProjAlp, ProjFolia, Dbase, None;
     public static ProjType getType(String sName) {
       switch (sName.toLowerCase()) {
         case "xquery-psdx": return ProjType.ProjPsdx;
@@ -65,6 +65,7 @@ public class CorpusResearchProject {
         case "penn-psd": return ProjType.ProjPsd;
         case "folia-xml": return ProjType.ProjFolia;
         case "alpino-xml": return ProjType.ProjAlp;
+        case "dbase": return ProjType.Dbase;
       }
       // Unidentified project
       return ProjType.None;
@@ -76,6 +77,7 @@ public class CorpusResearchProject {
         case ProjNegra: return "Negra-Tig";
         case ProjAlp: return "Alpino-Xml";
         case ProjFolia: return "Folia-Xml";
+        case Dbase: return "Dbase";
         default: return "";
       }
     }
@@ -755,81 +757,112 @@ public class CorpusResearchProject {
   }
   // =================== Text extension ========================================
   public String getTextExt() {
-    switch (this.intProjType) {
+    return getTextExt(this.intProjType);
+  }
+  public String getTextExt(ProjType ptThis) {
+    switch (ptThis) {
       case ProjPsdx: return ".psdx";
       case ProjNegra: return ".negra";
       case ProjPsd: return ".psd";
       case ProjFolia: return ".folia.xml";
       case ProjAlp: return ".xml";
+      case Dbase: return ".xml";
     }
     // Unidentified project
     return ".xml";
   }
   public String getTagPara() {
-    switch (this.intProjType) {
+    return getTagPara(this.intProjType);
+  }
+  public String getTagPara(ProjType ptThis) {
+    switch (ptThis) {
       case ProjPsdx: return "@Para";
       case ProjNegra: return "";
       case ProjPsd: return "";
       case ProjFolia: return "p";
       case ProjAlp: return "";
+      case Dbase: return "";
     }
     // Unidentified project
     return ".xml";
   }
   public String getTagHeader() {
-    switch (this.intProjType) {
+    return getTagHeader(this.intProjType);
+  }
+  public String getTagHeader(ProjType ptThis) {
+    switch (ptThis) {
       case ProjPsdx: return "teiHeader";
       case ProjNegra: return "teiHeader";
       case ProjPsd: return "";
       case ProjFolia: return "metadata";
       case ProjAlp: return "";
+      case Dbase: return "Global";
     }
     // Unidentified project
     return ".xml";
   }
   public String getTagLine() {
-    switch (this.intProjType) {
+    return getTagLine(this.intProjType);
+  }
+  public String getTagLine(ProjType ptThis) {
+    switch (ptThis) {
       case ProjPsdx: return "forest";
       case ProjNegra: return "s";
       case ProjPsd: return "";
       case ProjFolia: return "s";
       case ProjAlp: return "node";
+      case Dbase: return "Result";
     }
     // Unidentified project
     return ".xml";
   }
   public String getNodeLine() {
-    switch (this.intProjType) {
+    return getNodeLine(this.intProjType);
+  }
+  public String getNodeLine(ProjType ptThis) {
+    switch (ptThis) {
       case ProjPsdx: return "./descendant-or-self::forest[1]";
       case ProjNegra: return "./descendant-or-self::s[1]";
       case ProjPsd: return "";
       case ProjFolia: return "./descendant-or-self::s[1]";
       case ProjAlp: return "./descendant-or-self::node[1]";
+      case Dbase: return "./descendant-or-self::Result[1]";
       default: return "";
     }
   }
   public String getNodeLast() {
-    switch (this.intProjType) {
+    return getNodeLast(this.intProjType);
+  }
+  public String getNodeLast(ProjType ptThis) {
+    switch (ptThis) {
       case ProjPsdx: return "./descendant::eTree[last()]";
       case ProjNegra: return "./descendant::su[last()]";
       case ProjPsd: return "";
       case ProjFolia: return "./descendant::su[last()]";
       case ProjAlp: return "./descendant::node[last()]";
+      case Dbase: return "./descendant::Result[last()]";
       default: return "";
     }
   }
   public QName getAttrLineId() {
-    switch(this.intProjType ) {
+    return getAttrLineId(this.intProjType);
+  }
+  public QName getAttrLineId(ProjType ptThis) {
+    switch(ptThis) {
       case ProjPsdx: return new QName("", "", "forestId");
       case ProjFolia: return new QName("xml", "", "id");
       case ProjNegra: return new QName("", "", "");
       case ProjAlp: return new QName("", "", "");
       case ProjPsd: return new QName("", "", "");
+      case Dbase: return new QName("", "", "ResId");
       default: return new QName("", "", "id");
     }
   }
   public QName getAttrConstId() {
-    switch(this.intProjType ) {
+    return getAttrConstId(this.intProjType);
+  }
+  public QName getAttrConstId(ProjType ptThis) {
+    switch(ptThis) {
       case ProjPsdx: return new QName("", "", "Id");
       case ProjFolia: return new QName("xml", "", "id");
       case ProjNegra: return new QName("", "", "");

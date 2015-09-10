@@ -56,7 +56,7 @@ public abstract class XmlAccess {
       // Get access to the correct xml index reader
       if (objXmlRdr == null || !objXmlRdr.getFileName().equals(sFileName)) {
         File objCurrentFile = new File(sFileName);
-        this.objXmlRdr = new XmlIndexReader(objCurrentFile, crpThis, pdxDoc);
+        this.objXmlRdr = new XmlIndexReader(objCurrentFile, crpThis, pdxDoc, crpThis.intProjType);
       }
       // Initialise some stuff
       ndxSent = null;

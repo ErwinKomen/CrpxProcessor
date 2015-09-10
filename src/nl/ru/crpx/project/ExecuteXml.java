@@ -87,7 +87,7 @@ public class ExecuteXml extends Execute {
     oXq = new XqErr();
     // Other initialisations for this class
     bIsDbase = false;
-    oDbase = new Dbase();
+    oDbase = new Dbase(oProj);
     // Create a compiler and a document builder
     objCompiler = objSaxon.newXQueryCompiler();
     objCompiler.setCompileWithTracing(true);
@@ -464,9 +464,14 @@ public class ExecuteXml extends Execute {
         String[] arList = sInputFile.split("[;]", -1);
         // Add all the files individually
         for (intI = 0; intI < arList.length; intI++) {
-          // Add this file
-          lInputFiles.add(FileUtil.nameNormalize(crpThis.getSrcDir() + 
-                  "/" + arList[intI]));
+          // Check if the file points to a good one already
+          if ((new File(arList[intI])).exists()) {
+            lInputFiles.add(arList[intI]);
+          } else {
+            // Add this file
+            lInputFiles.add(FileUtil.nameNormalize(crpThis.getSrcDir() + 
+                    "/" + arList[intI]));
+          }          
         }
       }
       // Return success

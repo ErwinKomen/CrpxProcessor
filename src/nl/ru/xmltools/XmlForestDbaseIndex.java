@@ -12,27 +12,28 @@ import java.io.IOException;
 import javax.xml.xpath.XPathExpressionException;
 import net.sf.saxon.s9api.SaxonApiException;
 import nl.ru.crpx.project.CorpusResearchProject;
+import nl.ru.crpx.project.CorpusResearchProject.ProjType;
 import nl.ru.crpx.search.JobXq;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.util.ByRef;
 
 /**
- * Implement the "XmlForest" interface for .psdx files, providing 'random-access'
- *   by means of indexing the .psdx file
+ * Implement the "XmlForest" interface for .xml <CrpOview> Database files, providing 'random-access'
+ *   by means of indexing the .xml file
  * 
  * @author Erwin R. Komen
  */
-public class XmlForestPsdxIndex extends XmlForest {
+public class XmlForestDbaseIndex extends XmlForest {
   // ============ Local variables ==============================================
   private XmlIndexReader loc_xrdFile;   // Indexed reader for xml files
   // ============ Call the standard class initializer ==========================
-  public XmlForestPsdxIndex(CorpusResearchProject oCrp, JobXq oJob, ErrHandle oErr) {
+  public XmlForestDbaseIndex(CorpusResearchProject oCrp, JobXq oJob, ErrHandle oErr) {
     super(oCrp,oJob,oErr);
   }
   
   // ----------------------------------------------------------------------------------------------------------
   // Name :  FirstForest
-  // Goal :  Load the first forest using an XmlReader 
+  // Goal :  Load the first <Result> element using an XmlReader and also read the <Global> header
   // History:
   // 18-03-2014  ERK Created for .NET
   // 10/jun/2015 ERK Adapated for "PsdxIndex" in Java
@@ -51,21 +52,9 @@ public class XmlForestPsdxIndex extends XmlForest {
       // Initialisations
       ndxForest.argValue = null;
       ndxHeader.argValue = null;
-      // Fill the arrays
-      loc_arPrec = new XmlDocument[objJob.intPrecNum];
-      loc_arPrecCnt = new XmlForest.Context[objJob.intPrecNum];
-      loc_arFoll = new XmlDocument[objJob.intFollNum];
-      loc_arFollCnt = new XmlForest.Context[objJob.intFollNum];
-      for (intI = 0; intI < loc_arPrec.length; intI++) {
-        loc_arPrec[intI] = new XmlDocument(this.objSaxDoc, this.objSaxon);
-        loc_arPrecCnt[intI] = new XmlForest.Context();
-      }
-      for (intI = 0; intI < loc_arFoll.length; intI++) {
-        loc_arFoll[intI] = new XmlDocument(this.objSaxDoc, this.objSaxon);
-        loc_arFollCnt[intI] = new XmlForest.Context();
-      }
+      // N.B: do *not* use context arrays
       // Start up the streamer
-      loc_xrdFile = new XmlIndexReader(fThis, crpThis, loc_pdxThis, crpThis.intProjType);
+      loc_xrdFile = new XmlIndexReader(fThis, crpThis, loc_pdxThis, ProjType.Dbase);
       // Do we have a header?
       String sHeader = loc_xrdFile.getHeader();
       if (sHeader.isEmpty()) {
