@@ -100,6 +100,8 @@ public class CorpusResearchProject {
   private String ProjectType = "";  // The type of project (one of several)
   private String SaveDate = "";     // The date + time when this CRP was last saved
   private String sHitsDir = "";     // Directory where hits are stored
+  private String Language = "";     // The language this project focuses on
+  private String Part = "";         // The particular part of the language it focuses on
   private File QueryDir = null;     // Location of temporal queries
   private File DstDir = null;       // Destination directory
   private File SrcDir = null;       // Directory where the psdx files are located
@@ -629,6 +631,8 @@ public class CorpusResearchProject {
   public String getProjectType() { return this.ProjectType;}
   public String getUserId() { return this.userId; }
   public String getSave() { return this.SaveDate; }
+  public String getLanguage() { return this.Language;}
+  public String getPart() { return this.Part;}
   // Set string values
   public void setLocation(String sValue) { this.Location = sValue;}
   public void setProjectType(String sValue) { if (setSetting("ProjectType", sValue)) { this.ProjectType = sValue;}}
@@ -641,6 +645,8 @@ public class CorpusResearchProject {
   public void setGoal(String sValue) { if (setSetting("Goal", sValue)) { this.Goal = sValue;}}
   public void setComments(String sValue) { if (setSetting("Comments", sValue)) { this.Comments = sValue;}}
   public void setAuthor(String sValue) { if (setSetting("Author", sValue)) { this.Author = sValue;}}
+  public void setLanguage(String sValue) { if (setSetting("Language", sValue)) { this.Language = sValue;} }
+  public void setPart(String sValue) { if (setSetting("Part", sValue)) { this.Part = sValue;} }
   // ================ Directory and file names
   public File getQueryDir() { return this.QueryDir;}
   public File getDstDir() { return this.DstDir;}
@@ -746,12 +752,15 @@ public class CorpusResearchProject {
     // Return whatever value the HitsDir for this CRP has now
     return this.sHitsDir;
   }
+  // ========== Location of the database, depending on the QC number
   public String getDbaseName(int iQCid) {
     return this.getHitsDir() + "/" + this.getName() + "_QC" + iQCid + "_Dbase.xml";
   }
+  // ========== Location of the database, depending on the QC number and the filename
   public String getDbaseName(int iQCid, String sFileName) {
     return this.getHitsDir() + "/" + sFileName + "_QC" + iQCid + "_Dbase.xml";
   }
+  // ========== Location of the lexicon file, depending on the filename
   public String getLexName(String sFileName) {
     return this.getHitsDir() + "/" + sFileName + ".lex";
   }
@@ -796,7 +805,7 @@ public class CorpusResearchProject {
       case ProjPsd: return "";
       case ProjFolia: return "metadata";
       case ProjAlp: return "";
-      case Dbase: return "Global";
+      case Dbase: return "General";
     }
     // Unidentified project
     return ".xml";
@@ -868,7 +877,22 @@ public class CorpusResearchProject {
       case ProjNegra: return new QName("", "", "");
       case ProjAlp: return new QName("", "", "");
       case ProjPsd: return new QName("", "", "");
+      case Dbase: return new QName("", "", "forestId");
       default: return new QName("", "", "id");
+    }
+  }
+  public QName getAttrPartId() {
+    return getAttrConstId(this.intProjType);
+  }
+  public QName getAttrPartId(ProjType ptThis) {
+    switch(ptThis) {
+      case ProjPsdx: return new QName("", "", "");
+      case ProjFolia: return new QName("", "", "");
+      case ProjNegra: return new QName("", "", "");
+      case ProjAlp: return new QName("", "", "");
+      case ProjPsd: return new QName("", "", "");
+      case Dbase: return new QName("", "", "File");
+      default: return new QName("", "", "");
     }
   }
 

@@ -148,12 +148,6 @@ public class ExecutePsdxStream extends ExecuteXml {
         File fInput = new File(lSource.get(i));
         String sShort = FileIO.getFileNameWithoutExtension(lSource.get(i));
         setProgress(jobCaller, sShort, "", i+1, -1, -1);
-        /*
-        synchronized(oProgress) {
-          oProgress.put("start", fInput.getName());
-          oProgress.put("count", i+1);
-          jobCaller.setJobProgress(oProgress);
-        } */
         // Add the combination of File/CRP to the stack
         CrpFile oCrpFile = new CrpFile(this.crpThis, fInput, objSaxon, (JobXq) jobCaller);
         RuBase.setCrpCaller(oCrpFile);
@@ -205,12 +199,6 @@ public class ExecutePsdxStream extends ExecuteXml {
       
       // Give the final progress indication
       setProgress(jobCaller, "", lSource.get(lSource.size()-1), -1, lSource.size(), -1);
-      /*
-      synchronized(oProgress) {
-        oProgress.put("finish",lSource.get(lSource.size()-1));
-        oProgress.put("ready", oProgress.getInt("total"));
-        jobCaller.setJobProgress(oProgress);
-      } */
       
       // Combine the results of the queries into a table
       // NOTE: this may now be obsolete because of JobTable
@@ -301,6 +289,8 @@ public class ExecutePsdxStream extends ExecuteXml {
                   " <Created>" + crpThis.dateToString(new Date()) + "</Created>\n" +
                   " <DstDir></DstDir>\n" +
                   " <SrcDir>" + this.crpThis.getSrcDir() + "</SrcDir>\n" +
+                  " <Language>" + this.crpThis.getLanguage() + "</Language>\n" +
+                  " <Part>" + this.crpThis.getPart() + "</SrcDir>\n" +
                   " <Notes>Created by CorpusStudio from query line " + iQCid + ": [" + arQuery[i].Descr + "]</Notes>\n" +
                   " <Analysis></Analysis>\n</General>\n";
           pCombi.append(sIntro);

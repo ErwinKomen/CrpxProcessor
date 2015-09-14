@@ -25,12 +25,14 @@ import net.sf.saxon.trans.StaticError;
 import net.sf.saxon.trans.XPathException;
 import static nl.ru.crpx.tools.FileIO.getFileNameWithoutExtension;
 import static nl.ru.crpx.project.CrpGlobal.Status;
+import nl.ru.crpx.search.JobXq;
 import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
 import nl.ru.util.StringUtil;
 import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
 import nl.ru.xmltools.Parse;
+import nl.ru.xmltools.XmlNode;
 import nl.ru.xmltools.XqErr;
 // </editor-fold>
 
@@ -51,6 +53,7 @@ public class ExecuteXml extends Execute {
   protected List<String> objBack;       // Element to collect Html output
   protected List<String> objExmp;       // Element to collect examples for Html output (for the current QC step)
   protected List<String> objSubCat;     // Element to collect subcagegorisation examples for HTML output
+  protected ByRef<XmlNode> ndxDbRes;    // Pointer to current database node
   protected Parse objParseXq;           // Object to parse Xquery
   protected Configuration xconfig;
   protected StaticQueryContext sqc;
@@ -131,7 +134,7 @@ public class ExecuteXml extends Execute {
         // Determine trace file name
         String strTraceFile = crpThis.getDstDir() + "/" + strName + "-QC" + (intI + 1) + "-trace.txt";
         // Clear the subcategorisation collection for this QC step
-  //VB TO JAVA CONVERTER TODO TASK: The following 'ReDim' could not be resolved. A possible reason may be that the object of the ReDim was not declared as an array:
+        //VB TO JAVA CONVERTER TODO TASK: The following 'ReDim' could not be resolved. A possible reason may be that the object of the ReDim was not declared as an array:
         qThis.CatExamp = null;
         // Set the number of subcategories to zero here
         qThis.CatNum = 0;
@@ -160,12 +163,14 @@ public class ExecuteXml extends Execute {
         if (fThis.exists()) {
           // Initialize database processing
           // TODO: implement
-          oDbase.DbaseQueryInit(fThis, strDbType);
+          oDbase.DbaseQueryInit(fThis, strDbType, (JobXq) this.objSearchJob);
           // Check the type of the file
-          bIsDbase = (strDbType.argValue == "CrpOview");
+          bIsDbase = (strDbType.argValue.equals("CrpOview"));
           // Read first record (if any)
           // TODO: implement
-          // DbaseQueryRead(ndxDbRes)
+          oDbase.DbaseQueryRead(ndxDbRes);
+          // Set the source file list to the list of files referred to from the database
+          lSource = oDbase.getDbFiles();
         }
       }
       // Start up output/overview counting
@@ -179,7 +184,7 @@ public class ExecuteXml extends Execute {
       // TODO: find a better method to deal with this...
       
       // Reset the query examples
-      for (Query arQuery1 : arQuery) arQuery1.Examp.clear();
+      for (Query objOneQuery : arQuery) objOneQuery.Examp.clear();
       
       // Initialize the database-locator
       dbLoc = new DbLoc();
@@ -189,15 +194,6 @@ public class ExecuteXml extends Execute {
       
       // Note: skip period initialisation and the For-Each-Period loop
       
-      // If the input is a database, then adapt source files...
-      if (bIsDbase) {
-        // DO the source file adaptations
-        // if (!BuildSourceDbase(arSource, pdxDbase)) {
-        //   // Warn the user
-        //   DoError("There is a problem building the source files from the database");
-        //   return false;
-        // }
-      }
 
       // TODO: ga verder bij regel #2728 in ExecuteQueriesXqueryStream
       

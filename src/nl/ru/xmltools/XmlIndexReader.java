@@ -136,12 +136,14 @@ public class XmlIndexReader {
         String sTagLine = crpThis.getTagLine(ptThis);
         QName qAttrLineId = crpThis.getAttrLineId(ptThis);
         QName qAttrConstId = crpThis.getAttrConstId(ptThis);
+        QName qAttrPartId = crpThis.getAttrPartId(ptThis);    // Added 14/sep/15
         String sPathLine = crpThis.getNodeLine(ptThis);
         String sLastNode = crpThis.getNodeLast(ptThis);
         while (!rdThis.EOF ) {
           // Read to the following start-of-line
           rdThis.ReadToFollowing(sTagLine);
           if (!rdThis.EOF) {
+            String sPartId = "";
             // Read the line into a string
             String strNext = rdThis.ReadOuterXml();
             // Load the line as an XmlDocument, so we can look for attributes
@@ -152,14 +154,24 @@ public class XmlIndexReader {
             // Get the last constituent node
             ndxWork = loc_pdxThis.SelectSingleNode(sLastNode);
             String sLastId = (ndxWork == null) ? "-" : ndxWork.getAttributeValue(qAttrConstId);
+            // Need to get the part?
+            if (!qAttrPartId.toString().isEmpty()) {
+              sPartId = (ndxWork == null) ? "" : ndxWork.getAttributeValue(qAttrPartId);
+            }
             // Save the chunk using our own separate index numbering
             iIndexLine++;
             String sLineFile = loc_sIndexDir + "/" + iIndexLine + ".xml";
             FileUtil.writeFile(new File(sLineFile), strNext);
             // Add information to Index Data
             sIndexData.append(sLineId).append("\t");
-            sIndexData.append(sLineFile).append("\t");
-            sIndexData.append(sLastId).append("\n");
+            sIndexData.append(sLineFile).append("\t");            
+            sIndexData.append(sLastId);
+            // Do we have a part specifier?
+            if (!qAttrPartId.toString().isEmpty()) {
+              sIndexData.append("\t").append(sPartId);
+            }
+            // Finish the line
+            sIndexData.append("\n");
           }
         }
         // Write the index file to its position
@@ -199,7 +211,11 @@ public class XmlIndexReader {
           // Stop and review what is going on
           int iStop = 0;
         }
-        arIndex.add(new IndexEl(lineArray[0], lineArray[1], lineArray[2]));
+        // Action depends on lines being 3 or 4 columns
+        if (lineArray.length == 3)
+          arIndex.add(new IndexEl(lineArray[0], lineArray[1], lineArray[2], ""));
+        else      
+          arIndex.add(new IndexEl(lineArray[0], lineArray[1], lineArray[2], lineArray[3]));
       }
       // Return positively
       return true;
@@ -387,14 +403,15 @@ public class XmlIndexReader {
   // 24/apr/2015  ERK Created
   // ----------------------------------------------------------------------------------------------------------
   public int getLinesRead() { return this.iCurrentLine;}
-  public int getPtc() {return (int) ( (this.iCurrentLine / this.iLines) * 100); }
+  public int getPtc() {return (int) ( this.iCurrentLine * 100 / this.iLines); }
 }
 // Define one index element
 class IndexEl {
   public String LineId;   // the id of the line this represents
   public String sFile;    // the full name of the file where this element is stored
   public String LastId;   // The id of the last constituent
-  public IndexEl(String sLineId, String sFileName, String sLastId) {
-    this.LineId = sLineId; this.sFile = sFileName; this.LastId = sLastId;
+  public String PartId;   // Part identifier (optional; for dbase: @File)
+  public IndexEl(String sLineId, String sFileName, String sLastId, String sPartId) {
+    this.LineId = sLineId; this.sFile = sFileName; this.LastId = sLastId; this.PartId = sPartId;
   }
 }
