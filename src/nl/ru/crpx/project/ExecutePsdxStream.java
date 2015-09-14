@@ -20,7 +20,6 @@ import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.XQueryEvaluator;
 import nl.ru.crpx.dataobject.DataObject;
 import nl.ru.crpx.dataobject.DataObjectList;
-import nl.ru.crpx.dataobject.DataObjectMapAttribute;
 import nl.ru.crpx.dataobject.DataObjectMapElement;
 import nl.ru.crpx.search.Job;
 import nl.ru.crpx.search.JobXq;
@@ -36,7 +35,6 @@ import nl.ru.util.FileUtil;
 import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
 import nl.ru.xmltools.XmlAccess;
-import nl.ru.xmltools.XmlAccessPsdx;
 import nl.ru.xmltools.XmlForest;
 import nl.ru.xmltools.XmlNode;
 
