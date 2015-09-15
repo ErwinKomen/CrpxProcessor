@@ -85,15 +85,20 @@ public class XmlIndexReader {
    * 
    * @param fThis - file that we want to read
    * @return 
+   * @history
+   *  14/sep/2015 ERK Database xml files get an index that splits over the 'Part' items
    */
   private boolean doCheckIndex(File fThis, ProjType ptThis) {
-    int iIndexLine = 0;   // index line used to make a file name
+    List<IndexFile> lIndices; // List of <IndexFile> elements
+    int iIndexLine = 0;       // index line used to make a file name
     
     try {
       // Get the date/time of the file
       long tmFile = fThis.lastModified();
       // Set the directory used for the index
       String strFile = fThis.getAbsolutePath();
+      // Initialisations
+      lIndices = new ArrayList<>();
       // Get the file extension that is expected for this file
       int iExt = strFile.lastIndexOf(crpThis.getTextExt(ptThis));
       // Validate
@@ -160,28 +165,101 @@ public class XmlIndexReader {
             }
             // Save the chunk using our own separate index numbering
             iIndexLine++;
-            String sLineFile = loc_sIndexDir + "/" + iIndexLine + ".xml";
-            FileUtil.writeFile(new File(sLineFile), strNext);
-            // Add information to Index Data
-            sIndexData.append(sLineId).append("\t");
-            sIndexData.append(sLineFile).append("\t");            
-            sIndexData.append(sLastId);
-            // Do we have a part specifier?
-            if (!qAttrPartId.toString().isEmpty()) {
-              sIndexData.append("\t").append(sPartId);
+            // Treatment is different if the PART is specified
+            if (sPartId.isEmpty()) {
+              // Traditional treatment: file name becomes directory with index
+              String sLineFile = loc_sIndexDir + "/" + iIndexLine + ".xml";
+              FileUtil.writeFile(new File(sLineFile), strNext);
+              // Add information to Index Data
+              sIndexData.append(sLineId).append("\t");
+              sIndexData.append(sLineFile).append("\t");            
+              sIndexData.append(sLastId).append("\n");
+            } else {
+              // Alternative: file name = directory
+              //              each part = directory within the above directory
+              String sPartDir = loc_sIndexDir + "/" + sPartId;
+              File fPartDir = new File(sPartDir);
+              if (!fPartDir.exists()) fPartDir.mkdir();
+              String sLineFile = sPartDir + "/" + iIndexLine + ".xml";
+              FileUtil.writeFile(new File(sLineFile), strNext);
+              // Possibly add information to the main index file
+              if (!hasIndexFile(lIndices, sPartId)) {
+                // Add information to 'global' Index Data
+                sIndexData.append(sLineId).append("\t");
+                sIndexData.append(sPartDir).append("\t");            
+                sIndexData.append(sLastId).append("\n");
+              }
+              // Get the correct IndexFile element
+              int iIndexFile = getIndexFile(lIndices, sPartId);
+              if (iIndexFile < 0) return false;
+              IndexFile oIndex = lIndices.get(iIndexFile);
+              StringBuilder sb = oIndex.sb;
+              // Add information to Index Data
+              sb.append(sLineId).append("\t");
+              sb.append(sLineFile).append("\t");            
+              sb.append(sLastId).append("\n");
             }
-            // Finish the line
-            sIndexData.append("\n");
           }
         }
         // Write the index file to its position
         FileUtil.writeFile(loc_fIndexFile, sIndexData.toString());
+        // Write any index file in the list to its position
+        for (int i=0;i< lIndices.size(); i++) {
+          IndexFile oIndex = lIndices.get(i);
+          String sIndexFile = loc_sIndexDir + "/" + oIndex.Name + "/index.csv";
+          FileUtil.writeFile(new File(sIndexFile),oIndex.sb.toString());
+        }
       }
 
       // Return positively
       return true;
     } catch (Exception ex) {
       errHandle.DoError("DoCheckingIndex could not be completed for " + fThis.getAbsolutePath(), ex, XmlIndexReader.class);
+      // Return failure
+      return false;
+    }
+  }
+  
+  /**
+   * getIndexFile -- get the "IndexFile" element in the specified list
+   *                 that refers to the indicated part
+   * 
+   * @param lContainer
+   * @param sPartId
+   * @return 
+   */
+  private int getIndexFile(List<IndexFile> lContainer, String sPartId) {
+    try {
+      for (int i=0;i<lContainer.size();i++ ) {
+        if (lContainer.get(i).Name.equals(sPartId)) return i;
+      }
+      // The Part is not yet in the list: add it
+      lContainer.add(new IndexFile(sPartId));
+      // Return the last index
+      return lContainer.size()-1;
+    } catch (Exception ex) {
+      errHandle.DoError("getIndexFile error", ex);
+      // Return failure
+      return -1;
+    }
+  }
+  /**
+   * hasIndexFile -- check existence of the "IndexFile" element in the specified list
+   *                 that refers to the indicated part
+   * 
+   * @param lContainer
+   * @param sPartId
+   * @return 
+   */
+  private boolean hasIndexFile(List<IndexFile> lContainer, String sPartId) {
+    try {
+      for (int i=0;i<lContainer.size();i++ ) {
+        if (lContainer.get(i).Name.equals(sPartId)) return true;
+      }
+      // The [sPartId] is not in the index
+      return false;
+    } catch (Exception ex) {
+      errHandle.DoError("hasIndexFile error", ex);
       // Return failure
       return false;
     }
@@ -413,5 +491,13 @@ class IndexEl {
   public String PartId;   // Part identifier (optional; for dbase: @File)
   public IndexEl(String sLineId, String sFileName, String sLastId, String sPartId) {
     this.LineId = sLineId; this.sFile = sFileName; this.LastId = sLastId; this.PartId = sPartId;
+  }
+}
+// One index file element
+class IndexFile {
+  public String Name;       // Name of the index file
+  public StringBuilder sb;  // Content for this index file
+  public IndexFile(String sName) {
+    this.Name = sName; this.sb = new StringBuilder();
   }
 }
