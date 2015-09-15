@@ -61,6 +61,7 @@ public class ExecutePsdxStream extends ExecuteXml {
   DataObjectMapElement dmProgress = null; // Progress of this Xq job
   // ========== constants ======================================================
   private static final QName loc_xq_EtreeId = new QName("", "", "eTreeId");
+  private static final QName loc_xq_Value = new QName("", "", "Value");
   private static final QName loc_xq_ForestId = new QName("", "", "forestId");
   private static final QName loc_xq_Section = new QName("", "", "Section");
   private static final QName loc_xq_Location = new QName("", "", "Location");
@@ -884,6 +885,10 @@ public class ExecutePsdxStream extends ExecuteXml {
                 // Parse all the <Result> elements within this forestId
                 bParsed = false;
                 for (int m=0;m<ndxDbList.size(); m++) {
+                  // ============ DEBUG ============
+                  XmlNode ndxTest = ndxDbList.get(m).SelectSingleNode("//Result/child::Feature[@Name='VfLemma']");
+                  errHandle.debug("Test value = " + ndxTest.getAttributeValue(loc_xq_Value));
+                  
                   // Perform a parse that only resets the collection when m==0
                   if (this.objParseXq.DoParseXq(arQuery[k],arQeval[k],this.objSaxDoc, this.xconfig, oCrpFile,
                         ndxDbList.get(m), colParseJson, (m==0))) bParsed = true;

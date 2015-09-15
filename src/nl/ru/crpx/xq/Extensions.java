@@ -315,6 +315,8 @@ public class Extensions extends RuBase {
     return lex(objXp, strText.getStringValue(), strPos.getStringValue());
   }
   private static boolean lex(XPathContext objXp, String strText, String strPos) {
+    // =========== DEBUG ===================
+    errHandle.debug("lex [" + strText + "] [" + strPos + "]");
     // If the text to compare is empty, then we return false
     if (strText.isEmpty()) return false;
     // Note: [strPos] may be empty!!
@@ -421,6 +423,8 @@ public class Extensions extends RuBase {
     Pattern[] arPatt; // Array of patterns to be matched
     
     try {
+      // =========== DEBUG ===================
+      errHandle.debug("matches [" + strText + "] [" + strPattern + "]");
       // Validate: empty strings
       if (strText.isEmpty()) return false;
       // Make sure to be case-insensitive
@@ -456,6 +460,8 @@ public class Extensions extends RuBase {
     Pattern[] arPattNo;   // Array of patterns that must *not* be matched
     
     try {
+      // =========== DEBUG ===================
+      errHandle.debug("matches2 [" + strText + "] [" + strPattern + "]");
       // Validate: empty strings
       if (strText.isEmpty()) return false;
       // Make sure to be case-insensitive

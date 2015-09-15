@@ -55,6 +55,7 @@ public class RuBase /* extends Job */ {
   // ===================== public constants ====================================
   public static final QName ru_qnETreeId = new QName("", "", "Id");       // Id feature name of an <eTree> element
   public static final QName ru_qnTreeId = new QName("", "", "eTreeId");    // TreeId feature name
+  // public static final QName ru_qnTreeId = new QName("", "", "TreeId");    // TreeId feature name
   public static final QName ru_qnMsg = new QName("", "", "Msg");          // Message feature name
   public static final QName ru_qnCat = new QName("", "", "Cat");          // Cat feature name
   public static final QName ru_qnFile = new QName("", "", "File");        // File feature name
@@ -550,8 +551,9 @@ public class RuBase /* extends Job */ {
           // Get the ID of the node in [ndSax]
           switch (sNodeName) {
             case "Result":
-              // Get the @TreeId field within the <Result> element
+              // Get the @eTreeId field within the <Result> element
               strRef = ndSax.getAttributeValue(ru_qnTreeId);
+              // WAS: strRef = ndSax.getAttributeValue(ru_qnETreeId);
               break;
             case "eTree":
               // Get the Id of the <eTree> element

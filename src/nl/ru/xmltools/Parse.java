@@ -205,6 +205,7 @@ public class Parse {
         objQuery.run(new DOMDestination(pdxDoc));
       } catch (SaxonApiException ex) {
         return errHandle.DoError("Runtime error while executing [" + strQname + "]: ", ex, Parse.class);
+        
       }
       /* } */
       // Get all the <forest> results from the [pdxDoc] answer
