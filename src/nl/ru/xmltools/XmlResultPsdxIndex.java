@@ -9,6 +9,8 @@ package nl.ru.xmltools;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 import javax.xml.xpath.XPathExpressionException;
 import net.sf.saxon.s9api.SaxonApiException;
 import nl.ru.crpx.project.CorpusResearchProject;
@@ -29,6 +31,96 @@ public class XmlResultPsdxIndex extends XmlResult {
     super(oCrp,oJob,oErr);
   }
   
+  // ======================== Make the list of @File elements available =========
+  @Override
+  public List<String> getResultFileList() { return this.lstResFile; }
+  
+  /**
+   * Prepare -- Prepare the database @strFile for reading
+   * 
+   * @param strDbaseFile
+   * @return 
+   */
+  @Override
+  public boolean Prepare(String strDbaseFile) {
+    File fThis;       // File object of [strDbaseFile]
+
+    try {
+      // Validate: existence of file
+      if (strDbaseFile == null || strDbaseFile.length() == 0) return false;
+      fThis = new File(strDbaseFile);
+      if (!fThis.exists()) return false;
+      // Start up the streamer
+      loc_xrdFile = new XmlIndexReader(fThis, crpThis, loc_pdxThis, CorpusResearchProject.ProjType.Dbase);
+      // Get the list of @File elements inside the database
+      this.lstResFile = loc_xrdFile.getPartList();
+      // Do we have a header?
+      String sHeader = loc_xrdFile.getHeader();
+      if (sHeader.isEmpty()) {
+        // Indicate that it is empty
+        loc_ndxHeader = null;
+      } else {
+        // Load this obligatory <General> header 
+        loc_pdxThis.LoadXml(sHeader);
+        loc_ndxHeader =loc_pdxThis.SelectSingleNode(loc_path_General);
+      }
+      // Return positively
+      return true;
+    } catch (Exception ex) {
+      objErr.DoError("XmlResult/Prepare error: ", ex);
+      return false;
+    }
+  }
+  /**
+   * Prepare -- Prepare reading [strPart] from database [strDbaseFile]
+   * 
+   * @param strDbaseFile
+   * @param strPart
+   * @return 
+   * @history
+   *  15/sep/2015 ERK Created
+   */
+  @Override
+  public boolean Prepare(String strDbaseFile, String strPart) {
+    File fThis;       // File object of [strDbaseFile]
+
+    try {
+      // Validate: existence of file
+      if (strDbaseFile == null || strDbaseFile.length() == 0) return false;
+      fThis = new File(strDbaseFile);
+      if (!fThis.exists()) return false;
+      // There should be a directory [strPart] under the database file
+      if (strDbaseFile.endsWith(".xml")) strDbaseFile = strDbaseFile.substring(0, strDbaseFile.length() - 4);
+      strDbaseFile += "/" + strPart;
+      // If this ends on the CRP text extension, then take that off
+      if (strDbaseFile.endsWith(crpThis.getTextExt())) {
+        strDbaseFile = strDbaseFile.substring(0, strDbaseFile.length() - crpThis.getTextExt().length());
+      }
+      fThis = new File(strDbaseFile);
+      if (!fThis.exists()) return false;
+      
+      // Start up the streamer
+      loc_xrdFile = new XmlIndexReader(fThis, crpThis, loc_pdxThis, crpThis.intProjType);
+      // Get the list of @File elements inside the database
+      this.lstResFile = loc_xrdFile.getPartList();
+      // Do we have a header?
+      String sHeader = loc_xrdFile.getHeader();
+      if (sHeader.isEmpty()) {
+        // Indicate that it is empty
+        loc_ndxHeader = null;
+      } else {
+        // Load this obligatory <General> header 
+        loc_pdxThis.LoadXml(sHeader);
+        loc_ndxHeader =loc_pdxThis.SelectSingleNode(loc_path_General);
+      }
+      // Return positively
+      return true;
+    } catch (Exception ex) {
+      objErr.DoError("XmlResult/Prepare error: ", ex);
+      return false;
+    }
+  }
+  
   /**
    * FirstResult
    *    Load the first <Result> element using an XmlReader and also read the <Global> header
@@ -42,34 +134,14 @@ public class XmlResultPsdxIndex extends XmlResult {
    */
   @Override
   public boolean FirstResult(ByRef<XmlNode> ndxResult, ByRef<XmlNode> ndxHeader, String strFile) {
-    XmlNode ndxWork;  // Working node
-    File fThis;       // File object of [strFile]
-
     try {
-      // Validate: existence of file
-      if (strFile == null || strFile.length() == 0) return false;
-      fThis = new File(strFile);
-      if (!fThis.exists()) return false;
       // Initialisations
       ndxResult.argValue = null;
-      ndxHeader.argValue = null;
-      // N.B: do *not* use context arrays
-      // Start up the streamer
-      loc_xrdFile = new XmlIndexReader(fThis, crpThis, loc_pdxThis, CorpusResearchProject.ProjType.Dbase);
-      // Do we have a header?
-      String sHeader = loc_xrdFile.getHeader();
-      if (sHeader.isEmpty()) {
-        // Indicate that it is empty
-        ndxHeader.argValue = null;
-      } else {
-        // Load this obligatory <General> header 
-        loc_pdxThis.LoadXml(sHeader);
+      // Perform the necessary preparations
+      if (!Prepare(strFile)) return false;
+      // Return the header
+      ndxHeader.argValue = this.loc_ndxHeader;
 
-        ndxWork = loc_pdxThis.SelectSingleNode(loc_path_General);
-        ndxHeader.argValue =ndxWork;
-        // Also put the header in the class variable
-        this.loc_ndxHeader = ndxWork;
-      }
       // Read the first <Result> node 
       String sResult = loc_xrdFile.getFirstLine();
       // TODO: what if this is empty??
@@ -95,12 +167,55 @@ public class XmlResultPsdxIndex extends XmlResult {
       // ex.printStackTrace();
       // Return failure
       return false;
-    } catch (SaxonApiException | IOException ex) {
+    } catch (SaxonApiException ex) {
       objErr.DoError("XmlResult/FirstResult IO/SAX error: ", ex);
       return false;
     }
   }
+  @Override
+  public boolean FirstResult(ByRef<XmlNode> ndxResult) {
+    XmlNode ndxWork;      // Working node
+    String strNext = "";  // Another chunk of <Result>
 
+    try {
+      // Validate
+      if (loc_pdxThis == null)  return false;
+      // More validateion
+      if (loc_xrdFile==null) return false;
+      // Try to read another piece of <Result> xml
+      if (! loc_xrdFile.EOF) strNext = loc_xrdFile.getFirstLine();
+      // Double check what we got
+      if (strNext == null || strNext.length() == 0) {
+        ndxResult.argValue = null;
+        return true;
+      }
+      // Proceed by loading the new <Result>
+      loc_pdxThis.LoadXml(strNext);
+      // Get this result as a node
+      ndxWork = loc_pdxThis.SelectSingleNode(loc_path_Result);
+      // Validate
+      if (ndxWork == null) {
+        // This should not happen. Check what is the matter
+        String sWork = loc_pdxThis.getDoc();
+        objErr.debug("XmlResult empty work: " + sWork);
+      } 
+
+      // Return the current <Result> node
+      ndxResult.argValue = ndxWork;
+      // Return success
+      return true;
+    } catch (RuntimeException ex) {
+      // Warn user
+      objErr.DoError("XmlResult/FirstResult runtime error: ", ex);
+      // Return failure
+      return false;
+    } catch (SaxonApiException | XPathExpressionException ex) {
+      objErr.DoError("XmlResult/FirstResult IO/Sax/Xpath error: ", ex);
+      // Return failure
+      return false;
+    }
+  }
+  
   /**
    * OneResult
    *    Load the sentence with the indicated [sResultId] using an XmlReader 
@@ -260,45 +375,24 @@ public class XmlResultPsdxIndex extends XmlResult {
       return false;
     }
   }
-  @Override
-  public boolean FirstResult(ByRef<XmlNode> ndxResult) {
-    XmlNode ndxWork;      // Working node
-    String strNext = "";  // Another chunk of <Result>
 
+  /**
+   * CurrentResult -- return the current result
+   * 
+   * @param ndxResult
+   * @return 
+   */
+  @Override
+  public boolean CurrentResult(ByRef<XmlNode> ndxResult) {
     try {
       // Validate
-      if (loc_pdxThis == null)  return false;
-      // More validateion
-      if (loc_xrdFile==null) return false;
-      // Try to read another piece of <Result> xml
-      if (! loc_xrdFile.EOF) strNext = loc_xrdFile.getFirstLine();
-      // Double check what we got
-      if (strNext == null || strNext.length() == 0) {
-        ndxResult.argValue = null;
-        return true;
-      }
-      // Proceed by loading the new <Result>
-      loc_pdxThis.LoadXml(strNext);
-      // Get this result as a node
-      ndxWork = loc_pdxThis.SelectSingleNode(loc_path_Result);
-      // Validate
-      if (ndxWork == null) {
-        // This should not happen. Check what is the matter
-        String sWork = loc_pdxThis.getDoc();
-        objErr.debug("XmlResult empty work: " + sWork);
-      } 
-
-      // Return the current <Result> node
-      ndxResult.argValue = ndxWork;
+      if (loc_pdxThis == null )  return false;
+      // Find the current <Result> node
+      ndxResult.argValue = loc_pdxThis.SelectSingleNode(loc_path_Result);
       // Return success
       return true;
-    } catch (RuntimeException ex) {
-      // Warn user
-      objErr.DoError("XmlResult/FirstResult runtime error: ", ex);
-      // Return failure
-      return false;
-    } catch (SaxonApiException | XPathExpressionException ex) {
-      objErr.DoError("XmlResult/FirstResult IO/Sax/Xpath error: ", ex);
+    } catch (Exception ex) {
+      objErr.DoError("XmlResult/CurrentResult error: ", ex);
       // Return failure
       return false;
     }

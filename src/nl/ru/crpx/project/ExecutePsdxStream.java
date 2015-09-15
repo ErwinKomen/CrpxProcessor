@@ -37,6 +37,8 @@ import nl.ru.util.json.JSONObject;
 import nl.ru.xmltools.XmlAccess;
 import nl.ru.xmltools.XmlForest;
 import nl.ru.xmltools.XmlNode;
+import nl.ru.xmltools.XmlResult;
+import nl.ru.xmltools.XmlResultPsdxIndex;
 
 /**
  *
@@ -58,7 +60,8 @@ public class ExecutePsdxStream extends ExecuteXml {
   DataObjectList dlDbase = null;          // List of database information per QC line
   DataObjectMapElement dmProgress = null; // Progress of this Xq job
   // ========== constants ======================================================
-  private static final QName loc_xq_EtreeId = new QName("", "", "TreeId");
+  private static final QName loc_xq_EtreeId = new QName("", "", "eTreeId");
+  private static final QName loc_xq_ForestId = new QName("", "", "forestId");
   private static final QName loc_xq_Section = new QName("", "", "Section");
   private static final QName loc_xq_Location = new QName("", "", "Location");
   private static final QName loc_xq_subtype = new QName("", "", "subtype");
@@ -697,19 +700,46 @@ public class ExecutePsdxStream extends ExecuteXml {
     JSONArray[] arDbRes;        // Array with RESULT elements
     XQueryEvaluator[] arQeval;  // Our own query evaluators
     XmlAccess objXmlAcc = null; // Access to the XML file
+    XmlResult objOneDbRes =  null;   // Reader of results
     
     // Note: this uses [objProcType, which is a 'protected' variable from [Execute]
     try {
       // Get the CrpFile object
       CrpFile oCrpFile = RuBase.getCrpFile(iCrpFileIdx);
+      // Initialisation 
+      ndxDbRes = new ByRef(null);
       // Get the file
       File fThis = oCrpFile.flThis;
       String fName = fThis.getName();
+      // Forest file initialisation depends on database or not
+      if (this.bIsDbase) {
+        // Start processing the database parts pointed to by [fThis]
+        objOneDbRes = new XmlResultPsdxIndex(oCrpFile.crpThis, null, errHandle);
+        // Set this particular handler to the correct database + file
+        if (!objOneDbRes.Prepare(arQuery[0].InputFile, fName)) return false;
+        if (!objOneDbRes.FirstResult(ndxDbRes)) return false;
+        // Now get to the PSDX file with the <forest> elements
+        String sSrcDir = oCrpFile.crpThis.getSrcDir().getAbsolutePath();
+        strForestFile = FileUtil.findFileInDirectory(sSrcDir, fName);
+        // Did we get it?
+        if (strForestFile.isEmpty()) {
+          // In this case we take the corpus root as source
+          sSrcDir = this.sCorpusBase;
+          strForestFile = FileUtil.findFileInDirectory(sSrcDir, fName);
+          if (strForestFile.isEmpty()) {
+            // There really is a problem
+            return errHandle.DoError("ExecuteQueriesFile could not find location of " + fName);
+          }
+        }
+        // Set the input Psdx file
+        fThis = new File(strForestFile);
+      } else {
+        strForestFile = fThis.getAbsolutePath();
+      }
       // Initialisations
       objProcType = oCrpFile.objProcType;
-      ndxForest = new ByRef(null); ndxDbRes = new ByRef(null);
+      ndxForest = new ByRef(null); 
       ndxHeader = new ByRef(null);
-      strForestFile = fThis.getAbsolutePath();
       strSubType = oCrpFile.currentPeriod;
       intForestId = new ByRef(-1);
       intPtc = new ByRef(0);
@@ -759,10 +789,20 @@ public class ExecutePsdxStream extends ExecuteXml {
       
       // Store the [ndxHeader] in the CrpFile object
       oCrpFile.ndxHeader = ndxHeader.argValue;
-      // Loop through the file in <forest> chunks
-      while (ndxForest.argValue != null) {
-        // Get the @forestId value of this forest
-        if (!objProcType.GetForestId(ndxForest, intForestId)) return errHandle.DoError("Could not obtain @forestId");
+      
+      // If this is database, then the first <forest> element should be the one
+      //   referred to from the current [ndxDbRes] element
+      if (this.bIsDbase) {
+        // Get the sentence identifier from the current [ndxDbRes]
+        String sSentId = ndxDbRes.argValue.getAttributeValue(loc_xq_ForestId);
+        // Load this sentence into the [ndxForest] element
+        if (!objProcType.OneForest(ndxForest, sSentId)) return errHandle.DoError("ExecuteQueriesFile could not get OneForest");
+      }
+      // Loop through the file in chunks of sentences (<forest>, <s>)
+      while (ndxForest.argValue != null && (!this.bIsDbase || ndxDbRes.argValue != null )) {
+        // Get the sentence id of ndxForest
+        String sSentId = ndxForest.argValue.getAttributeValue(crpThis.getAttrLineId());
+        // if (!objProcType.GetForestId(ndxForest, intForestId)) return errHandle.DoError("Could not obtain @forestId");
         // Get a percentage of where we are
         if (!objProcType.Percentage(intPtc)) return errHandle.DoError("Could not find out where we are");
         
@@ -776,13 +816,34 @@ public class ExecutePsdxStream extends ExecuteXml {
         // Make this forest available to the Xquery Extensions connected with *this* thread
         oCrpFile.ndxCurrentForest = ndxForest.argValue;
         // Make the current sentence id available too
-        oCrpFile.currentSentId = String.valueOf(intForestId);
+        oCrpFile.currentSentId = sSentId;  // String.valueOf(intForestId);
         // Check for start of section if this is a database?
         if (this.bIsDbase) {
-          String strNextFile = "";  // points to the next file
+          // Validate
+          if (objOneDbRes == null) return false;
+          
+          // String strNextFile = "";  // points to the next file
           
           // TODO: implement. See modMain.vb [2890-2920]
-          this.oDbase.DbaseQueryCurrent(ndxDbRes);
+          
+          // Get the CURRENT database result
+          objOneDbRes.CurrentResult(ndxDbRes);
+          // Get a whole collection of results that have the same sentence
+          if (ndxDbRes.argValue == null) {
+            bDoForest = false;
+          } else {
+            // Initialize the list of db results
+            ndxDbList.clear();
+            while (ndxDbRes.argValue != null && 
+                    ndxDbRes.argValue.getAttributeValue(loc_xq_ForestId).equals(sSentId)) {
+              // Add this item to the list
+              ndxDbList.add(ndxDbRes.argValue);
+              // Advance to the next node
+              if (!objOneDbRes.NextResult(ndxDbRes)) return errHandle.DoError("Could not get next Dbase result");
+            }
+            // Determine whether this forest should be done
+            bDoForest = (ndxDbList.size() > 0);
+          }
         } else {
           // Always process
           bDoForest = true;
@@ -923,8 +984,17 @@ public class ExecutePsdxStream extends ExecuteXml {
             }
           }
         }
-        // Go to the next forest chunk
-        if (!objProcType.NextForest(ndxForest)) return errHandle.DoError("Could not read <forest>");
+        // Go to the next forest chunk -- this depends on Dbase or not
+        if (this.bIsDbase) {
+          // Get the current database result
+          objOneDbRes.CurrentResult(ndxDbRes);
+          // Get the sentence identifier from the current [ndxDbRes]
+          sSentId = ndxDbRes.argValue.getAttributeValue(loc_xq_ForestId);
+          // Load this sentence into the [ndxForest] element
+          if (!objProcType.OneForest(ndxForest, sSentId)) return errHandle.DoError("ExecuteQueriesFile could not get OneForest");
+        } else {
+          if (!objProcType.NextForest(ndxForest)) return errHandle.DoError("Could not read <forest>");
+        }
       }
       
       // TODO: combine the results of the queries

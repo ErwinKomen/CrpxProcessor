@@ -167,10 +167,13 @@ public class ExecuteXml extends Execute {
           // Check the type of the file
           bIsDbase = (strDbType.argValue.equals("CrpOview"));
           // Read first record (if any)
-          // TODO: implement
-          oDbase.DbaseQueryRead(ndxDbRes);
+          // SHOULD I read the first element here? 
+          // -- probably not if I want to spread out calculation across files...
+          // oDbase.DbaseQueryRead(ndxDbRes);
           // Set the source file list to the list of files referred to from the database
           lSource = oDbase.getDbFiles();
+          // Make sure the CRP is recognizable as having a database as input
+          this.crpThis.HasDbaseInput = true;
         }
       }
       // Start up output/overview counting

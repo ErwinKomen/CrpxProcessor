@@ -38,6 +38,7 @@ public abstract class XmlResult {
   protected Parse objParse;                 // Object to use my own version of the "GetSeg()" function
   protected Processor objSaxon;             // Local access to the processor
   protected DocumentBuilder objSaxDoc;      // My own document-builder
+  protected List<String> lstResFile;        // List of @File elements within the <Result> records
   // ==========================================================================================================
   // Class instantiation
   public XmlResult(CorpusResearchProject oCrp, JobXq oJob, ErrHandle oErr) {
@@ -55,15 +56,20 @@ public abstract class XmlResult {
       crpThis = oCrp;
       objParse = new Parse(oCrp, oErr);
       this.objJob = oJob;
+      lstResFile = new ArrayList<>();
     } catch (Exception ex) {
       objErr.DoError("XmlResult initialisation error", ex);
     }
   }  
   // Methods that are overridden by the classes that extend XmlResult:
+  public abstract List<String> getResultFileList();                                           // List of @File attributes inside Result database
+  public abstract boolean Prepare(String strDbaseFile);                                       // Prepare the database file for reading
+  public abstract boolean Prepare(String strDbaseFile, String strPart);                       // Prepare the database file for reading
   public abstract boolean FirstResult(ByRef<XmlNode> ndxResult, ByRef<XmlNode> ndxHeader, String strFile);  // Get first <Result>
   public abstract boolean GetResultId(ByRef<XmlNode> ndxResult, ByRef<Integer> intResultId);  // Get the ResId of ndxResult
-  public abstract boolean NextResult(ByRef<XmlNode> ndxResult);                               // Get next <Result>
+  public abstract boolean CurrentResult(ByRef<XmlNode> ndxResult);                            // Get current <Result>
   public abstract boolean FirstResult(ByRef<XmlNode> ndxResult);                              // Get first <Result>
+  public abstract boolean NextResult(ByRef<XmlNode> ndxResult);                               // Get next <Result>
   public abstract boolean OneResult(ByRef<XmlNode> ndxResult, String sResultId);              // Get <Result> with indicated id
   public abstract boolean GetHeader(ByRef<XmlNode> ndxHeader);                                // Get the <General> header of the database
   public abstract boolean IsEnd();                                                            // Are we at the end of the file?

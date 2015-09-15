@@ -90,6 +90,7 @@ public class CorpusResearchProject {
   public String sNodeNamePrg;       // Name of "paragraph-level" node
   public String sNodeNameWrd;       // Name of "word-level" node
   public ErrHandle errHandle;       // My own error handler
+  public boolean HasDbaseInput;     // True if this project takes a database as input
   // =================== private variables ====================================
   private String Location = "";     // Full filename and location of this project
   private String Name = "";         // Name of this project (w.o. extension)
@@ -144,6 +145,7 @@ public class CorpusResearchProject {
     this.docProject = null;
     this.parser = null;
     this.factory = DocumentBuilderFactory.newInstance();
+    this.HasDbaseInput = false;
     try {
       this.parser = this.factory.newDocumentBuilder();
     } catch (ParserConfigurationException ex) {

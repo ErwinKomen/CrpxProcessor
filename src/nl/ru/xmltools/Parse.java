@@ -16,6 +16,7 @@ import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.XQueryEvaluator;
 import net.sf.saxon.s9api.XdmDestination;
+import net.sf.saxon.trans.XPathException;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.project.Query;
 import nl.ru.crpx.tools.ErrHandle;
@@ -39,7 +40,7 @@ public class Parse {
   // private static final ErrHandle errHandle = new ErrHandle(Parse.class);
   ErrHandle errHandle;
   // ========== constants ======================================================
-  private static final QName loc_xq_EtreeId = new QName("", "", "TreeId");
+  private static final QName loc_xq_EtreeId = new QName("", "", "eTreeId");
   private static final QName loc_xq_Msg = new QName("", "", "Msg");  
   private static final QName loc_xq_Cat = new QName("", "", "Cat");  
   private static final QName loc_xq_Db = new QName("", "", "Db");  

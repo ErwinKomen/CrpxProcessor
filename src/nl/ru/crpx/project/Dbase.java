@@ -83,7 +83,7 @@ public class Dbase extends CrpGlobal {
       // Validate
       if (strFirstEl == null) return false;
       // Initialise: tell the caller that this is a database (assuming it is...)
-      strFirstEl.argValue = "<CrpOview>";
+      strFirstEl.argValue = "CrpOview";
       loc_colDbFiles = new ArrayList<>();
       this.lstDbItems = new ArrayList<>();
       // Keep the file name
@@ -116,6 +116,7 @@ public class Dbase extends CrpGlobal {
   // ---------------------------------------------------------------------------------------------------------
   // Name :  DbaseFileScan
   // Goal :  Scan the whole database for available files..
+  // NOTE :  Is this still necessary, since the database is already indexed by the XmlIndexReader??
   // History:
   // 24-09-2014  ERK Created for .NET
   // 14/sep/2015 ERK Implemented afresh for Java
@@ -131,8 +132,17 @@ public class Dbase extends CrpGlobal {
     try {
       // Clear storage
       loc_colDbFiles.clear(); lstDbItems.clear();
-      // Start reading the file
-      if (!oXmlResult.FirstResult(ndxResult, ndxHeader, fDbSource.getAbsolutePath())) return false;
+      // Prepare the database file
+      if (!oXmlResult.Prepare(fDbSource.getAbsolutePath())) return false;
+      // Get the list of @File elements
+      loc_colDbFiles = oXmlResult.getResultFileList();
+      // Walk the list of files and put information into [lstDbItems
+      for (int i=0;i<loc_colDbFiles.size(); i++) {
+        // TODO: informatie toevoegen aan lstDbItems
+        // lstDbItems.add( new DbaseItem(strFile, iResId));
+      }
+      
+      /*
       while (!oXmlResult.IsEnd() && ndxResult.argValue != null) {
         // Show that we are 'indexing' the database file
         if (!oXmlResult.Percentage(intPtc)) return false;
@@ -162,6 +172,7 @@ public class Dbase extends CrpGlobal {
         // Read the next element
         if (!oXmlResult.NextResult(ndxResult)) return false;
       }
+      */
       
       // Return success
       return true;
@@ -181,6 +192,7 @@ public class Dbase extends CrpGlobal {
    * @param sFile
    * @return 
    */
+  /*
   public int getDbFileFirst(String sFile) {
     try {
       // Validate
@@ -202,7 +214,7 @@ public class Dbase extends CrpGlobal {
       // Return failure
       return -1;
     }
-  }
+  } */
 // </editor-fold>
 // <editor-fold desc="getDbFileFirst">
   /**
@@ -212,6 +224,7 @@ public class Dbase extends CrpGlobal {
    * @param sFile
    * @return 
    */
+  /*
   public int getDbFileLast(String sFile) {
     try {
       // Validate
@@ -233,7 +246,7 @@ public class Dbase extends CrpGlobal {
       // Return failure
       return -1;
     }
-  }
+  } */
 // </editor-fold>
 // <editor-fold desc="DbaseQueryCurrent">
   // ---------------------------------------------------------------------------------------------------------

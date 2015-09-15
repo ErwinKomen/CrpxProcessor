@@ -140,21 +140,6 @@ public class Extensions extends RuBase {
       if (strMsg != null) mainRootElement.setAttribute("Msg", strMsg);
       if (strCat != null) mainRootElement.setAttribute("Cat", strCat);
       
-      // Nothing -- attempt: objXp.getController().setParameter(strCat, node);
-      
-      /*
-      // N.B: voor dit alternatief moet de return-value van
-      //      ru:back() veranderd worden naar String.
-      //
-      // Alternatief #4: creeer meteen een JSONObject
-      JSONObject jsBack = new JSONObject();
-      jsBack.put("file", strFile.argValue);
-      jsBack.put("forestId", strForestId.argValue);
-      jsBack.put("eTreeId", strTreeId.argValue);
-      jsBack.put("Cat", strCat);
-      jsBack.put("Msg", strMsg);
-      */
-      
       // Return the <forest> element, which will be packed into <TEI></TEI>
       return mainRootElement.cloneNode(true);
       // return jsBack.toString();

@@ -39,7 +39,8 @@ public class XmlIndexReader {
   private File loc_fHeader;       // Pointer to the header file
   private CorpusResearchProject crpThis;  // Reference to the CRP that is calling me
   private XmlDocument loc_pdxThis;        // Possibility to read and interpret XML chunks
-  private List<IndexEl> arIndex;  // The datastructure containing the index          
+  private List<IndexEl> arIndex;  // The datastructure containing the index   
+  private List<String> lstParts;  // List of all Part elements
   // ======================== publicly accessible information
   public boolean EOF;             // Hit the end of file or not
   // ----------------------------------------------------------------------------------------------------------
@@ -62,6 +63,7 @@ public class XmlIndexReader {
       this.crpThis = prjThis;
       this.loc_pdxThis = pdxThis;
       this.loc_fThis = fThis;
+      this.lstParts = new ArrayList<>();
       // Validate existence of file
       if (!fThis.exists()) throw new FileNotFoundException("XmlIndexReader cannot find file " + fThis.getAbsolutePath());
       // Make sure an up-to-date index exists
@@ -77,7 +79,11 @@ public class XmlIndexReader {
       throw new FileNotFoundException("XmlIndexReader exception" + ex.getMessage());
     }
   }
+  // ======================== Make the filename available =======================
   public String getFileName() { return (this.loc_fThis == null) ? "" : this.loc_fThis.getName(); }
+  // ======================== Make the list of parts available ==================
+  public List<String> getPartList() { return this.lstParts; }
+  
   
   /**
    * doCheckIndex -- check if the indicated file has an index
@@ -99,13 +105,16 @@ public class XmlIndexReader {
       String strFile = fThis.getAbsolutePath();
       // Initialisations
       lIndices = new ArrayList<>();
+      this.lstParts = new ArrayList<>();
+      // Do we need to check on the file extension??
+      loc_fIndexDir = new File(strFile);
       // Get the file extension that is expected for this file
       int iExt = strFile.lastIndexOf(crpThis.getTextExt(ptThis));
       // Validate
       if (iExt==0) throw new FileNotFoundException("XmlIndexReader doesn't find expected extension [" + 
               crpThis.getTextExt(ptThis) + "] in " + fThis.getName());
       // Set the directory name correctly
-      loc_sIndexDir = strFile.substring(0, iExt);
+      loc_sIndexDir = (iExt<0) ? strFile : strFile.substring(0, iExt);
       loc_fIndexDir = new File(loc_sIndexDir);
       // Set the name of the index file that should be in there
       loc_fIndexFile = new File(loc_sIndexDir + "/index.csv");
@@ -117,6 +126,7 @@ public class XmlIndexReader {
       // Check existence/ancienity of the index file w.r.t. the text file
       if (!loc_fIndexFile.exists() || tmFile > loc_fIndexFile.lastModified()) {
         String sHeaderFile = "";  // Name of the header file
+        String sHeaderXml = "";   // XML context of the header
         // Create a string builder to hold the index of this file
         StringBuilder sIndexData = new StringBuilder();
         // Create an XmlChunkReader to do this
@@ -130,10 +140,12 @@ public class XmlIndexReader {
                     "> in file [" + strFile + "]");
             return false;
           }
+          // Get the header data
+          sHeaderXml = rdThis.ReadOuterXml();
           // Write the obligatory teiHeader to the header file
           sHeaderFile = loc_sIndexDir + "/header.xml";
           File loc_fHeader = new File(sHeaderFile);
-          FileUtil.writeFile(loc_fHeader, rdThis.ReadOuterXml()); 
+          FileUtil.writeFile(loc_fHeader, sHeaderXml); 
         }
         // Add header file name to IndexData (this is a separate starting line)
         sIndexData.append(sHeaderFile).append("\n");
@@ -178,22 +190,39 @@ public class XmlIndexReader {
               // Alternative: file name = directory
               //              each part = directory within the above directory
               String sPartDir = loc_sIndexDir + "/" + sPartId;
+              // Check the extension
+              if (sPartDir.endsWith(crpThis.getTextExt())) {
+                // Remove the text extension
+                sPartDir = sPartDir.substring(0, sPartDir.length() - crpThis.getTextExt().length());
+              }
+              // Create a part directory
               File fPartDir = new File(sPartDir);
               if (!fPartDir.exists()) fPartDir.mkdir();
               String sLineFile = sPartDir + "/" + iIndexLine + ".xml";
               FileUtil.writeFile(new File(sLineFile), strNext);
-              // Possibly add information to the main index file
-              if (!hasIndexFile(lIndices, sPartId)) {
+              boolean bIsNewIndex = (!hasIndexFile(lIndices, sPartId));
+              // Get the correct IndexFile element
+              int iIndexFile = getIndexFile(lIndices, sPartId, sPartDir);
+              if (iIndexFile < 0) return false;
+              IndexFile oIndex = lIndices.get(iIndexFile);
+              // Get the stringbuilder for this index
+              StringBuilder sb = oIndex.sb;
+              // Actions when this is a NEW index
+              if (bIsNewIndex) {
                 // Add information to 'global' Index Data
                 sIndexData.append(sLineId).append("\t");
                 sIndexData.append(sPartDir).append("\t");            
-                sIndexData.append(sLastId).append("\n");
+                sIndexData.append(sLastId).append("\t");
+                sIndexData.append(sPartId).append("\n");
+                // Write the header to the header file
+                //sHeaderFile = loc_sIndexDir + "/" + oIndex.Name + "/header.xml";
+                sHeaderFile = oIndex.Dir + "/header.xml";
+                FileUtil.writeFile(new File(sHeaderFile), sHeaderXml); 
+                // Add a line to this file's index as to where the header is
+                sb.append(sHeaderFile).append("\n");
+                // Add the part element to the list of parts
+                this.lstParts.add(sPartId);
               }
-              // Get the correct IndexFile element
-              int iIndexFile = getIndexFile(lIndices, sPartId);
-              if (iIndexFile < 0) return false;
-              IndexFile oIndex = lIndices.get(iIndexFile);
-              StringBuilder sb = oIndex.sb;
               // Add information to Index Data
               sb.append(sLineId).append("\t");
               sb.append(sLineFile).append("\t");            
@@ -206,8 +235,9 @@ public class XmlIndexReader {
         // Write any index file in the list to its position
         for (int i=0;i< lIndices.size(); i++) {
           IndexFile oIndex = lIndices.get(i);
-          String sIndexFile = loc_sIndexDir + "/" + oIndex.Name + "/index.csv";
+          String sIndexFile = oIndex.Dir + "/index.csv";
           FileUtil.writeFile(new File(sIndexFile),oIndex.sb.toString());
+          // The header file should also be written 
         }
       }
 
@@ -220,6 +250,7 @@ public class XmlIndexReader {
     }
   }
   
+
   /**
    * getIndexFile -- get the "IndexFile" element in the specified list
    *                 that refers to the indicated part
@@ -228,13 +259,13 @@ public class XmlIndexReader {
    * @param sPartId
    * @return 
    */
-  private int getIndexFile(List<IndexFile> lContainer, String sPartId) {
+  private int getIndexFile(List<IndexFile> lContainer, String sPartId, String sPartDir) {
     try {
       for (int i=0;i<lContainer.size();i++ ) {
         if (lContainer.get(i).Name.equals(sPartId)) return i;
       }
       // The Part is not yet in the list: add it
-      lContainer.add(new IndexFile(sPartId));
+      lContainer.add(new IndexFile(sPartId, sPartDir));
       // Return the last index
       return lContainer.size()-1;
     } catch (Exception ex) {
@@ -267,6 +298,7 @@ public class XmlIndexReader {
   
   /**
    * readIndex -- Load the index file into a datastructure
+   *              And if Part is specified, read lstPart
    * 
    * @return 
    */
@@ -292,8 +324,11 @@ public class XmlIndexReader {
         // Action depends on lines being 3 or 4 columns
         if (lineArray.length == 3)
           arIndex.add(new IndexEl(lineArray[0], lineArray[1], lineArray[2], ""));
-        else      
+        else {
           arIndex.add(new IndexEl(lineArray[0], lineArray[1], lineArray[2], lineArray[3]));
+          // Part is specified, so add it into the list
+          this.lstParts.add(lineArray[3]);
+        }
       }
       // Return positively
       return true;
@@ -496,8 +531,10 @@ class IndexEl {
 // One index file element
 class IndexFile {
   public String Name;       // Name of the index file
+  public String Dir;        // Name of directory for this index
   public StringBuilder sb;  // Content for this index file
-  public IndexFile(String sName) {
+  public IndexFile(String sName, String sDir) {
     this.Name = sName; this.sb = new StringBuilder();
+    this.Dir = sDir;
   }
 }
