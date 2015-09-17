@@ -14,6 +14,7 @@ import java.util.List;
 import javax.xml.xpath.XPathExpressionException;
 import net.sf.saxon.s9api.SaxonApiException;
 import nl.ru.crpx.project.CorpusResearchProject;
+import nl.ru.crpx.project.CorpusResearchProject.ProjType;
 import nl.ru.crpx.search.JobXq;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.util.ByRef;
@@ -25,7 +26,8 @@ import nl.ru.util.ByRef;
  */
 public class XmlResultPsdxIndex extends XmlResult {
   // ============ Local variables ==============================================
-  private XmlIndexReader loc_xrdFile;   // Indexed reader for xml files
+  private XmlIndexRaReader loc_xrdFile;   // Indexed reader for xml files -- one random-access file
+  private XmlIndexTgReader loc_xrdTgFile; // Indexed reader for xml files -- tag-parts are stored separately
   // ============ Call the standard class initializer ==========================
   public XmlResultPsdxIndex(CorpusResearchProject oCrp, JobXq oJob, ErrHandle oErr) {
     super(oCrp,oJob,oErr);
@@ -51,7 +53,84 @@ public class XmlResultPsdxIndex extends XmlResult {
       fThis = new File(strDbaseFile);
       if (!fThis.exists()) return false;
       // Start up the streamer
-      loc_xrdFile = new XmlIndexReader(fThis, crpThis, loc_pdxThis, CorpusResearchProject.ProjType.Dbase);
+      loc_xrdFile = new XmlIndexRaReader(fThis, crpThis, loc_pdxThis, CorpusResearchProject.ProjType.Dbase);
+      // Get the list of @File elements inside the database
+      this.lstResFile = loc_xrdFile.getPartList();
+      // Do we have a header?
+      String sHeader = loc_xrdFile.getHeader();
+      if (sHeader.isEmpty()) {
+        // Indicate that it is empty
+        loc_ndxHeader = null;
+      } else {
+        // Load this obligatory <General> header 
+        loc_pdxThis.LoadXml(sHeader);
+        loc_ndxHeader =loc_pdxThis.SelectSingleNode(loc_path_General);
+      }
+      // This does not pertain to one particular part
+      this.loc_strPart = "";
+      // Return positively
+      return true;
+    } catch (Exception ex) {
+      objErr.DoError("XmlResult/Prepare error: ", ex);
+      return false;
+    }
+  }
+  
+  
+  /**
+   * Prepare -- Prepare reading [strPart] from database [strDbaseFile]
+   * 
+   * @param strDbaseFile
+   * @param strPart
+   * @return 
+   * @history
+   *  15/sep/2015 ERK Created
+   */
+  @Override
+  public boolean Prepare(String strDbaseFile, String strPart) {
+    boolean bUseRa = true;  // Use Ra method or Tg?
+
+    try {
+      // This pertains to one particular part
+      this.loc_strPart = strPart;
+      // Action depends on method
+      if (bUseRa) 
+        return PrepareRa(strDbaseFile, strPart);
+      else
+        return PrepareTg(strDbaseFile, strPart);
+    } catch (Exception ex) {
+      objErr.DoError("XmlResult/Prepare error: ", ex);
+      return false;
+    }
+  }
+  /**
+   * Prepare -- PrepareRa reading [strPart] from database [strDbaseFile]
+   *            Perform preparations using the Random-Access method
+   * 
+   * @param strDbaseFile
+   * @param strPart
+   * @return 
+   * @history
+   *  17/sep/2015 ERK Created
+   */
+  private boolean PrepareRa(String strDbaseFile, String strPart) {
+    File fThis;       // File object of [strDbaseFile]
+    File fIdxThis;    // database index File object
+
+    try {
+      // Validate: existence of file
+      if (strDbaseFile == null || strDbaseFile.length() == 0) return false;
+      fThis = new File(strDbaseFile);
+      if (!fThis.exists()) return false;    // Cannot find xml database file
+      
+      // We should locate the .index file
+      if (strDbaseFile.endsWith(".xml")) strDbaseFile = strDbaseFile.substring(0, strDbaseFile.length() - 4);
+      strDbaseFile += ".index";
+      fIdxThis = new File(strDbaseFile);
+      if (!fIdxThis.exists()) return false;    // Cannot find index file...
+      
+      // Create my own copy of a random-access reader to the database file
+      loc_xrdFile = new XmlIndexRaReader(fThis, crpThis, loc_pdxThis, ProjType.Dbase);
       // Get the list of @File elements inside the database
       this.lstResFile = loc_xrdFile.getPartList();
       // Do we have a header?
@@ -67,12 +146,14 @@ public class XmlResultPsdxIndex extends XmlResult {
       // Return positively
       return true;
     } catch (Exception ex) {
-      objErr.DoError("XmlResult/Prepare error: ", ex);
+      objErr.DoError("XmlResult/PrepareRa error: ", ex);
       return false;
     }
   }
+  
   /**
-   * Prepare -- Prepare reading [strPart] from database [strDbaseFile]
+   * PrepareTg -- Prepare reading [strPart] from database [strDbaseFile]
+   *            Perform preparations using the tag-based file-split method
    * 
    * @param strDbaseFile
    * @param strPart
@@ -80,8 +161,7 @@ public class XmlResultPsdxIndex extends XmlResult {
    * @history
    *  15/sep/2015 ERK Created
    */
-  @Override
-  public boolean Prepare(String strDbaseFile, String strPart) {
+  private boolean PrepareTg(String strDbaseFile, String strPart) {
     File fThis;       // File object of [strDbaseFile]
 
     try {
@@ -100,11 +180,11 @@ public class XmlResultPsdxIndex extends XmlResult {
       if (!fThis.exists()) return false;
       
       // Start up the streamer
-      loc_xrdFile = new XmlIndexReader(fThis, crpThis, loc_pdxThis, crpThis.intProjType);
+      loc_xrdTgFile = new XmlIndexTgReader(fThis, crpThis, loc_pdxThis, crpThis.intProjType);
       // Get the list of @File elements inside the database
-      this.lstResFile = loc_xrdFile.getPartList();
+      this.lstResFile = loc_xrdTgFile.getPartList();
       // Do we have a header?
-      String sHeader = loc_xrdFile.getHeader();
+      String sHeader = loc_xrdTgFile.getHeader();
       if (sHeader.isEmpty()) {
         // Indicate that it is empty
         loc_ndxHeader = null;
@@ -116,7 +196,7 @@ public class XmlResultPsdxIndex extends XmlResult {
       // Return positively
       return true;
     } catch (Exception ex) {
-      objErr.DoError("XmlResult/Prepare error: ", ex);
+      objErr.DoError("XmlResult/PrepareTg error: ", ex);
       return false;
     }
   }
@@ -182,8 +262,14 @@ public class XmlResultPsdxIndex extends XmlResult {
       if (loc_pdxThis == null)  return false;
       // More validateion
       if (loc_xrdFile==null) return false;
-      // Try to read another piece of <Result> xml
-      if (! loc_xrdFile.EOF) strNext = loc_xrdFile.getFirstLine();
+      // Reading part or whole?
+      if (this.loc_strPart.isEmpty()) {
+        // Try to read another piece of <Result> xml
+        if (! loc_xrdFile.EOF) strNext = loc_xrdFile.getFirstLine();
+      } else {
+        // We are reading the first part of a part...
+        strNext = loc_xrdFile.getFirstLine(loc_strPart);
+      }
       // Double check what we got
       if (strNext == null || strNext.length() == 0) {
         ndxResult.argValue = null;
@@ -303,6 +389,11 @@ public class XmlResultPsdxIndex extends XmlResult {
   @Override
   public boolean IsEnd() {
     try {
+      // Validate
+      if (loc_xrdFile == null) {
+        // How could this possibly be null?
+        return true;
+      }
       return (loc_xrdFile.EOF);
     } catch (RuntimeException ex) {
       // Warn user
@@ -335,8 +426,14 @@ public class XmlResultPsdxIndex extends XmlResult {
       }
       // More validateion
       if (loc_xrdFile==null) return false;
-      // Try to read another piece of <Result> xml
-      if (! loc_xrdFile.EOF) strNext = loc_xrdFile.getNextLine();
+      // Reading part or whole?
+      if (this.loc_strPart.isEmpty()) {
+        // Try to read another piece of <Result> xml
+        if (! loc_xrdFile.EOF) strNext = loc_xrdFile.getNextLine();
+      } else {
+        // We are reading the first part of a part...
+        strNext = loc_xrdFile.getNextLine(loc_strPart);
+      }
       // Check for end-of-file and file closing
       if (loc_xrdFile.EOF) loc_xrdFile = null;
       // Double check what we got
@@ -387,6 +484,7 @@ public class XmlResultPsdxIndex extends XmlResult {
     try {
       // Validate
       if (loc_pdxThis == null )  return false;
+      if (loc_xrdFile == null || loc_xrdFile.EOF) return false;
       // Find the current <Result> node
       ndxResult.argValue = loc_pdxThis.SelectSingleNode(loc_path_Result);
       // Return success

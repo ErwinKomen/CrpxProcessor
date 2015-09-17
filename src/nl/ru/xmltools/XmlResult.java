@@ -29,6 +29,7 @@ public abstract class XmlResult {
   protected static final String loc_path_General = "./descendant-or-self::General[1]";
   // ========================================== LOCAL VARIABLE ================================================
   protected String loc_strCurrent = "";     // XML code of current forest
+  protected String loc_strPart = "";        // Part to which this one pertains (or empty)
   protected int loc_intCurrent;             // Position of current node within [loc_arContext]
   protected XmlDocument loc_pdxThis;        // Current one
   protected XmlNode loc_ndxHeader;          // My copy of the header node

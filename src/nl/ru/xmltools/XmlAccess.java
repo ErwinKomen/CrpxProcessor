@@ -37,7 +37,7 @@ public abstract class XmlAccess {
   protected XmlDocument pdxDoc;       // Provide facilities to convert a string into an xml document
   protected Processor objSaxon;       // Local access to the processor
   protected XmlNode ndxSent;          // The root node
-  protected XmlIndexReader objXmlRdr; // Index reader for current file
+  protected XmlIndexTgReader objXmlRdr; // Index reader for current file
   protected RuBase objBase;           // Access to RuBase functions
   protected CorpusResearchProject crpThis;
   // ==========================================================================================================
@@ -56,7 +56,7 @@ public abstract class XmlAccess {
       // Get access to the correct xml index reader
       if (objXmlRdr == null || !objXmlRdr.getFileName().equals(sFileName)) {
         File objCurrentFile = new File(sFileName);
-        this.objXmlRdr = new XmlIndexReader(objCurrentFile, crpThis, pdxDoc, crpThis.intProjType);
+        this.objXmlRdr = new XmlIndexTgReader(objCurrentFile, crpThis, pdxDoc, crpThis.intProjType);
       }
       // Initialise some stuff
       ndxSent = null;

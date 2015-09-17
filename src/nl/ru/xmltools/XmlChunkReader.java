@@ -30,13 +30,17 @@ public class XmlChunkReader {
   private static final Logger logger = Logger.getLogger(XmlChunkReader.class);
   // ======================== variables for internal use
   private BufferedReader reader;  // Buffered file reader
+  private InputStreamReader rdIS; // Underlying input stream reader
+  private FileInputStream fIS;    // Underlying file input stream
   private int iLinesRead = 0;     // Number of lines read during the *last* readFile
   private String strTag;          // Name of the tag we are using
   private String strLastLine;     // Line that we read last
   private String ls;              // line separator
+  private int chNext;            // next character
   // private long lSize;             // Size of the file in number of lines
   private long lFileLen;          // Length of file in bytes
   private long lFilePos;          // Current reading position of file
+  private long lLastPos;          // Last reading position before consuming more
   // ======================== publicly accessible information
   public boolean EOF;             // Hit the end of file or not
   public XmlChunkReader() {
@@ -60,11 +64,16 @@ public class XmlChunkReader {
       // lSize = reader.lines().count();
       lFileLen = fThis.length();
       // Now start reading for real
-      reader = new BufferedReader(new InputStreamReader(new FileInputStream (fThis), "utf-8"));
+      fIS = new FileInputStream(fThis);
+      rdIS = new InputStreamReader(fIS, "utf-8");
+      reader = new BufferedReader(rdIS);
+      // reader = new BufferedReader(new InputStreamReader(new FileInputStream (fThis), "utf-8"));
       iLinesRead=0;
       strTag = "";
       EOF = false;
       strLastLine = "";
+      lFilePos = 0; lLastPos = 0;
+      chNext = 0;
       ls = System.getProperty("line.separator");
     } catch (Exception ex) {
       logger.error("XmlChunkReader problem",ex);
@@ -89,11 +98,15 @@ public class XmlChunkReader {
     // Check if there is a last line that contains this tag
     
     // Loop through all the lines
-    while( ( line = reader.readLine() ) != null ) {
+    // while( ( line = reader.readLine() ) != null ) {
+    while( ( line = readLine() ) != null ) {
       // Keep track of lines
-      iLinesRead++; strLastLine = line;
+      strLastLine = line;
+      /*
       // Get approximate file position: number of bytes + 1 for \n (we are lower if \r\n is used)
-      lFilePos += line.getBytes().length + 1;
+      lLastPos = lFilePos;
+      lFilePos += line.getBytes("utf-8").length + 1;
+      */
       // Check if this line contains the starting tag
       Matcher m = patStart.matcher(line);
       // Do we have a matching start tag?
@@ -108,6 +121,69 @@ public class XmlChunkReader {
     EOF = true;
     // Return negatively: we have not found it
     return false;
+  }
+  
+  /**
+   * readLine
+   *    My own implementation of readline from internal reader
+   *    Read characters one by one and continue until:
+   *    a) there are no more \n\r consecutively
+   *    b) there is an EOF sign
+   * 
+   * @return 
+   */
+  private String readLine() {
+    StringBuilder sb = new StringBuilder();
+    int m;
+    char n;
+    
+    try {
+      // Check for EOF
+      // Need to have a 1-character read-ahead buffer
+      if (iLinesRead == 0) {
+        chNext = reader.read();
+      }
+      // check for EOF
+      if (chNext<0) return null;
+      // Loop until reaching any \r\n
+      n = (char) chNext;
+      while (chNext>0 && !(n == '\n' || n == '\r')) {
+        // Add to string
+        sb.append(n);
+        // Read next
+        chNext = reader.read();
+        n = (char) chNext;
+      }
+      // Read and eat all \r\n
+      while (chNext>0 && (n == '\n' || n == '\r')) {
+        // Add to string
+        sb.append(n);
+        // Read next
+        chNext = reader.read();
+        n = (char) chNext;
+      }
+      // Get the string
+      String sBack = sb.toString();
+      // Do note our position before reading
+      lLastPos = lFilePos;
+      // Adapt the file position correctly
+      lFilePos += sBack.getBytes("utf-8").length;
+      // Keep track of lines read
+      iLinesRead++;
+      // Return what we have in the sb
+      return sBack;
+    } catch (Exception ex) {
+      return null;
+    }
+  }
+  /**
+   * isEof
+   *    Own implementation of end-of-file
+   * 
+   * @return 
+   */
+  private boolean isEof() {
+    return (chNext<0);
   }
   // ----------------------------------------------------------------------------------------------------------
   // Name :  ReadOuterXml
@@ -126,25 +202,26 @@ public class XmlChunkReader {
     patEnd = Pattern.compile("</" + strTag + ">");
     // Start storing the first line
     sChunk = new StringBuilder();
-    if (!strLastLine.isEmpty())  { sChunk.append(strLastLine); sChunk.append(ls);}
+    if (!strLastLine.isEmpty())  { sChunk.append(strLastLine); /* sChunk.append(ls); */}
     // Loop through all the lines
-    while( ( line = reader.readLine() ) != null ) {
+    // while( ( line = reader.readLine() ) != null ) {
+    while( ( line = readLine() ) != null ) {
       // Keep track of lines
-      iLinesRead++; strLastLine = line;
+      strLastLine = line;
       // Store this line
-      sChunk.append(line); sChunk.append(ls);
-      // Get approximate file position: number of bytes + 1 for \n (we are lower if \r\n is used)
-      lFilePos += line.getBytes().length + 1;
+      sChunk.append(line); /* sChunk.append(ls); */
       // Check if this line contains the ending tag
       Matcher m = patEnd.matcher(line);
       // Do we have a matching end tag?
       if (m.find()) {
-        /* NO: last line was already read
-        // Store the last line
-        sChunk.append(line); sChunk.append(ls);
-              */
         // Return the chunk we have read
         String sCombi = sChunk.toString();
+        /*
+        lFilePos = lLastPos + sCombi.getBytes("utf-8").length;
+        // We have in fact read the last line, so consume it in lastpos
+        lLastPos = lFilePos;
+        */
+        // Return the result
         return sCombi;
       }
     }
@@ -176,4 +253,5 @@ public class XmlChunkReader {
   // ----------------------------------------------------------------------------------------------------------
   public int getLinesRead() { return iLinesRead;}
   public int getPtc() {return (int) ( (lFilePos / lFileLen) * 100); }
+  public int getPos() {return (int) lLastPos; }
 }

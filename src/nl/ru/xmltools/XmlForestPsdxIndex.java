@@ -24,7 +24,7 @@ import nl.ru.util.ByRef;
  */
 public class XmlForestPsdxIndex extends XmlForest {
   // ============ Local variables ==============================================
-  private XmlIndexReader loc_xrdFile;   // Indexed reader for xml files
+  private XmlIndexTgReader loc_xrdFile;   // Indexed reader for xml files
   // ============ Call the standard class initializer ==========================
   public XmlForestPsdxIndex(CorpusResearchProject oCrp, JobXq oJob, ErrHandle oErr) {
     super(oCrp,oJob,oErr);
@@ -65,7 +65,7 @@ public class XmlForestPsdxIndex extends XmlForest {
         loc_arFollCnt[intI] = new XmlForest.Context();
       }
       // Start up the streamer
-      loc_xrdFile = new XmlIndexReader(fThis, crpThis, loc_pdxThis, crpThis.intProjType);
+      loc_xrdFile = new XmlIndexTgReader(fThis, crpThis, loc_pdxThis, crpThis.intProjType);
       // Do we have a header?
       String sHeader = loc_xrdFile.getHeader();
       if (sHeader.isEmpty()) {

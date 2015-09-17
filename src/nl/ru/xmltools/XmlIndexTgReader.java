@@ -12,6 +12,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
 import net.sf.saxon.s9api.QName;
@@ -22,11 +23,12 @@ import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
 
 /**
- * XmlIndexReader - read 'xml' files by first making an index for them
+ * XmlIndexTgReader - read 'xml' files by first making an index for them
+ *                    method: split all files into tag-based file chunks
  * 
  * @author Erwin R. Komen
  */
-public class XmlIndexReader {
+public class XmlIndexTgReader {
   // This class uses the other's error handler
   private final ErrHandle errHandle;
   // ======================== variables for internal use
@@ -44,7 +46,7 @@ public class XmlIndexReader {
   // ======================== publicly accessible information
   public boolean EOF;             // Hit the end of file or not
   // ----------------------------------------------------------------------------------------------------------
-  // Class : XmlIndexReader
+  // Class : XmlIndexTgReader
   // Goal :  Indexed reader for xml files. Each file is divided into chunks
   //           that contain meaningful elements: (e.g. one <forest>, <s>, <teiHeader> )
   //         Each file gets an index file associated with it, and this file holds:
@@ -56,7 +58,7 @@ public class XmlIndexReader {
   // History:
   // 10/jun/2015  ERK Created
   // ----------------------------------------------------------------------------------------------------------
-  public XmlIndexReader(File fThis, CorpusResearchProject prjThis, XmlDocument pdxThis, ProjType ptThis) throws FileNotFoundException  {
+  public XmlIndexTgReader(File fThis, CorpusResearchProject prjThis, XmlDocument pdxThis, ProjType ptThis) throws FileNotFoundException  {
     try {
       // Set the error handler
       this.errHandle = prjThis.errHandle;
@@ -93,12 +95,17 @@ public class XmlIndexReader {
    * @return 
    * @history
    *  14/sep/2015 ERK Database xml files get an index that splits over the 'Part' items
+   *  15/sep/2015 ERK A database xml file gets just one .index file for random read access
    */
   private boolean doCheckIndex(File fThis, ProjType ptThis) {
     List<IndexFile> lIndices; // List of <IndexFile> elements
     int iIndexLine = 0;       // index line used to make a file name
+    int iPos = 0;             // POsition in file
     
     try {
+      // ===== DEBUGGING ======
+      // errHandle.debug("doCheckIndex Tg: enter");
+      // ======================
       // Get the date/time of the file
       long tmFile = fThis.lastModified();
       // Set the directory used for the index
@@ -123,6 +130,7 @@ public class XmlIndexReader {
         // Create index directory
         loc_fIndexDir.mkdir();
       }
+      
       // Check existence/ancienity of the index file w.r.t. the text file
       if (!loc_fIndexFile.exists() || tmFile > loc_fIndexFile.lastModified()) {
         String sHeaderFile = "";  // Name of the header file
@@ -131,24 +139,29 @@ public class XmlIndexReader {
         StringBuilder sIndexData = new StringBuilder();
         // Create an XmlChunkReader to do this
         XmlChunkReader rdThis = new XmlChunkReader(fThis);
+        // ======= DEBUG ===============
+        RandomAccessFile fcDebug = new RandomAccessFile(fThis.getAbsolutePath(), "r");
+        // FileChannel fcDebug = FileChannel.open(fThis.toPath(), StandardOpenOption.READ );
+        // =============================
         // First read the header
         String sTagHeader = crpThis.getTagHeader(ptThis);
+        iPos = 0;
         if (!sTagHeader.isEmpty()) {
+          
           // Since the header tag is defined, it is obligatory
           if (! (rdThis.ReadToFollowing(sTagHeader))) {
             errHandle.DoError("FirstForest error: cannot find <" + sTagHeader + 
                     "> in file [" + strFile + "]");
             return false;
           }
+          iPos = rdThis.getPos();
           // Get the header data
           sHeaderXml = rdThis.ReadOuterXml();
-          // Write the obligatory teiHeader to the header file
+          // Write the data to the header file
           sHeaderFile = loc_sIndexDir + "/header.xml";
           File loc_fHeader = new File(sHeaderFile);
           FileUtil.writeFile(loc_fHeader, sHeaderXml); 
         }
-        // Add header file name to IndexData (this is a separate starting line)
-        sIndexData.append(sHeaderFile).append("\n");
         // Copy and create chunks for each line
         String sTagLine = crpThis.getTagLine(ptThis);
         QName qAttrLineId = crpThis.getAttrLineId(ptThis);
@@ -161,6 +174,8 @@ public class XmlIndexReader {
           rdThis.ReadToFollowing(sTagLine);
           if (!rdThis.EOF) {
             String sPartId = "";
+            // Note the position
+            iPos = rdThis.getPos();
             // Read the line into a string
             String strNext = rdThis.ReadOuterXml();
             // Load the line as an XmlDocument, so we can look for attributes
@@ -240,11 +255,14 @@ public class XmlIndexReader {
           // The header file should also be written 
         }
       }
+      // ===== DEBUGGING ======
+      // errHandle.debug("doCheckIndex: exit");
+      // ======================
 
       // Return positively
       return true;
     } catch (Exception ex) {
-      errHandle.DoError("DoCheckingIndex could not be completed for " + fThis.getAbsolutePath(), ex, XmlIndexReader.class);
+      errHandle.DoError("DoCheckingIndex could not be completed for " + fThis.getAbsolutePath(), ex, XmlIndexTgReader.class);
       // Return failure
       return false;
     }
@@ -302,7 +320,7 @@ public class XmlIndexReader {
    * 
    * @return 
    */
-  public boolean readIndex() {
+  private boolean readIndex() {
     try {
       // Initialize the index datastructure
       arIndex = new ArrayList<>();
@@ -333,7 +351,7 @@ public class XmlIndexReader {
       // Return positively
       return true;
     } catch (Exception ex) {
-      errHandle.DoError("readIndex encountered a problem for " + loc_fThis.getAbsolutePath(), ex, XmlIndexReader.class);
+      errHandle.DoError("readIndex encountered a problem for " + loc_fThis.getAbsolutePath(), ex, XmlIndexTgReader.class);
       // Return failure
       return false;
     }
@@ -355,7 +373,7 @@ public class XmlIndexReader {
       // Load the header and return it
       return FileUtil.readFile(loc_fHeader, "utf-8");
     } catch (Exception ex) {
-      errHandle.DoError("Could not read header " + loc_fThis.getAbsolutePath(), ex, XmlIndexReader.class);
+      errHandle.DoError("Could not read header " + loc_fThis.getAbsolutePath(), ex, XmlIndexTgReader.class);
       // Return failure
       return "";
     }
@@ -376,7 +394,7 @@ public class XmlIndexReader {
       iCurrentLine = 0;
       return FileUtil.readFile(new File(arIndex.get(iCurrentLine).sFile), "utf-8");      
     } catch (Exception ex) {
-      errHandle.DoError("Could not read first line of " + loc_fThis.getAbsolutePath(), ex, XmlIndexReader.class);
+      errHandle.DoError("Could not read first line of " + loc_fThis.getAbsolutePath(), ex, XmlIndexTgReader.class);
       // Return failure
       return "";
     }
@@ -403,7 +421,7 @@ public class XmlIndexReader {
       // Yes, we should be able to read it...
       return FileUtil.readFile(new File(arIndex.get(iCurrentLine).sFile), "utf-8");      
     } catch (Exception ex) {
-      errHandle.DoError("Could not read next line [" + iCurrentLine + "] of " + loc_fThis.getAbsolutePath(), ex, XmlIndexReader.class);
+      errHandle.DoError("Could not read next line [" + iCurrentLine + "] of " + loc_fThis.getAbsolutePath(), ex, XmlIndexTgReader.class);
       // Return failure
       return "";
     }
@@ -438,7 +456,7 @@ public class XmlIndexReader {
       sSentId.argValue = elThis.LineId;
       return FileUtil.readFile(new File(elThis.sFile), "utf-8");    
     } catch (Exception ex) {
-      errHandle.DoError("Could not read 'relative' line [" + iNewLine + "] of " + loc_fThis.getAbsolutePath(), ex, XmlIndexReader.class);
+      errHandle.DoError("Could not read 'relative' line [" + iNewLine + "] of " + loc_fThis.getAbsolutePath(), ex, XmlIndexTgReader.class);
       // Return failure
       return "";
     }
@@ -471,7 +489,7 @@ public class XmlIndexReader {
       return "";      
     } catch (Exception ex) {
       errHandle.DoError("Could not read line [" + sLineId + "] of " 
-              + loc_fThis.getAbsolutePath(), ex, XmlIndexReader.class);
+              + loc_fThis.getAbsolutePath(), ex, XmlIndexTgReader.class);
       // Return failure
       return "";
     }
@@ -504,7 +522,7 @@ public class XmlIndexReader {
       return "";      
     } catch (Exception ex) {
       errHandle.DoError("Could not read line with constituent [" + sConstId + 
-              "] of " + loc_fThis.getAbsolutePath(), ex, XmlIndexReader.class);
+              "] of " + loc_fThis.getAbsolutePath(), ex, XmlIndexTgReader.class);
       // Return failure
       return "";
     }
@@ -526,15 +544,5 @@ class IndexEl {
   public String PartId;   // Part identifier (optional; for dbase: @File)
   public IndexEl(String sLineId, String sFileName, String sLastId, String sPartId) {
     this.LineId = sLineId; this.sFile = sFileName; this.LastId = sLastId; this.PartId = sPartId;
-  }
-}
-// One index file element
-class IndexFile {
-  public String Name;       // Name of the index file
-  public String Dir;        // Name of directory for this index
-  public StringBuilder sb;  // Content for this index file
-  public IndexFile(String sName, String sDir) {
-    this.Name = sName; this.sb = new StringBuilder();
-    this.Dir = sDir;
   }
 }

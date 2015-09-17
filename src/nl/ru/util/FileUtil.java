@@ -94,12 +94,15 @@ public class FileUtil {
    * @return write interface into the file
    */
   public static PrintWriter openForWriting(File file, String encoding) {
-          try {
-                  return new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(
-                                  file), encoding)));
-          } catch (Exception e) {
-                  throw new RuntimeException(e);
-          }
+    try {
+      // If it exists: delete it
+      if (file.exists()) file.delete();
+      // Write content to it
+      return new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(
+                            file), encoding)));
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**
@@ -112,7 +115,7 @@ public class FileUtil {
    * @return write interface into the file
    */
   public static PrintWriter openForAppend(File file) {
-          return openForAppend(file, defaultEncoding);
+    return openForAppend(file, defaultEncoding);
   }
 
   /**

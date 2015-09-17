@@ -297,26 +297,19 @@ public class Extensions extends RuBase {
   // History:
   // 03-10-2013  ERK Created
   // ------------------------------------------------------------------------------------
-  /*
-  public static boolean lex(XdmValue varText, XdmValue varPos) {
-    String strText;   // The string value we are matching
-    String strPos;    // The part-of-speech (or other grouping value)
-    
-    // Validate: look what kind of Xdm we receive
-    if (!hasStringValue(varText)) return false;
-    strText = getStringValue(varText);
-    // Validate: check the POS we received
-    if (!hasStringValue(varPos)) return false;
-    strPos = getStringValue(varPos);
-    // call the main lex() function
-    return lex(strText, strPos);
-  } */
-  public static boolean lex(XPathContext objXp, AtomicValue strText, AtomicValue strPos) {
-    return lex(objXp, strText.getStringValue(), strPos.getStringValue());
+  public static boolean lex(XPathContext objXp, Value strText, Value strPos) {
+    try {
+      return lex(objXp, strText.getStringValue(), strPos.getStringValue());
+    } catch (XPathException ex) {
+      // Show error
+      errHandle.DoError("Extensions/lex saxon error", ex, Extensions.class );
+      // Return failure
+      return false;
+    }
   }
   private static boolean lex(XPathContext objXp, String strText, String strPos) {
     // =========== DEBUG ===================
-    errHandle.debug("lex [" + strText + "] [" + strPos + "]");
+    // errHandle.debug("lex [" + strText + "] [" + strPos + "]");
     // If the text to compare is empty, then we return false
     if (strText.isEmpty()) return false;
     // Note: [strPos] may be empty!!
@@ -335,27 +328,6 @@ public class Extensions extends RuBase {
     // 24-09-2013  ERK Added line with only 1 argument
     // 21/May/2015 ERK Started adaptation for Java
     // ------------------------------------------------------------------------------------
-  /*
-    public static Node line(XPathContext objXp, NodeInfo node, int intLines) {
-      XdmNode ndSax;    // Myself, if I am a proper node
-      int nodeKind;     // The kind of object getting passed as argument
-
-      try {
-        // Validate
-        if (node == null) return null;
-        nodeKind = node.getNodeKind();
-        if (nodeKind != Type.ELEMENT) return null;
-        // Get the XdmNode representation of the node
-        ndSax = objSaxDoc.wrap(node);      
-        
-        return null;
-      } catch (Exception ex) {
-        // Show error
-        logger.error("Extensions/line: " + ex.getMessage());
-        // Return failure
-        return null;
-      }
-    } */
     public static Node line(XPathContext objXp, int intLines) {
       XmlNode ndxRes = null;
       Node ndxBack = null;
@@ -424,7 +396,7 @@ public class Extensions extends RuBase {
     
     try {
       // =========== DEBUG ===================
-      errHandle.debug("matches [" + strText + "] [" + strPattern + "]");
+      // errHandle.debug("matches [" + strText + "] [" + strPattern + "]");
       // Validate: empty strings
       if (strText.isEmpty()) return false;
       // Make sure to be case-insensitive
@@ -461,7 +433,7 @@ public class Extensions extends RuBase {
     
     try {
       // =========== DEBUG ===================
-      errHandle.debug("matches2 [" + strText + "] [" + strPattern + "]");
+      // errHandle.debug("matches2 [" + strText + "] [" + strPattern + "]");
       // Validate: empty strings
       if (strText.isEmpty()) return false;
       // Make sure to be case-insensitive

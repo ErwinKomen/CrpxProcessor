@@ -8,7 +8,10 @@
 
 package nl.ru.crpx.project;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -21,6 +24,7 @@ import net.sf.saxon.s9api.XQueryEvaluator;
 import nl.ru.crpx.dataobject.DataObject;
 import nl.ru.crpx.dataobject.DataObjectList;
 import nl.ru.crpx.dataobject.DataObjectMapElement;
+import nl.ru.crpx.project.CorpusResearchProject.ProjType;
 import nl.ru.crpx.search.Job;
 import nl.ru.crpx.search.JobXq;
 import nl.ru.crpx.search.JobXqF;
@@ -32,10 +36,13 @@ import nl.ru.crpx.xq.LexDict;
 import nl.ru.crpx.xq.RuBase;
 import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
+import nl.ru.util.StringUtil;
 import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
+import nl.ru.xmltools.IndexFile;
 import nl.ru.xmltools.XmlAccess;
 import nl.ru.xmltools.XmlForest;
+import nl.ru.xmltools.XmlIndexItem;
 import nl.ru.xmltools.XmlNode;
 import nl.ru.xmltools.XmlResult;
 import nl.ru.xmltools.XmlResultPsdxIndex;
@@ -66,6 +73,7 @@ public class ExecutePsdxStream extends ExecuteXml {
   private static final QName loc_xq_Section = new QName("", "", "Section");
   private static final QName loc_xq_Location = new QName("", "", "Location");
   private static final QName loc_xq_subtype = new QName("", "", "subtype");
+  private static final QName loc_xq_ResId = new QName("", "", "ResId");
 
   // ============ Local variables for "XqF" ====================================
   // (none apparently)
@@ -266,39 +274,70 @@ public class ExecutePsdxStream extends ExecuteXml {
   
   /**
    * makeResultsDbaseList
-   *    Combine all database-parts for each QC line
+   *    Two tasks: 
+   *    1 - Combine all database-parts for each QC line
+   *    2 - Break up results in one-file-per-<Result> and store hierarchically + index
    * 
    * @param lstBack     - The dataobject list we will be returning with the dbase information
    * @param arListTotal - Array of all individual .setJobList() objects
    */
   private void makeResultsDbaseList(Job jobCaller, DataObjectList lstBack, JSONArray arListTotal) {
-    PrintWriter[] arPwCombi = new PrintWriter[arQuery.length];
+    int iIndexLine = 0;             // index line used to make a file name
+    PrintWriter[] arPwCombi;        // Print-writer where we output the combined database
+    int[] arPwPos;                  // Array of current positions within the print-writers
+    String[] arIdxFileName;         // Array of index file names
+    File[] arIdxFile;               // Array of index FILE handles
+    List<XmlIndexItem> arIdxList[]; // Array of index-item-lists
+    StringBuilder arIdxSb[];      // Array of index-item string builders
     
     try {
       // Create a new list
       lstBack = new DataObjectList("dblist");
+      // Other initialisations
+      arPwCombi = new PrintWriter[arQuery.length];
+      arPwPos = new int[arQuery.length];
+      arIdxFileName = new String[arQuery.length];
+      arIdxFile = new File[arQuery.length];
+      arIdxList = new List[arQuery.length];
+      arIdxSb = new StringBuilder[arQuery.length];
       
       // Walk all the QC items
       for (int i=0;i<arQuery.length;i++) {
         // Does this query create a database?
         if (arQuery[i].DbFeatSize>0) {
           int iQCid = i+1;
+          // Reset the indexitem array
+          arIdxList[i] = new ArrayList<>(); arIdxSb[i] = new StringBuilder();
           // Create a name for the combined database for this QC
           String sCombi = this.crpThis.getDbaseName(iQCid);
           File fCombi = new File(sCombi);
           PrintWriter pCombi = FileUtil.openForAppend(fCombi);
+          // Indexing: set the name of the index file
+          arIdxFileName[i] = sCombi.substring(0, sCombi.lastIndexOf(crpThis.getTextExt(ProjType.Dbase))) + ".index";
+          arIdxFile[i] = new File(arIdxFileName[i]);
+          // Remove any last item
+          if (arIdxFile[i].exists()) arIdxFile[i].delete();         
           
           // Create this file and add a first part.
-          String sIntro = "<CrpOview>\n <General>\n <ProjectName>" + this.crpThis.getName() + "</ProjectName>\n" +
+          String sIntro = "<CrpOview>\n"; pCombi.append(sIntro);
+          // Keep track of the starting position of the <General> tag
+          arPwPos[i] = sIntro.length();
+          sIntro = "<General>\n <ProjectName>" + this.crpThis.getName() + "</ProjectName>\n" +
                   " <Created>" + crpThis.dateToString(new Date()) + "</Created>\n" +
                   " <DstDir></DstDir>\n" +
                   " <SrcDir>" + this.crpThis.getSrcDir() + "</SrcDir>\n" +
                   " <Language>" + this.crpThis.getLanguage() + "</Language>\n" +
-                  " <Part>" + this.crpThis.getPart() + "</SrcDir>\n" +
+                  " <Part>" + this.crpThis.getPart() + "</Part>\n" +
                   " <Notes>Created by CorpusStudio from query line " + iQCid + ": [" + arQuery[i].Descr + "]</Notes>\n" +
                   " <Analysis></Analysis>\n</General>\n";
           pCombi.append(sIntro);
           arPwCombi[i] = pCombi;
+          // Add index information to the current xml item indexer
+          int iByteLength = sIntro.getBytes("utf-8").length;
+          XmlIndexItem oItem = new XmlIndexItem("General", "", "", arPwPos[i], iByteLength);
+          arIdxList[i].add(oItem); arIdxSb[i].append(oItem.csv());
+          // Adapt the position within this database file
+          arPwPos[i] += iByteLength;
           
           // Create an object to store the information on this database
           DataObjectMapElement oDbase = new DataObjectMapElement();
@@ -313,10 +352,10 @@ public class ExecutePsdxStream extends ExecuteXml {
       }
 
       setProgress(jobCaller, "", "extracting databases...", -1,-1,-1);
+      // Start counting result id
+      int iResId = 1;
       // Get to the list for all files
       for (int i=0;i<arListTotal.length();i++) {
-        // Start counting result id
-        int iResId = 1;
         // Get the object for this file
         JSONObject oListOneFile = arListTotal.getJSONObject(i);
         // Get information from this object
@@ -342,8 +381,16 @@ public class ExecutePsdxStream extends ExecuteXml {
               // Get this hit
               JSONObject oOneHit = arHitsPerQc.getJSONObject(k);
               // Process the information in this hit
-              bThis.append(getResultXml(sFileName, sTextId, sSubType, 
-                      arQuery[j].DbFeat, oOneHit, iResId++));
+              String sOneResult = getResultXml(sFileName, sTextId, sSubType, 
+                      arQuery[j].DbFeat, oOneHit, iResId);
+              bThis.append(sOneResult);
+              // Adapt the index information for this file
+              int iByteLength = sOneResult.getBytes("utf-8").length;
+              XmlIndexItem oItem = new XmlIndexItem("Result", String.valueOf(iResId), sFileName, arPwPos[iQCid-1], iByteLength);
+              arIdxList[iQCid-1].add(oItem); arIdxSb[iQCid-1].append(oItem.csv());
+              arPwPos[iQCid-1] += iByteLength;
+              // Adapt the result id
+              iResId++;
             }
             // Append this information to the PrintWriter for this QC
             arPwCombi[j].append(bThis);
@@ -357,6 +404,8 @@ public class ExecutePsdxStream extends ExecuteXml {
           // Finish this file
           arPwCombi[i].append("</CrpOview>\n");
           arPwCombi[i].close();
+          // Save the index file
+          FileUtil.writeFile(arIdxFile[i], arIdxSb[i].toString());
         } 
       }
       // The result information is in [lstBack]
@@ -712,13 +761,18 @@ public class ExecutePsdxStream extends ExecuteXml {
       // Get the file
       File fThis = oCrpFile.flThis;
       String fName = fThis.getName();
+      // ======= DEBUG ========
+      // errHandle.debug("XqF starts: " + fName);
+      // ======================
       // Forest file initialisation depends on database or not
       if (this.bIsDbase) {
         // Start processing the database parts pointed to by [fThis]
         objOneDbRes = new XmlResultPsdxIndex(oCrpFile.crpThis, null, errHandle);
         // Set this particular handler to the correct database + file
-        if (!objOneDbRes.Prepare(arQuery[0].InputFile, fName)) return false;
-        if (!objOneDbRes.FirstResult(ndxDbRes)) return false;
+        if (!objOneDbRes.Prepare(arQuery[0].InputFile, fName)) 
+          return false;
+        if (!objOneDbRes.FirstResult(ndxDbRes)) 
+          return false;
         // Now get to the PSDX file with the <forest> elements
         String sSrcDir = oCrpFile.crpThis.getSrcDir().getAbsolutePath();
         strForestFile = FileUtil.findFileInDirectory(sSrcDir, fName);
@@ -821,7 +875,8 @@ public class ExecutePsdxStream extends ExecuteXml {
         // Check for start of section if this is a database?
         if (this.bIsDbase) {
           // Validate
-          if (objOneDbRes == null) return false;
+          if (objOneDbRes == null) 
+            return false;
           
           // String strNextFile = "";  // points to the next file
           
@@ -867,7 +922,8 @@ public class ExecutePsdxStream extends ExecuteXml {
             // Make the QC line number available
             oCrpFile.QCcurrentLine = k+1;
             // Make sure there is no interrupt
-            if (errHandle.bInterrupt) return false;
+            if (errHandle.bInterrupt) 
+              return false;
             // Get the input node for the current query
             int iInputLine = arQuery[k].InputLine;
             bHasInput = (arQuery[k].InputCmp) ? arCmpExists[iInputLine] : arOutExists[iInputLine];
@@ -885,9 +941,12 @@ public class ExecutePsdxStream extends ExecuteXml {
                 // Parse all the <Result> elements within this forestId
                 bParsed = false;
                 for (int m=0;m<ndxDbList.size(); m++) {
+                  /*
                   // ============ DEBUG ============
                   XmlNode ndxTest = ndxDbList.get(m).SelectSingleNode("//Result/child::Feature[@Name='VfLemma']");
                   errHandle.debug("Test value = " + ndxTest.getAttributeValue(loc_xq_Value));
+                  // ===============================
+                  */
                   
                   // Perform a parse that only resets the collection when m==0
                   if (this.objParseXq.DoParseXq(arQuery[k],arQeval[k],this.objSaxDoc, this.xconfig, oCrpFile,
@@ -935,7 +994,8 @@ public class ExecutePsdxStream extends ExecuteXml {
                   //       in another <forest> in the document
                   ndxForestBack = ndxForest.argValue;
                   // Check if the result is usable
-                  if (ndxForestBack == null) return false;
+                  if (ndxForestBack == null) 
+                    return false;
                   // If a database should be created, then we need to do some more
                   if (arQuery[k].DbFeatSize>0) {
                     // Get the context
@@ -993,10 +1053,24 @@ public class ExecutePsdxStream extends ExecuteXml {
         if (this.bIsDbase) {
           // Get the current database result
           objOneDbRes.CurrentResult(ndxDbRes);
-          // Get the sentence identifier from the current [ndxDbRes]
-          sSentId = ndxDbRes.argValue.getAttributeValue(loc_xq_ForestId);
-          // Load this sentence into the [ndxForest] element
-          if (!objProcType.OneForest(ndxForest, sSentId)) return errHandle.DoError("ExecuteQueriesFile could not get OneForest");
+          // Check on the result
+          if (ndxDbRes.argValue == null) {
+            // We are through with the database results
+            ndxForest.argValue = null;
+          } else {
+            // Okay, continue...
+            // Get the sentence identifier from the current [ndxDbRes]
+            sSentId = ndxDbRes.argValue.getAttributeValue(crpThis.getAttrLineId());
+            // Load this sentence into the [ndxForest] element
+            if (!objProcType.OneForest(ndxForest, sSentId)) return errHandle.DoError("ExecuteQueriesFile could not get OneForest");
+          }
+          /*
+          // ======= DEBUGGING =======
+          String sResId =ndxDbRes.argValue.getAttributeValue(loc_xq_ResId); 
+          String sCurrentForestId = ndxForest.argValue.getAttributeValue(crpThis.getAttrLineId());
+          errHandle.debug("Dbase [" + sResId + "] [" + fName + "] from " + sCurrentForestId + " to " + sSentId );
+          // =========================
+          */
         } else {
           if (!objProcType.NextForest(ndxForest)) return errHandle.DoError("Could not read <forest>");
         }
@@ -1129,12 +1203,15 @@ public class ExecutePsdxStream extends ExecuteXml {
       oTotal.put("hits", arTotalHits);
       jobCaller.setJobList(oTotal);
 
+      // ======= DEBUG ========
+      // errHandle.debug("XqF finish: " + fName);
+      // ======================
 
       // Return positively
       return true;
     } catch (RuntimeException | XPathExpressionException ex) {
       // Warn user
-      errHandle.DoError("ExecutePsdxStream/ExecuteQueriesFile runtime error: " + ex.getMessage() + "\r\n");
+      errHandle.DoError("ExecutePsdxStream/ExecuteQueriesFile runtime error: ", ex);
       // Return failure
       return false;
     } 
