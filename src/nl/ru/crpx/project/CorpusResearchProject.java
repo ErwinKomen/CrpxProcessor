@@ -915,6 +915,12 @@ public class CorpusResearchProject {
     }
   }
   // =================== private methods for internal use ======================
+  /**
+   * getSetting -- retrieve the value of 'Setting' named @sName
+   * 
+   * @param sName
+   * @return 
+   */
   private String getSetting(String sName) {
     String strValue = ""; // Default value
     
@@ -926,20 +932,29 @@ public class CorpusResearchProject {
       strValue = ndxThis.getAttributes().getNamedItem("Value").getNodeValue();
       // strValue = ndxThis.getNodeValue();
     } catch (XPathExpressionException ex) {
-      logger.error("Problem with getSetting [" + sName + "]", ex);
+      errHandle.DoError("Problem with getSetting [" + sName + "]", ex);
     }
     // Return the result
     return strValue;
   }
+  /**
+   * setSetting -- set 'Setting' named @sName at value @sValue
+   * 
+   * @param sName
+   * @param sValue
+   * @return 
+   */
   private boolean setSetting(String sName, String sValue) {
     
     try {
       Node ndxThis = (Node) xpath.evaluate("./descendant::Setting[@Name='" + sName + "']", 
                                            this.docProject, XPathConstants.NODE);
+      // Validate
+      if (ndxThis == null) return false;
       // ndxThis.setNodeValue(sValue);
       ndxThis.getAttributes().getNamedItem("Value").setNodeValue(sValue);
-    } catch (XPathExpressionException ex) {
-      logger.error("Problem with setSetting [" + sName + "]", ex);
+    } catch (XPathExpressionException ex) {      
+      errHandle.DoError("Problem with setSetting [" + sName + "]", ex);
     }
     // Return positively
     return true;
@@ -965,6 +980,8 @@ public class CorpusResearchProject {
     try {
       String sExp = "./descendant::Date"+sName;
       Node ndxThis = (Node) xpath.compile(sExp).evaluate(this.docProject, XPathConstants.NODE);
+      // Validate
+      if (ndxThis == null) return false;
       ndxThis.setTextContent(sValue);
     } catch (XPathExpressionException ex) {
       logger.error("Problem with setDateSetting [" + sName + "]", ex);
