@@ -26,6 +26,7 @@ import net.sf.saxon.trans.XPathException;
 import static nl.ru.crpx.tools.FileIO.getFileNameWithoutExtension;
 import static nl.ru.crpx.project.CrpGlobal.Status;
 import nl.ru.crpx.search.JobXq;
+import nl.ru.crpx.tools.FileIO;
 import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
 import nl.ru.util.StringUtil;
@@ -154,7 +155,7 @@ public class ExecuteXml extends Execute {
       Status("Getting source file information...");
       if (!BuildSource(lSource)) {
         bInterrupt = true;
-        return DoError("ExecuteXmlSetup: Could not build sources");
+        return errHandle.DoError("ExecuteXmlSetup: Could not build sources");
       }
       // Check if we have ONE source file that is a <CrpOview> one
       if (lSource.size()==1) {
@@ -174,6 +175,12 @@ public class ExecuteXml extends Execute {
           lSource = oDbase.getDbFiles();
           // Make sure the CRP is recognizable as having a database as input
           this.crpThis.HasDbaseInput = true;
+        } else {
+          // The requested input file does *not* exist: return error to the caller
+          bInterrupt = true;
+          return errHandle.DoError("ExecuteXmlSetup: the requested input file does not exist:\n" + 
+                  fThis.getAbsolutePath() + "\n" + 
+                  "Perhaps you have not run the project to create a database yet?");
         }
       }
       // Start up output/overview counting
@@ -463,15 +470,32 @@ public class ExecuteXml extends Execute {
         String[] arList = sInputFile.split("[;]", -1);
         // Add all the files individually
         for (intI = 0; intI < arList.length; intI++) {
+          String sFullName = arList[intI];
           // Check if the file points to a good one already
-          if ((new File(arList[intI])).exists()) {
-            lInputFiles.add(arList[intI]);
+          if ((new File(sFullName)).exists()) {
+            lInputFiles.add(sFullName);
           } else {
-            // Add this file
-            lInputFiles.add(FileUtil.nameNormalize(crpThis.getSrcDir() + 
-                    "/" + arList[intI]));
+            String sBare = FileIO.getFileNameWithoutDirectory(sFullName);
+            // Check this one
+            String sStandard = crpThis.getSrcDir() + "/" + sBare;
+            if ( (new File(sStandard)).exists()) {
+              // Add this file
+              lInputFiles.add(FileUtil.nameNormalize(sStandard));
+            } else {
+              // Perhaps it is in the default database location?
+              String sDbaseLoc = getDbaseDir() + "/" + sBare;
+              if ( (new File(sDbaseLoc)).exists()) {
+                // Add this file
+                lInputFiles.add(FileUtil.nameNormalize(sDbaseLoc));
+              } else {
+                // Return a meaningful error
+                return errHandle.DoError("ExecuteXml/BuildSource: could not locate file " + sBare);
+              }
+            }
           }          
         }
+        // Adapt 
+        arQuery[0].InputFile = StringUtil.join(lInputFiles, ";");
       }
       // Return success
       return true;

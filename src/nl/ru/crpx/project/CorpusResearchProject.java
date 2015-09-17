@@ -481,6 +481,9 @@ public class CorpusResearchProject {
     boolean bXml = false; // Write results as XML also 
     
     try {
+      // Reset any errors
+      this.errHandle.clearErr();
+      Job.errHandle.clearErr();
       // Determine status file location
       String sStatusFileLoc = getResultFileName("status", "json");
       File fStatusFile = new File(sStatusFileLoc);
@@ -759,8 +762,8 @@ public class CorpusResearchProject {
     return this.getHitsDir() + "/" + this.getName() + "_QC" + iQCid + "_Dbase.xml";
   }
   // ========== Location of the database, depending on the QC number and the filename
-  public String getDbaseName(int iQCid, String sFileName) {
-    return this.getHitsDir() + "/" + sFileName + "_QC" + iQCid + "_Dbase.xml";
+  public String getDbaseName(int iQCid, String sDbaseDir) {
+    return sDbaseDir + "/" + this.getName()  + "_QC" + iQCid + "_Dbase.xml";
   }
   // ========== Location of the lexicon file, depending on the filename
   public String getLexName(String sFileName) {
@@ -950,7 +953,12 @@ public class CorpusResearchProject {
       Node ndxThis = (Node) xpath.evaluate("./descendant::Setting[@Name='" + sName + "']", 
                                            this.docProject, XPathConstants.NODE);
       // Validate
-      if (ndxThis == null) return false;
+      if (ndxThis == null) {
+        // TODO: this particular setting is not available, so it should be *added*
+
+        // Solution right now:
+        return false;
+      }
       // ndxThis.setNodeValue(sValue);
       ndxThis.getAttributes().getNamedItem("Value").setNodeValue(sValue);
     } catch (XPathExpressionException ex) {      

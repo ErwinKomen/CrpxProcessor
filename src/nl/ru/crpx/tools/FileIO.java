@@ -82,6 +82,16 @@ public class FileIO {
 
     return fileExtension;
   }
+  // ================== Transform string filename to bare one
+  public static String getFileNameWithoutDirectory(String sFile) {
+
+    String separator = System.getProperty("file.separator");
+
+    int indexOfLastSeparator = sFile.lastIndexOf(separator);
+    String filename = sFile.substring(indexOfLastSeparator + 1);
+
+    return filename;
+  }
   // ================== Find the directory belonging to the full file
   public static String getDirectory(String sFile) {
 

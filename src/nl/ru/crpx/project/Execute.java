@@ -5,6 +5,7 @@
  */
 package nl.ru.crpx.project;
 // Which methods need to be imported
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import static nl.ru.crpx.project.CrpGlobal.Status;
@@ -170,7 +171,21 @@ public class Execute extends CrpGlobal {
       errHandle.bInterrupt = true;
     }
   }
-
+  
+  // ========= GETTERS ====================
+  public String getDbaseDir() { 
+    String sDir = this.sProjectBase + "/" + crpThis.getUserId() + "/dbase"; 
+    File fDir = new File(sDir);
+    if (!fDir.exists()) fDir.mkdir();
+    return sDir;
+  }
+  // ======================================
+  /**
+   * ExecuteQueries -- Overridable...
+   * 
+   * @param jobCaller
+   * @return 
+   */
   @SuppressWarnings("unused")
   public boolean ExecuteQueries(Job jobCaller) {
     // This is an overridable method
