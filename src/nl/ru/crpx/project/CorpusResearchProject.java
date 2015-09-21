@@ -1062,7 +1062,11 @@ public class CorpusResearchProject {
           break;
         case "dbaseinput": 
           boolean bNewValue = (sValue.equals("True"));
-          if (this.HasDbaseInput != bNewValue) {this.HasDbaseInput = bNewValue; bChanged = true;}
+          if (this.HasDbaseInput != bNewValue) {
+            this.HasDbaseInput = bNewValue; 
+            bChanged = true;
+          }
+          break;
         default:
           errHandle.DoError("doChange: unknown key="+sKey, CorpusResearchProject.class);
           return false;
