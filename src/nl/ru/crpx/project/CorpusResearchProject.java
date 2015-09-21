@@ -220,6 +220,7 @@ public class CorpusResearchProject {
       this.Author = getSetting("Author");
       this.ProjectType = getSetting("ProjectType");
       this.intProjType = ProjType.getType(this.ProjectType);
+      this.HasDbaseInput = getSetting("DbaseInput").equals("True");
       // Load the dates
       this.dtChanged = stringToDate(getDateSetting("Changed"));
       this.dtCreated = stringToDate(getDateSetting("Created"));
@@ -654,7 +655,7 @@ public class CorpusResearchProject {
   public void setAuthor(String sValue) { if (setSetting("Author", sValue)) { this.Author = sValue;}}
   public void setLanguage(String sValue) { if (setSetting("Language", sValue)) { this.Language = sValue;} }
   public void setPart(String sValue) { if (setSetting("Part", sValue)) { this.Part = sValue;} }
-  public void setDbaseInput(String sValue) { if (setSetting("DbaseSource", sValue)) { this.HasDbaseInput = (sValue.equals("True")); } }
+  public void setDbaseInput(String sValue) { if (setSetting("DbaseInput", sValue)) { this.HasDbaseInput = (sValue.equals("True")); } }
   // ================ Directory and file names
   public File getQueryDir() { return this.QueryDir;}
   public File getDstDir() { return this.DstDir;}
@@ -1061,9 +1062,8 @@ public class CorpusResearchProject {
         case "projtype": if (!this.getProjectType().equals(sValue)) {this.setProjectType(sValue);  bChanged =true; } 
           break;
         case "dbaseinput": 
-          boolean bNewValue = (sValue.equals("True"));
-          if (this.HasDbaseInput != bNewValue) {
-            this.HasDbaseInput = bNewValue; 
+          if (!this.getDbaseInput().equals(sValue)) {
+            this.setDbaseInput(sValue); 
             bChanged = true;
           }
           break;
