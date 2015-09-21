@@ -39,6 +39,7 @@ import nl.ru.xmltools.XmlForest.ForType;
 import static nl.ru.xmltools.XmlIO.WriteXml;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -638,6 +639,7 @@ public class CorpusResearchProject {
   public String getSave() { return this.SaveDate; }
   public String getLanguage() { return this.Language;}
   public String getPart() { return this.Part;}
+  public String getDbaseInput() { String sResult = (this.HasDbaseInput) ? "True" : "False"; return sResult; }
   // Set string values
   public void setLocation(String sValue) { this.Location = sValue;}
   public void setProjectType(String sValue) { if (setSetting("ProjectType", sValue)) { this.ProjectType = sValue;}}
@@ -652,6 +654,7 @@ public class CorpusResearchProject {
   public void setAuthor(String sValue) { if (setSetting("Author", sValue)) { this.Author = sValue;}}
   public void setLanguage(String sValue) { if (setSetting("Language", sValue)) { this.Language = sValue;} }
   public void setPart(String sValue) { if (setSetting("Part", sValue)) { this.Part = sValue;} }
+  public void setDbaseInput(String sValue) { if (setSetting("DbaseSource", sValue)) { this.HasDbaseInput = (sValue.equals("True")); } }
   // ================ Directory and file names
   public File getQueryDir() { return this.QueryDir;}
   public File getDstDir() { return this.DstDir;}
@@ -955,9 +958,20 @@ public class CorpusResearchProject {
       // Validate
       if (ndxThis == null) {
         // TODO: this particular setting is not available, so it should be *added*
-
-        // Solution right now:
-        return false;
+        Node ndNew = this.docProject.createElement("Setting");
+        ((Element) ndNew).setAttribute("Name", sName);
+        ((Element) ndNew).setAttribute("Value", sValue);
+        Node ndParent = (Node) xpath.evaluate("./descendant::General[1]", 
+                                           this.docProject, XPathConstants.NODE);
+        ndParent.appendChild(ndNew);
+        // Get the node again
+        ndxThis = (Node) xpath.evaluate("./descendant::Setting[@Name='" + sName + "']", 
+                                           this.docProject, XPathConstants.NODE);
+        // Validate once more...
+        if (ndxThis == null) {
+          // SOmething is really wrong
+          return false;
+        }
       }
       // ndxThis.setNodeValue(sValue);
       ndxThis.getAttributes().getNamedItem("Value").setNodeValue(sValue);
@@ -1046,6 +1060,9 @@ public class CorpusResearchProject {
           break;
         case "projtype": if (!this.getProjectType().equals(sValue)) {this.setProjectType(sValue);  bChanged =true; } 
           break;
+        case "dbaseinput": 
+          boolean bNewValue = (sValue.equals("True"));
+          if (this.HasDbaseInput != bNewValue) {this.HasDbaseInput = bNewValue; bChanged = true;}
         default:
           errHandle.DoError("doChange: unknown key="+sKey, CorpusResearchProject.class);
           return false;
