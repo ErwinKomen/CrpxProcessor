@@ -8,10 +8,7 @@
 
 package nl.ru.crpx.project;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,10 +33,8 @@ import nl.ru.crpx.xq.LexDict;
 import nl.ru.crpx.xq.RuBase;
 import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
-import nl.ru.util.StringUtil;
 import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
-import nl.ru.xmltools.IndexFile;
 import nl.ru.xmltools.XmlAccess;
 import nl.ru.xmltools.XmlForest;
 import nl.ru.xmltools.XmlIndexItem;
