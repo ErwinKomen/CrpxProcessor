@@ -11,6 +11,7 @@ import java.util.List;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathVariableResolver;
 import net.sf.saxon.om.NodeInfo;
+import net.sf.saxon.s9api.Axis;
 // import net.sf.saxon.s9api.DocumentBuilder;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.QName;
@@ -19,6 +20,7 @@ import net.sf.saxon.s9api.XPathExecutable;
 import net.sf.saxon.s9api.XPathSelector;
 import net.sf.saxon.s9api.XdmItem;
 import net.sf.saxon.s9api.XdmNode;
+import net.sf.saxon.s9api.XdmSequenceIterator;
 import net.sf.saxon.s9api.XdmValue;
 import nl.ru.crpx.tools.ErrHandle;
 
@@ -55,6 +57,22 @@ public class XmlNode extends XdmNode implements XPathVariableResolver {
   // Get the string value of this node
   public String getNodeValue() {return this.ndThis.getStringValue();  }
   public XdmNode getNode() { return this.ndThis;}
+  
+  // Get the value of a particular attribute
+  public String getAttributeValue(String sAttrName) {
+    try {
+      // Walk the attributes
+      XdmSequenceIterator iter = this.ndThis.axisIterator(Axis.ATTRIBUTE);
+      while (iter.hasNext()) {
+        XdmNode attrThis = (XdmNode) iter.next();
+        if (attrThis.getNodeName().toString().equals(sAttrName)) return attrThis.getStringValue();
+      }
+      return "";
+    } catch (Exception ex) {
+      errHandle.DoError("getAttributeValue", ex, XmlNode.class);
+      return null;
+    }
+  }
   
   // Get an underlying node using an Xpath expression
   public XmlNode SelectSingleNode(String sPath) throws XPathExpressionException {

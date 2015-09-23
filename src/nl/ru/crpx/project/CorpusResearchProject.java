@@ -874,7 +874,7 @@ public class CorpusResearchProject {
   public QName getAttrLineId(ProjType ptThis) {
     switch(ptThis) {
       case ProjPsdx: return new QName("", "", "forestId");
-      case ProjFolia: return new QName("xml", "", "id");
+      case ProjFolia: return new QName("xml", "http://www.w3.org/XML/1998/namespace", "id");
       case ProjNegra: return new QName("", "", "");
       case ProjAlp: return new QName("", "", "");
       case ProjPsd: return new QName("", "", "");
@@ -888,7 +888,7 @@ public class CorpusResearchProject {
   public QName getAttrConstId(ProjType ptThis) {
     switch(ptThis) {
       case ProjPsdx: return new QName("", "", "Id");
-      case ProjFolia: return new QName("xml", "", "id");
+      case ProjFolia: return new QName("xml", "http://www.w3.org/XML/1998/namespace", "id");
       case ProjNegra: return new QName("", "", "");
       case ProjAlp: return new QName("", "", "");
       case ProjPsd: return new QName("", "", "");

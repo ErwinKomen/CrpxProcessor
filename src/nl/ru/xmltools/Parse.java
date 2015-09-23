@@ -76,31 +76,38 @@ public class Parse {
     XmlNode ndxOrg;   // The div/seg node we are looking for
     NodeList ndxTrm;  // List of terminal nodes
     String strProjType; // The project type we are dealing with
+    String sSeg = "";
     
     try {
       // Validate: Does the node exist?
       if (ndThis == null) return "";
       // Action depends on project type
-      strProjType = crpThis.getProjectType();
-      switch(strProjType.toLowerCase()) {
-        case "xquery-psdx":
+      switch(crpThis.intProjType) {
+        case ProjPsdx:
           // Try find the 'org' segment
           ndxOrg = ndThis.SelectSingleNode("./child::div[@lang='org']/child::seg");
           // Check the reply
           if (ndxOrg == null) return "";
           // The node has been found, so return the innertext
-          return ndxOrg.getNodeValue();
-        case "folia-psdx":
+          sSeg = ndxOrg.getNodeValue();
           break;
-        case "negra-tig":
+        case ProjFolia:
+          // Try find the 'org' segment
+          ndxOrg = ndThis.SelectSingleNode("./child::t[@class='original']");
+          // Check the reply
+          if (ndxOrg != null) {
+            // The node has been found, so return the innertext
+            sSeg = ndxOrg.getNodeValue();
+          }
           break;
+        case ProjAlp:
+        case ProjNegra:
         default:
           // Cannot handle this
-          errHandle.DoError("modParse/GetSeg: Can not handle project type " + strProjType, Parse.class);
-          return "";
+          errHandle.DoError("modParse/GetSeg: Can not handle project type " + crpThis.getProjectType(), Parse.class);
+          sSeg = "";
       }
-      
-      return "";
+      return sSeg;
     } catch (DOMException ex) {
       // Warn user
       errHandle.DoError("Parse/GetSeg DOM error", ex, Parse.class);
@@ -122,6 +129,7 @@ public class Parse {
   // 23/apr/2015  ERK Adapted for Java
   // ----------------------------------------------------------------------------------------------------------
   public String GetPde(XmlNode ndThis) {
+    String sSeg = "";
     XmlNode ndxOrg;   // The div/seg node we are looking for
     NodeList ndxTrm;  // List of terminal nodes
     String strProjType; // The project type we are dealing with
@@ -130,26 +138,31 @@ public class Parse {
       // Validate: Does the node exist?
       if (ndThis == null) return "";
       // Action depends on project type
-      strProjType = crpThis.getProjectType();
-      switch(strProjType.toLowerCase()) {
-        case "xquery-psdx":
+      switch(crpThis.intProjType) {
+        case ProjPsdx:
           // Try find the 'org' segment
-          // This assumes that [ndThis] is of type <forest>
           ndxOrg = ndThis.SelectSingleNode("./child::div[@lang='eng']/child::seg");
           // Check the reply
           if (ndxOrg == null) return "";
           // The node has been found, so return the innertext
-          return ndxOrg.getNodeValue();
-        case "folia-psdx":
+          sSeg = ndxOrg.getNodeValue();
           break;
-        case "negra-tig":
+        case ProjFolia:
+          // Try find the 'org' segment
+          ndxOrg = ndThis.SelectSingleNode("./child::t[@class='eng']");
+          // Check the reply
+          if (ndxOrg != null) {
+            // The node has been found, so return the innertext
+            sSeg = ndxOrg.getNodeValue();
+          }
           break;
+        case ProjAlp:
+        case ProjNegra:
         default:
           // Cannot handle this
-          errHandle.DoError("modParse/GetPde: Can not handle project type " + strProjType, Parse.class);
-          return "";
+          errHandle.DoError("modParse/GetPde: Can not handle project type " + crpThis.getProjectType(), Parse.class);
+          sSeg = "";
       }
-      
       return "";
     } catch (DOMException ex) {
       // Warn user
@@ -199,7 +212,7 @@ public class Parse {
       dqc.setParameter("crpfile", oCrpThis);
       // Additional parameters to identify the query
       dqc.setParameter("qfile", qThis.QueryFile);
-      dqc.setParameter("sentid", ndxThis.getAttributeValue(loc_xq_forestId));
+      dqc.setParameter("sentid", ndxThis.getAttributeValue(crpThis.getAttrLineId() /*loc_xq_forestId */));
       // Execute the query with the set context items
       try {
         objQuery.run(new DOMDestination(pdxDoc));

@@ -15,13 +15,18 @@ import java.io.FileReader;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
+import net.sf.saxon.s9api.Axis;
 import net.sf.saxon.s9api.QName;
+import net.sf.saxon.s9api.XdmNode;
+import net.sf.saxon.s9api.XdmSequenceIterator;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.project.CorpusResearchProject.ProjType;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.crpx.tools.FileIO;
 import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
 /**
  * XmlIndexTgReader - read 'xml' files by first making an index for them
@@ -199,6 +204,10 @@ public class XmlIndexTgReader {
             iIndexLine++;
             // Treatment is different if the PART is specified
             if (sPartId.isEmpty()) {
+              if (iIndexLine==1) {
+                // Add a line to this file's index as to where the header is
+                sIndexData.append(sHeaderFile).append("\n");
+              }
               // Traditional treatment: file name becomes directory with index
               String sLineFile = loc_sIndexDir + "/" + iIndexLine + ".xml";
               FileUtil.writeFile(new File(sLineFile), strNext);
@@ -235,7 +244,6 @@ public class XmlIndexTgReader {
                 sIndexData.append(sLastId).append("\t");
                 sIndexData.append(sPartId).append("\n");
                 // Write the header to the header file
-                //sHeaderFile = loc_sIndexDir + "/" + oIndex.Name + "/header.xml";
                 sHeaderFile = oIndex.Dir + "/header.xml";
                 FileUtil.writeFile(new File(sHeaderFile), sHeaderXml); 
                 // Add a line to this file's index as to where the header is
