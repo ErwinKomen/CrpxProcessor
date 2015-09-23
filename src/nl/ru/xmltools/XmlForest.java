@@ -110,8 +110,11 @@ public abstract class XmlForest {
   protected static final QName loc_xq_forestId = new QName("", "", "forestId");  
   protected static final QName loc_xq_Location = new QName("", "", "Location");  
   protected static final QName loc_xq_TextId = new QName("", "", "TextId");  
-  protected static final String loc_path_Forest = "./descendant-or-self::forest[1]";
-  protected static final String loc_path_TeiHeader = "./descendant-or-self::teiHeader[1]";
+  protected static final QName loc_xq_Folia_Id = new QName("", "", "xml:id");  
+  protected static final String loc_path_PsdxSent = "./descendant-or-self::forest[1]";
+  protected static final String loc_path_PsdxHeader = "./descendant-or-self::teiHeader[1]";
+  protected static final String loc_path_FoliaSent = "./descendant-or-self::s[1]";
+  protected static final String loc_path_FoliaHeader = "./descendant-or-self::metadata[1]";
   // ========================================== LOCAL VARIABLE ================================================
   protected String loc_strCurrent = "";   // XML code of current forest
   protected String loc_strCombi = "";     // Combined XML context, from where current node is taken

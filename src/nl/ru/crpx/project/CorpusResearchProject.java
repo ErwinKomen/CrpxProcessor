@@ -315,13 +315,13 @@ public class CorpusResearchProject {
       // Check the project type
       logger.debug("CRP CHECK: " + this.ProjectType + "=" + ProjType.getType(this.ProjectType));
       switch(ProjType.getType(this.ProjectType)) {
+        case ProjFolia:
         case ProjPsdx: // Okay, we are able to process this kind of project
           logger.debug("Processing type: " + this.ProjectType);
           break;
         case ProjAlp:
         case ProjNegra:
         case ProjPsd:
-        case ProjFolia:
           // We will allow these types, but give a warning
           logger.debug("Processing of this type has not yet been implemented: " + this.ProjectType);
           break;
@@ -499,6 +499,9 @@ public class CorpusResearchProject {
           // Check what kind of project this is
       switch (this.intProjType) {
         case ProjPsdx: // Okay, we are able to process this kind of project
+          // Only one type of processing:
+          objEx = new ExecutePsdxStream(this);          
+          /*
           // Do we need to do streaming or not?
           if (this.getStream()) {
             // objEx = new ExecutePsdxStream(this, objGen);
@@ -506,9 +509,12 @@ public class CorpusResearchProject {
           } else {
             // objEx = new ExecutePsdxFast(this, objGen);
             objEx = new ExecutePsdxFast(this);
-          }
+          } */
           break;
         case ProjFolia:
+          // Only one type of processing:
+          objEx  = new ExecutePsdxStream(this);
+          /*
           // Do we need to do streaming or not?
           if (this.getStream()) {
             // objEx  = new ExecuteFoliaStream(this, objGen);
@@ -516,7 +522,7 @@ public class CorpusResearchProject {
           } else {
             // objEx  = new ExecuteFoliaFast(this, objGen);
             objEx  = new ExecuteFoliaFast(this);
-          }
+          } */
           break;
         case ProjAlp:
         case ProjPsd:

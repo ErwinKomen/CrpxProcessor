@@ -14,6 +14,7 @@ import net.sf.saxon.s9api.SaxonApiException;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.search.JobXq;
 import nl.ru.crpx.tools.ErrHandle;
+import nl.ru.crpx.tools.FileIO;
 import nl.ru.util.ByRef;
 
 /**
@@ -24,7 +25,7 @@ import nl.ru.util.ByRef;
  */
 public class XmlForestFoliaIndex extends XmlForest {
   // ============ Local variables ==============================================
-  private XmlChunkReader loc_xrdFile;   // Chunk reader for xml files
+  private XmlIndexTgReader loc_xrdFile;   // Indexed reader for xml files
   // ============ Call the standard class initializer ==========================
   public XmlForestFoliaIndex(CorpusResearchProject oCrp, JobXq oJob, ErrHandle oErr) {
     super(oCrp,oJob,oErr);
@@ -34,7 +35,8 @@ public class XmlForestFoliaIndex extends XmlForest {
   // Name :  FirstForest
   // Goal :  Load the first forest using an XmlReader 
   // History:
-  // 18-03-2014  ERK Created
+  // 18-03-2014  ERK Created for .NET
+  // 10/jun/2015 ERK Adapated for "PsdxIndex" in Java
   // ----------------------------------------------------------------------------------------------------------
   @Override
   public boolean FirstForest(ByRef<XmlNode> ndxForest, ByRef<XmlNode> ndxHeader, String strFile) {
@@ -43,7 +45,7 @@ public class XmlForestFoliaIndex extends XmlForest {
     int intI;         // Counter
 
     try {
-      // Validate
+      // Validate: existence of file
       if (strFile == null || strFile.length() == 0) return false;
       fThis = new File(strFile);
       if (!fThis.exists()) return false;
@@ -64,32 +66,30 @@ public class XmlForestFoliaIndex extends XmlForest {
         loc_arFollCnt[intI] = new XmlForest.Context();
       }
       // Start up the streamer
-      loc_xrdFile = new XmlChunkReader(fThis);
-      // First read the (obligatory) teiHeader
-      if (! (loc_xrdFile.ReadToFollowing("teiHeader"))) {
-        objErr.DoError("FirstForest error: cannot find <teiHeader> in file [" + strFile + "]");
-        return false;
+      loc_xrdFile = new XmlIndexTgReader(fThis, crpThis, loc_pdxThis, crpThis.intProjType);
+      String sTextId = loc_xrdFile.getTextId();
+      // Do we have a header?
+      String sHeader = loc_xrdFile.getHeader();
+      if (sHeader.isEmpty()) {
+        // Indicate that it is empty
+        ndxHeader.argValue = null;
+      } else {
+        // Load this obligatory teiHeader 
+        loc_pdxThis.LoadXml(sHeader);
+        // Set the global parameter
+        ndxWork = loc_pdxThis.SelectSingleNode(loc_path_FoliaHeader);
+        ndxHeader.argValue =ndxWork;
       }
-      // Load this obligatory teiHeader 
-      loc_pdxThis.LoadXml(loc_xrdFile.ReadOuterXml());
-      // Set the global parameter
-      // Node ndxFirst = loc_pdxThis.getDocument().getFirstChild();
-      
-      ndxWork = loc_pdxThis.SelectSingleNode(loc_path_TeiHeader);
-      ndxHeader.argValue =ndxWork;
-      // Read the current node + following context
+      // Read the first node + following context
       for (intI = 0; intI <= objJob.intFollNum; intI++) {
-        // Move to the first forest
-        if (! (loc_xrdFile.ReadToFollowing("forest"))) {
-          objErr.DoError("FirstForest error: cannot find <forest> in file [" + strFile + "]");
-          return false;
-        }
         // Store it
         if (intI == 0) {
-          // Get the current forest
-          loc_pdxThis.LoadXml(loc_xrdFile.ReadOuterXml());
+          // Get the FIRST forest
+          String sForest = loc_xrdFile.getFirstLine();
+          // TODO: what if this is empty??
+          loc_pdxThis.LoadXml(sForest);
           // Get the current context
-          ndxForest.argValue = loc_pdxThis.SelectSingleNode(loc_path_Forest);
+          ndxForest.argValue = loc_pdxThis.SelectSingleNode(loc_path_FoliaSent);
           // Validate: do we have a result?
           if (ndxForest.argValue == null) {
             // This should not happen. Check what is the matter
@@ -97,16 +97,24 @@ public class XmlForestFoliaIndex extends XmlForest {
             logger.debug("XmlForest empty ndxForest.argValue: " + sWork);
           } else {
             loc_cntThis.Seg = objParse.GetSeg(ndxForest.argValue);
-            // loc_cntThis.Loc = ndxForest.argValue.Attributes("Location").Value;
-            // loc_cntThis.TxtId = ndxForest.argValue.Attributes("TextId").Value;
-            loc_cntThis.Loc = ndxForest.argValue.getAttributeValue(loc_xq_Location);
-            loc_cntThis.TxtId = ndxForest.argValue.getAttributeValue(loc_xq_TextId);
+            // We don't really have the equivalent of Location and TxtId
+            loc_cntThis.Loc = ndxForest.argValue.getAttributeValue(loc_xq_Folia_Id);
+            loc_cntThis.TxtId = sTextId;
           }
         } else {
           // Fill the following context XmlDocument
-          loc_arFoll[intI - 1].LoadXml(loc_xrdFile.ReadOuterXml());
+          String sForest = loc_xrdFile.getNextLine();
+          if (sForest.isEmpty()) {
+            // This is already empty...
+            loc_arFoll[intI-1] = null;
+            loc_arFollCnt[intI-1].Seg = "";
+            loc_arFollCnt[intI-1].Loc = "";
+            loc_arFollCnt[intI-1].TxtId = "";
+            continue;
+          }
+          loc_arFoll[intI - 1].LoadXml(sForest);
           // Fill the following context @seg, @txtid and @loc
-          ndxWork = loc_arFoll[intI - 1].SelectSingleNode(loc_path_Forest);
+          ndxWork = loc_arFoll[intI - 1].SelectSingleNode(loc_path_FoliaSent);
           // Validate: do we have a result?
           if (ndxWork == null) {
             // This should not happen. Check what is the matter
@@ -114,15 +122,11 @@ public class XmlForestFoliaIndex extends XmlForest {
             logger.debug("XmlForest empty work: " + sWork);
           } else {
             loc_arFollCnt[intI - 1].Seg = objParse.GetSeg(ndxWork);
-            // loc_arFollCnt[intI - 1].Loc = ndxWork.Attributes("Location").Value;
-            // loc_arFollCnt[intI - 1].TxtId = ndxWork.Attributes("TextId").Value;
-            loc_arFollCnt[intI - 1].Loc = ndxWork.getAttributeValue(loc_xq_Location);
-            loc_arFollCnt[intI - 1].TxtId = ndxWork.getAttributeValue(loc_xq_TextId);
+            loc_arFollCnt[intI - 1].Loc = ndxWork.getAttributeValue(loc_xq_Folia_Id);
+            loc_arFollCnt[intI - 1].TxtId = sTextId;
           }
         }
       }
-      //' Construct the current context
-      //If (Not StreamMakeContext()) Then Return False
       // Return success
       return true;
     } catch (XPathExpressionException ex) {
@@ -141,7 +145,6 @@ public class XmlForestFoliaIndex extends XmlForest {
       return false;
     }
   }
-
   @Override
   // ----------------------------------------------------------------------------------------------------------
   // Name :  OneForest
@@ -150,9 +153,40 @@ public class XmlForestFoliaIndex extends XmlForest {
   // 20/Jul/2015  ERK Created for Java
   // ----------------------------------------------------------------------------------------------------------
   public boolean OneForest(ByRef<XmlNode> ndxForest, String sSentId) {
-    return false;
+    XmlNode ndxWork;      // Working node
+    String strNext = "";  // Another chunk of <forest>
+
+    try {
+      // Validate
+      if (loc_pdxThis == null)  return false;
+      // Check for end of stream
+      if (IsEnd()) {
+        ndxForest.argValue = null;
+        return true;
+      }
+      // More validateion
+      if (loc_xrdFile==null) return false;
+      // Read this <forest>
+      strNext = loc_xrdFile.getOneLine(sSentId);
+      // Double check what we got
+      if (strNext == null || strNext.length() == 0) {
+        ndxForest.argValue = null;
+        return true;
+      }      
+      // Load this line...
+      loc_pdxThis.LoadXml(strNext);
+      // Find and return the indicated sentence
+      ndxForest.argValue = loc_pdxThis.SelectSingleNode(loc_path_FoliaSent);
+      // Return positively
+      return true;
+    } catch (Exception ex) {
+      // Warn user
+      objErr.DoError("XmlForest/OneForest error: " + ex.getMessage() + "\r\n");
+      // Return failure
+      return false;
+    }
   }
-  
+
   @Override
   // ----------------------------------------------------------------------------------------------------------
   // Name :  GetForestId
@@ -169,7 +203,7 @@ public class XmlForestFoliaIndex extends XmlForest {
       // Supply default value to indicate failure
       intForestId.argValue = -1;
       // Check if there is a @forestId attribute
-      sAttr = ndxForest.argValue.getAttributeValue(loc_xq_forestId);
+      sAttr = ndxForest.argValue.getAttributeValue(loc_xq_Folia_Id);
       // attrThis = ndxForest.argValue.getAttributeValue(loc_xq_forestId);
       // if (attrThis == null ) return objErr.DoError("<forest> does not have @forestId");
       if (sAttr.isEmpty()) return objErr.DoError("<forest> does not have @forestId");
@@ -216,38 +250,24 @@ public class XmlForestFoliaIndex extends XmlForest {
 
     try {
       // Validate
-      if (loc_pdxThis == null) {
-        return false;
-      }
+      if (loc_pdxThis == null)  return false;
       // Check for end of stream
       if (IsEnd()) {
         ndxForest.argValue = null;
         return true;
       }
       // More validateion
-      if (loc_xrdFile==null) {
-        return false;
-      }
+      if (loc_xrdFile==null) return false;
       // Try to read another piece of <forest> xml
-      if (! loc_xrdFile.EOF) {
-        // Read until  the following one
-        loc_xrdFile.ReadToFollowing("forest");
-        // Double check
-        if (! loc_xrdFile.EOF) {
-          // Read this <forest>
-          strNext = loc_xrdFile.ReadOuterXml();
-        }
-      }
+      if (! loc_xrdFile.EOF) strNext = loc_xrdFile.getNextLine();
       // Check for end-of-file and file closing
-      if (loc_xrdFile.EOF) {
-        loc_xrdFile.Close();
-        loc_xrdFile = null;
-      }
+      if (loc_xrdFile.EOF)  loc_xrdFile = null;
       // Double check what we got
       if (strNext == null || strNext.length() == 0) {
         ndxForest.argValue = null;
         return true;
       }
+      String sTextId = loc_xrdFile.getTextId();
       // Do we have any preceding context to take care of?
       if (objJob.intPrecNum > 0) {
         // Copy preceding context
@@ -274,10 +294,10 @@ public class XmlForestFoliaIndex extends XmlForest {
         loc_cntThis.Seg = loc_arFollCnt[0].Seg;
         loc_cntThis.TxtId = loc_arFollCnt[0].TxtId;
         //' ============== DEBUG ===============
-        //If (InStr(loc_cntThis.Loc, "." & loc_pdxThis.SelectSingleNode(loc_path_Forest).Attributes("forestId").Value) = 0) Then
+        //If (InStr(loc_cntThis.Loc, "." & loc_pdxThis.SelectSingleNode(loc_path_FoliaSent).Attributes("forestId").Value) = 0) Then
         //  Stop
         //End If
-        //If (loc_pdxThis.SelectSingleNode(loc_path_Forest).Attributes("forestId").Value = 2) Then Stop
+        //If (loc_pdxThis.SelectSingleNode(loc_path_FoliaSent).Attributes("forestId").Value = 2) Then Stop
         //' ====================================
         // Shift all the other elements
         for (intI = 1; intI < objJob.intFollNum; intI++) {
@@ -292,7 +312,7 @@ public class XmlForestFoliaIndex extends XmlForest {
         loc_arFoll[objJob.intFollNum - 1] = new XmlDocument(this.objSaxDoc, this.objSaxon);
         loc_arFoll[objJob.intFollNum - 1].LoadXml(strNext);
         // Get working node <forest>
-        ndxWork = loc_arFoll[objJob.intFollNum - 1].SelectSingleNode(loc_path_Forest);
+        ndxWork = loc_arFoll[objJob.intFollNum - 1].SelectSingleNode(loc_path_FoliaSent);
         // Validate
         if (ndxWork == null) {
           // This should not happen. Check what is the matter
@@ -301,14 +321,14 @@ public class XmlForestFoliaIndex extends XmlForest {
         } else {
           // Calculate the correct context
           loc_arFollCnt[objJob.intFollNum - 1].Seg = objParse.GetSeg(ndxWork);
-          loc_arFollCnt[objJob.intFollNum - 1].Loc = ndxWork.getAttributeValue(loc_xq_Location);
-          loc_arFollCnt[objJob.intFollNum - 1].TxtId = ndxWork.getAttributeValue(loc_xq_TextId);
+          loc_arFollCnt[objJob.intFollNum - 1].Loc = ndxWork.getAttributeValue(loc_xq_Folia_Id);
+          loc_arFollCnt[objJob.intFollNum - 1].TxtId = sTextId;
         }
       } else {
         // No following context...
         loc_pdxThis.LoadXml(strNext);
         // Get this forest
-        ndxWork = loc_pdxThis.SelectSingleNode(loc_path_Forest);
+        ndxWork = loc_pdxThis.SelectSingleNode(loc_path_FoliaSent);
         // Validate
         if (ndxWork == null) {
           // This should not happen. Check what is the matter
@@ -317,8 +337,8 @@ public class XmlForestFoliaIndex extends XmlForest {
         } else {
           // Calculate the correct context
           loc_cntThis.Seg = objParse.GetSeg(ndxWork);
-          loc_cntThis.Loc = ndxWork.getAttributeValue(loc_xq_Location);
-          loc_cntThis.TxtId = ndxWork.getAttributeValue(loc_xq_TextId);
+          loc_cntThis.Loc = ndxWork.getAttributeValue(loc_xq_Folia_Id);
+          loc_cntThis.TxtId = sTextId;
         }
       }
       // Double check for EOF
@@ -327,7 +347,7 @@ public class XmlForestFoliaIndex extends XmlForest {
         return true;
       }
       // Find the current forest
-      ndxForest.argValue = loc_pdxThis.SelectSingleNode(loc_path_Forest);
+      ndxForest.argValue = loc_pdxThis.SelectSingleNode(loc_path_FoliaSent);
       //' ================================
       //' TODO: improve...
       //If (Not StreamMakeContext()) Then Return False
@@ -342,7 +362,7 @@ public class XmlForestFoliaIndex extends XmlForest {
       objErr.DoError("XmlForest/NextForest runtime error: " + ex.getMessage() + "\r\n");
       // Return failure
       return false;
-    } catch (IOException | SaxonApiException | XPathExpressionException ex) {
+    } catch (SaxonApiException | XPathExpressionException ex) {
       objErr.DoError("XmlForest/NextForest IO/Sax/Xpath error: " + ex.getMessage() + ""
               + "\r\n");
       // Return failure
@@ -389,7 +409,7 @@ public class XmlForestFoliaIndex extends XmlForest {
     String strPrec;   // Preceding context
     String strFoll;   // Following context
     String strBack;   // What we return
-    int intI;         // Counter
+    //int intI;         // Counter
 
     try {
       // Initialisations
@@ -400,7 +420,7 @@ public class XmlForestFoliaIndex extends XmlForest {
       // Add the preceding context
       if (objJob.intPrecNum > 0) {
         // Attempt to get the preceding context
-        for (intI = 0; intI < objJob.intPrecNum; intI++) {
+        for (int intI = 0; intI < objJob.intPrecNum; intI++) {
           // Only load existing context
           if (loc_arPrecCnt[intI].Seg != null && loc_arPrecCnt[intI].Seg.length() > 0) {
             strPrec += "[" + loc_arPrecCnt[intI].Loc + "]" + loc_arPrecCnt[intI].Seg;
@@ -410,7 +430,7 @@ public class XmlForestFoliaIndex extends XmlForest {
       // Add the following context
       if (objJob.intFollNum > 0) {
         // Attempt to get the preceding context
-        for (intI = 0; intI < objJob.intFollNum; intI++) {
+        for (int intI = 0; intI < objJob.intFollNum; intI++) {
           if (loc_arFollCnt[intI].Seg != null && loc_arFollCnt[intI].Seg.length() > 0) {
             strFoll += "[" + loc_arFollCnt[intI].Loc + "]" + loc_arFollCnt[intI].Seg;
           }
@@ -437,6 +457,7 @@ public class XmlForestFoliaIndex extends XmlForest {
       return "";
     }
   }
+  
   // ----------------------------------------------------------------------------------------------------------
   // Name :  GetSyntax
   // Goal :  Get the syntax of the current line
@@ -447,6 +468,7 @@ public class XmlForestFoliaIndex extends XmlForest {
   public String GetSyntax(ByRef<XmlNode> ndxForest) {
     return "";
   }
+
   // ----------------------------------------------------------------------------------------------------------
   // Name :  GetPde
   // Goal :  Get the PDE (present-day English translation) of the current line
@@ -455,6 +477,7 @@ public class XmlForestFoliaIndex extends XmlForest {
   // ----------------------------------------------------------------------------------------------------------
   @Override
   public String GetPde(ByRef<XmlNode> ndxForest) {
-    return "";
+    return objParse.GetPde(ndxForest.argValue);
   }
 }
+

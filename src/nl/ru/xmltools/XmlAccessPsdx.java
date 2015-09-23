@@ -32,8 +32,8 @@ public class XmlAccessPsdx extends XmlAccess {
   protected static final QName loc_xq_TextId = new QName("", "", "TextId");  
   protected static final QName loc_xq_Text = new QName("", "", "Text");  
   protected static final QName loc_xq_pos = new QName("", "", "Label");  
-  protected static final String loc_path_Forest = "./descendant-or-self::forest[1]";
-  protected static final String loc_path_TeiHeader = "./descendant-or-self::teiHeader[1]";
+  protected static final String loc_path_PsdxSent = "./descendant-or-self::forest[1]";
+  protected static final String loc_path_PsdxHeader = "./descendant-or-self::teiHeader[1]";
 
   // ==========================================================================================================
   // Class instantiation

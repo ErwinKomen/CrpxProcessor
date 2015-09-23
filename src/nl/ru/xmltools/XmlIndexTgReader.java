@@ -19,6 +19,7 @@ import net.sf.saxon.s9api.QName;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.project.CorpusResearchProject.ProjType;
 import nl.ru.crpx.tools.ErrHandle;
+import nl.ru.crpx.tools.FileIO;
 import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
 
@@ -35,6 +36,7 @@ public class XmlIndexTgReader {
   private int iLines;             // Number of lines in this file
   private int iCurrentLine;       // Most recently read line index into [arIndex]
   private String loc_sIndexDir;   // Name of directory used for index
+  private String loc_sTextId;     // Short file name serves as text identifier
   private File loc_fIndexDir;     // Directory for index as a file
   private File loc_fIndexFile;    // Index file (within the directory)
   private File loc_fThis;         // Pointer to the associated file
@@ -72,6 +74,8 @@ public class XmlIndexTgReader {
       if (!doCheckIndex(fThis, ptThis))  throw new FileNotFoundException("XmlIndexReader cannot create an index " + fThis.getAbsolutePath());
       // Read the index file into a data structure
       if (!readIndex()) throw new FileNotFoundException("XmlIndexReader could not read the index");
+      // Get text identifier
+      this.loc_sTextId = FileIO.getFileNameWithoutExtension(fThis.getName());
       // Initialise numbers
       iLines = arIndex.size();  // Total number of lines in this file
       iCurrentLine = -1;        // No line has been read
@@ -83,6 +87,7 @@ public class XmlIndexTgReader {
   }
   // ======================== Make the filename available =======================
   public String getFileName() { return (this.loc_fThis == null) ? "" : this.loc_fThis.getName(); }
+  public String getTextId() { return this.loc_sTextId; }
   // ======================== Make the list of parts available ==================
   public List<String> getPartList() { return this.lstParts; }
   
@@ -140,7 +145,7 @@ public class XmlIndexTgReader {
         // Create an XmlChunkReader to do this
         XmlChunkReader rdThis = new XmlChunkReader(fThis);
         // ======= DEBUG ===============
-        RandomAccessFile fcDebug = new RandomAccessFile(fThis.getAbsolutePath(), "r");
+        // RandomAccessFile fcDebug = new RandomAccessFile(fThis.getAbsolutePath(), "r");
         // FileChannel fcDebug = FileChannel.open(fThis.toPath(), StandardOpenOption.READ );
         // =============================
         // First read the header

@@ -77,7 +77,7 @@ public class XmlForestPsdxIndex extends XmlForest {
         // Set the global parameter
         // Node ndxFirst = loc_pdxThis.getDocument().getFirstChild();
 
-        ndxWork = loc_pdxThis.SelectSingleNode(loc_path_TeiHeader);
+        ndxWork = loc_pdxThis.SelectSingleNode(loc_path_PsdxHeader);
         ndxHeader.argValue =ndxWork;
       }
       // Read the first node + following context
@@ -89,7 +89,7 @@ public class XmlForestPsdxIndex extends XmlForest {
           // TODO: what if this is empty??
           loc_pdxThis.LoadXml(sForest);
           // Get the current context
-          ndxForest.argValue = loc_pdxThis.SelectSingleNode(loc_path_Forest);
+          ndxForest.argValue = loc_pdxThis.SelectSingleNode(loc_path_PsdxSent);
           // Validate: do we have a result?
           if (ndxForest.argValue == null) {
             // This should not happen. Check what is the matter
@@ -115,7 +115,7 @@ public class XmlForestPsdxIndex extends XmlForest {
           }
           loc_arFoll[intI - 1].LoadXml(sForest);
           // Fill the following context @seg, @txtid and @loc
-          ndxWork = loc_arFoll[intI - 1].SelectSingleNode(loc_path_Forest);
+          ndxWork = loc_arFoll[intI - 1].SelectSingleNode(loc_path_PsdxSent);
           // Validate: do we have a result?
           if (ndxWork == null) {
             // This should not happen. Check what is the matter
@@ -181,7 +181,7 @@ public class XmlForestPsdxIndex extends XmlForest {
       // Load this line...
       loc_pdxThis.LoadXml(strNext);
       // Find and return the indicated sentence
-      ndxForest.argValue = loc_pdxThis.SelectSingleNode(loc_path_Forest);
+      ndxForest.argValue = loc_pdxThis.SelectSingleNode(loc_path_PsdxSent);
       // Return positively
       return true;
     } catch (Exception ex) {
@@ -303,10 +303,10 @@ public class XmlForestPsdxIndex extends XmlForest {
         loc_cntThis.Seg = loc_arFollCnt[0].Seg;
         loc_cntThis.TxtId = loc_arFollCnt[0].TxtId;
         //' ============== DEBUG ===============
-        //If (InStr(loc_cntThis.Loc, "." & loc_pdxThis.SelectSingleNode(loc_path_Forest).Attributes("forestId").Value) = 0) Then
+        //If (InStr(loc_cntThis.Loc, "." & loc_pdxThis.SelectSingleNode(loc_path_PsdxSent).Attributes("forestId").Value) = 0) Then
         //  Stop
         //End If
-        //If (loc_pdxThis.SelectSingleNode(loc_path_Forest).Attributes("forestId").Value = 2) Then Stop
+        //If (loc_pdxThis.SelectSingleNode(loc_path_PsdxSent).Attributes("forestId").Value = 2) Then Stop
         //' ====================================
         // Shift all the other elements
         for (intI = 1; intI < objJob.intFollNum; intI++) {
@@ -321,7 +321,7 @@ public class XmlForestPsdxIndex extends XmlForest {
         loc_arFoll[objJob.intFollNum - 1] = new XmlDocument(this.objSaxDoc, this.objSaxon);
         loc_arFoll[objJob.intFollNum - 1].LoadXml(strNext);
         // Get working node <forest>
-        ndxWork = loc_arFoll[objJob.intFollNum - 1].SelectSingleNode(loc_path_Forest);
+        ndxWork = loc_arFoll[objJob.intFollNum - 1].SelectSingleNode(loc_path_PsdxSent);
         // Validate
         if (ndxWork == null) {
           // This should not happen. Check what is the matter
@@ -337,7 +337,7 @@ public class XmlForestPsdxIndex extends XmlForest {
         // No following context...
         loc_pdxThis.LoadXml(strNext);
         // Get this forest
-        ndxWork = loc_pdxThis.SelectSingleNode(loc_path_Forest);
+        ndxWork = loc_pdxThis.SelectSingleNode(loc_path_PsdxSent);
         // Validate
         if (ndxWork == null) {
           // This should not happen. Check what is the matter
@@ -356,7 +356,7 @@ public class XmlForestPsdxIndex extends XmlForest {
         return true;
       }
       // Find the current forest
-      ndxForest.argValue = loc_pdxThis.SelectSingleNode(loc_path_Forest);
+      ndxForest.argValue = loc_pdxThis.SelectSingleNode(loc_path_PsdxSent);
       //' ================================
       //' TODO: improve...
       //If (Not StreamMakeContext()) Then Return False

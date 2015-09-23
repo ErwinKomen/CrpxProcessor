@@ -73,7 +73,7 @@ public class XmlForestPsdxLine extends XmlForest {
       // Set the global parameter
       // Node ndxFirst = loc_pdxThis.getDocument().getFirstChild();
       
-      ndxWork = loc_pdxThis.SelectSingleNode(loc_path_TeiHeader);
+      ndxWork = loc_pdxThis.SelectSingleNode(loc_path_PsdxHeader);
       ndxHeader.argValue =ndxWork;
       // Read the current node + following context
       for (intI = 0; intI <= objJob.intFollNum; intI++) {
@@ -87,7 +87,7 @@ public class XmlForestPsdxLine extends XmlForest {
           // Get the current forest
           loc_pdxThis.LoadXml(loc_xrdFile.ReadOuterXml());
           // Get the current context
-          ndxForest.argValue = loc_pdxThis.SelectSingleNode(loc_path_Forest);
+          ndxForest.argValue = loc_pdxThis.SelectSingleNode(loc_path_PsdxSent);
           // Validate: do we have a result?
           if (ndxForest.argValue == null) {
             // This should not happen. Check what is the matter
@@ -104,7 +104,7 @@ public class XmlForestPsdxLine extends XmlForest {
           // Fill the following context XmlDocument
           loc_arFoll[intI - 1].LoadXml(loc_xrdFile.ReadOuterXml());
           // Fill the following context @seg, @txtid and @loc
-          ndxWork = loc_arFoll[intI - 1].SelectSingleNode(loc_path_Forest);
+          ndxWork = loc_arFoll[intI - 1].SelectSingleNode(loc_path_PsdxSent);
           // Validate: do we have a result?
           if (ndxWork == null) {
             // This should not happen. Check what is the matter
@@ -272,10 +272,10 @@ public class XmlForestPsdxLine extends XmlForest {
         loc_cntThis.Seg = loc_arFollCnt[0].Seg;
         loc_cntThis.TxtId = loc_arFollCnt[0].TxtId;
         //' ============== DEBUG ===============
-        //If (InStr(loc_cntThis.Loc, "." & loc_pdxThis.SelectSingleNode(loc_path_Forest).Attributes("forestId").Value) = 0) Then
+        //If (InStr(loc_cntThis.Loc, "." & loc_pdxThis.SelectSingleNode(loc_path_PsdxSent).Attributes("forestId").Value) = 0) Then
         //  Stop
         //End If
-        //If (loc_pdxThis.SelectSingleNode(loc_path_Forest).Attributes("forestId").Value = 2) Then Stop
+        //If (loc_pdxThis.SelectSingleNode(loc_path_PsdxSent).Attributes("forestId").Value = 2) Then Stop
         //' ====================================
         // Shift all the other elements
         for (intI = 1; intI < objJob.intFollNum; intI++) {
@@ -290,7 +290,7 @@ public class XmlForestPsdxLine extends XmlForest {
         loc_arFoll[objJob.intFollNum - 1] = new XmlDocument(this.objSaxDoc, this.objSaxon);
         loc_arFoll[objJob.intFollNum - 1].LoadXml(strNext);
         // Get working node <forest>
-        ndxWork = loc_arFoll[objJob.intFollNum - 1].SelectSingleNode(loc_path_Forest);
+        ndxWork = loc_arFoll[objJob.intFollNum - 1].SelectSingleNode(loc_path_PsdxSent);
         // Validate
         if (ndxWork == null) {
           // This should not happen. Check what is the matter
@@ -306,7 +306,7 @@ public class XmlForestPsdxLine extends XmlForest {
         // No following context...
         loc_pdxThis.LoadXml(strNext);
         // Get this forest
-        ndxWork = loc_pdxThis.SelectSingleNode(loc_path_Forest);
+        ndxWork = loc_pdxThis.SelectSingleNode(loc_path_PsdxSent);
         // Validate
         if (ndxWork == null) {
           // This should not happen. Check what is the matter
@@ -325,7 +325,7 @@ public class XmlForestPsdxLine extends XmlForest {
         return true;
       }
       // Find the current forest
-      ndxForest.argValue = loc_pdxThis.SelectSingleNode(loc_path_Forest);
+      ndxForest.argValue = loc_pdxThis.SelectSingleNode(loc_path_PsdxSent);
       //' ================================
       //' TODO: improve...
       //If (Not StreamMakeContext()) Then Return False
