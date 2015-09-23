@@ -63,9 +63,15 @@ public class Extensions extends RuBase {
   private static final QName loc_qnValue = new QName("", "", "value");
   private static final QName loc_qnFs = new QName("", "", "fs");
   private static final QName loc_qnF = new QName("", "", "f");
+  private static final QName loc_qnFeat = new QName("", "", "feat");
+  private static final QName loc_qnPos = new QName("", "", "pos");
+  private static final QName loc_qnSubset = new QName("", "", "subset");
+  private static final QName loc_qnClass = new QName("", "", "class");
   private static final QName loc_qnEleaf = new QName("", "", "eLeaf");
   private static final QName loc_qnLabel = new QName("", "", "Label");
   private static final QName loc_qnText = new QName("", "", "Text");
+  private static final QName loc_qnT = new QName("", "", "t");
+  private static final QName loc_qnWref = new QName("", "", "wref");
   private static final QName loc_qnForest = new QName("", "", "forestId");
 
   // ============== CLASS initialization =======================================
@@ -241,6 +247,8 @@ public class Extensions extends RuBase {
       if (nodeKind != Type.ELEMENT) return null;
       // Get the XdmNode representation of the node
       ndSax = objSaxDoc.wrap(node);   
+      // Get the feature string
+      String sFeatName = strFeatName.getStringValue();
       // Get the CrpFile associated with me
       CrpFile oCrpFile = getCrpFile(objXp);
       // Initialise depending on project type
@@ -259,7 +267,7 @@ public class Extensions extends RuBase {
               // Get this <f> node
               ndF = (XdmNode) colF.next();
               // Get the @name attribute of the feature
-              if (strFeatName.getStringValue().equals(ndF.getAttributeValue(loc_qnName))) {
+              if (sFeatName.equals(ndF.getAttributeValue(loc_qnName))) {
                 // Return the @value of the feature
                 return ndF.getAttributeValue(loc_qnValue);
               }
@@ -268,7 +276,46 @@ public class Extensions extends RuBase {
           break;
         case ProjFolia:
           // TODO: implement this for the FoLiA type processing
-          
+          // We can get features for a <su> node and for a <w> node
+          String sNodeName = ndSax.getNodeName().getLocalName();
+          switch (sNodeName) {
+            case "su":
+              break;
+            case "w":
+              // Visit all the <pos> children of [ndSax]
+              colFS = ndSax.axisIterator(Axis.CHILD, loc_qnPos);
+              while (colFS.hasNext()) {
+                // Get this <pos> node
+                ndFS = (XdmNode) colFS.next();
+                // Visit all the <feat> children of [ndFS]
+                colF = ndFS.axisIterator(Axis.CHILD, loc_qnFeat);
+                while (colF.hasNext()) {
+                  // Get this <feat> node
+                  ndF = (XdmNode) colF.next();
+                  // Get the @name attribute of the feature
+                  String sSubset = ndF.getAttributeValue(loc_qnSubset);
+                  if (sFeatName.equals(sSubset)) {
+                    // Return the @value of the feature
+                    return ndF.getAttributeValue(loc_qnClass);
+                  }
+                  if (!sFeatName.contains("/")) {
+                    // Try taking it from past a slash
+                    int iSlash = sSubset.indexOf("/");
+                    if (iSlash>0) {
+                      sSubset = sSubset.substring(iSlash+1);
+                      if (sFeatName.equals(sSubset)) {
+                        // Return the @value of the feature
+                        return ndF.getAttributeValue(loc_qnClass);
+                      }
+                    }
+                  }
+                }
+              }
+              break;
+            default:
+              return "";
+          }
+          break;          
         default:
           // This method doesn't work for other projects
           errHandle.DoError("ru:feature() is not implemented for this project", Extensions.class);
@@ -337,10 +384,17 @@ public class Extensions extends RuBase {
         if (intLines == 0) 
           ndxRes = oCF.ndxCurrentForest;
         else {
+          ByRef<XmlNode> ndxNew = new ByRef(null);
+          String sNewSentId;
           switch(oCF.crpThis.intProjType) {
             case ProjPsdx:
-              String sNewSentId = String.valueOf(Integer.parseInt(oCF.currentSentId) + intLines);
-              ByRef<XmlNode> ndxNew = new ByRef(null);
+              sNewSentId = String.valueOf(Integer.parseInt(oCF.currentSentId) + intLines);
+              if (oCF.objProcType.OneForest(ndxNew, sNewSentId)) {
+                ndxRes = ndxNew.argValue;
+              }
+              break;
+            case ProjFolia:
+              sNewSentId = String.valueOf(Integer.parseInt(oCF.currentSentId) + intLines);
               if (oCF.objProcType.OneForest(ndxNew, sNewSentId)) {
                 ndxRes = ndxNew.argValue;
               }
@@ -604,8 +658,19 @@ public class Extensions extends RuBase {
     try {
       // Validate
       if (ndSax == null || !ndSax.getNodeName().toString().equals("eTree")) return "";
-      // Get the label of this node
-      sLabel = ndSax.getAttributeValue(loc_qnLabel);
+            // Get the CrpFile associated with me
+      CrpFile oCrpFile = getCrpFile(objXp);
+      // Initialise depending on project type
+      switch (oCrpFile.crpThis.intProjType) {
+        case ProjPsdx:
+          // Get the label of this node
+          sLabel = ndSax.getAttributeValue(loc_qnLabel);
+        case ProjFolia:
+          sLabel = ndSax.getAttributeValue(loc_qnClass);
+          break;
+        default:
+          return "";
+      }
       // (1) Try get the number of the label
       arParts = sLabel.split("-");
       if (arParts.length>0) {
@@ -615,23 +680,50 @@ public class Extensions extends RuBase {
         if (isNumeric(sLast)) return sLast;
       }
       // (2) the refnum is not part of the label
-      // Go to first <eLeaf> child
-      colEleaf = ndSax.axisIterator(Axis.CHILD, loc_qnEleaf);
-      while (colEleaf.hasNext()) {
-        // Get this child
-        ndChild = (XdmNode) colEleaf.next();
-        if (ndChild.getNodeName().toString().equals("eLeaf")) {
-          // Get the value of the @Text attribute
-          sLabel = ndChild.getAttributeValue(loc_qnText);
-          arParts = sLabel.split("-");
-          if (sLabel.startsWith("*")) {
-            // Get the string following the last hyphen
-            sLast = arParts[arParts.length-1];
-            // Check if this is numeric
-            if (isNumeric(sLast)) return sLast;
-          }
-        }
-      }     
+      // Handling depends on project type
+      switch (oCrpFile.crpThis.intProjType) {
+        case ProjPsdx:
+          // Go to first <eLeaf> child
+          colEleaf = ndSax.axisIterator(Axis.CHILD, loc_qnEleaf);
+          while (colEleaf.hasNext()) {
+            // Get this child
+            ndChild = (XdmNode) colEleaf.next();
+            if (ndChild.getNodeName().toString().equals("eLeaf")) {
+              // Get the value of the @Text attribute
+              sLabel = ndChild.getAttributeValue(loc_qnText);
+              arParts = sLabel.split("-");
+              if (sLabel.startsWith("*")) {
+                // Get the string following the last hyphen
+                sLast = arParts[arParts.length-1];
+                // Check if this is numeric
+                if (isNumeric(sLast)) return sLast;
+              }
+            }
+          }    
+          break;
+        case ProjFolia:
+          // Go to first <wref> child
+          colEleaf = ndSax.axisIterator(Axis.CHILD, loc_qnWref);
+          while (colEleaf.hasNext()) {
+            // Get this child
+            ndChild = (XdmNode) colEleaf.next();
+            if (ndChild.getNodeName().toString().equals("wref")) {
+              // Get the value of the @Text attribute
+              sLabel = ndChild.getAttributeValue(loc_qnT);
+              arParts = sLabel.split("-");
+              if (sLabel.startsWith("*")) {
+                // Get the string following the last hyphen
+                sLast = arParts[arParts.length-1];
+                // Check if this is numeric
+                if (isNumeric(sLast)) return sLast;
+              }
+            }
+          }    
+          break;
+        default:
+          return "";
+      }
+
       // Return the result
       return sRes;
   
@@ -698,18 +790,20 @@ public class Extensions extends RuBase {
       sNodeNameSnt = oCrpFile.crpThis.sNodeNameSnt;
       // Action depends on the element we get element
       switch(ndSax.getNodeName().getLocalName()) {
-        case "eTree": case "nt": case "t": case "Result":
+        case "eTree": case "nt": case "Result": // ProjPsdx
+        case "t":                               // ProjNegra
+        case "su":                              // ProjFolia
           // Okay, perfect
           break;
         case "Feature": case "Text": case "Psd":
           // Return the <Result> element above (this is a CrpOview type)
           ndSax = ndSax.getParent();
           break;
-        case "eLeaf":
+        case "eLeaf":                           // ProjPsdx
           // Return the <eTree> element above
           ndSax = ndSax.getParent();
           break;
-        case "edge":
+        case "edge":                            // ProjNegra
           // Return the <nt> element above me
           ndSax = ndSax.getParent();
           break;
@@ -752,8 +846,9 @@ public class Extensions extends RuBase {
               break;
             case ProjFolia:
               // TODO: check and implement correctly for folia
-              strLoc.argValue = ndFor.getAttributeValue(RuBase.ru_qnFoliaId);
-              strFile.argValue = ndFor.getAttributeValue(RuBase.ru_qnFile);
+              
+              strLoc.argValue = oCrpFile.sTextId;
+              strFile.argValue = oCrpFile.flThis.getName();
               strForestId.argValue = ndFor.getAttributeValue(RuBase.ru_qnFoliaId);
               break;
             case ProjNegra:

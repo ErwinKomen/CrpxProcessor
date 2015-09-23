@@ -80,7 +80,7 @@ public class XmlIndexTgReader {
       // Read the index file into a data structure
       if (!readIndex()) throw new FileNotFoundException("XmlIndexReader could not read the index");
       // Get text identifier
-      this.loc_sTextId = FileIO.getFileNameWithoutExtension(fThis.getName());
+      this.loc_sTextId = FileIO.getFileNameWithoutDirectory(fThis.getName().replace(prjThis.getTextExt(ptThis), ""));
       // Initialise numbers
       iLines = arIndex.size();  // Total number of lines in this file
       iCurrentLine = -1;        // No line has been read

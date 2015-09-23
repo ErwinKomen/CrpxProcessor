@@ -182,8 +182,8 @@ public class Parse {
   // 14-09-2010  ERK Added return of [intId]
   // 13/may/2015 ERK Re-written for JAVA
   // ----------------------------------------------------------------------------------------------------------
-  public boolean DoParseXq(Query qThis, XQueryEvaluator qEval, DocumentBuilder objSaxDoc, Configuration xconfig, CrpFile oCrpThis,
-        XmlNode ndxThis, JSONArray colBackJson, boolean bReset) {
+  public boolean DoParseXq(Query qThis, XQueryEvaluator qEval, DocumentBuilder objSaxDoc, Configuration xconfig, 
+          CrpFile oCrpThis, XmlNode ndxThis, JSONArray colBackJson, boolean bReset) {
     String strQname = "(empty)";    // Initialize the query name
     XQueryEvaluator objQuery;
     XdmDestination oDest;           // Query output object

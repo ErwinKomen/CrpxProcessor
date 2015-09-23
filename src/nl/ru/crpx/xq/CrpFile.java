@@ -14,6 +14,7 @@ import net.sf.saxon.s9api.Processor;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.search.JobXq;
 import nl.ru.crpx.tools.ErrHandle;
+import nl.ru.crpx.tools.FileIO;
 import nl.ru.xmltools.XmlForest;
 import nl.ru.xmltools.XmlForestFoliaIndex;
 import nl.ru.xmltools.XmlForestPsdxIndex;
@@ -35,6 +36,7 @@ public class CrpFile {
   public int QCcurrentLine;             // Current QC line of project being executed
   public XmlNode ndxCurrentForest;      // The sentence element we are now working on
   public String currentSentId;          // ID of the currently treated sentence
+  public String sTextId;                // The name of the text this is
   public XmlNode ndxHeader;             // The header object of this file
   public DocumentBuilder oSaxDoc;       // The document-builder used for this CRP-File combination
   public DocumentBuilderFactory oDocFac;// The DOM document-builder used for this CRP-File combination
@@ -52,6 +54,7 @@ public class CrpFile {
       // Initialise variables
       this.crpThis = oCrp;
       this.flThis = fFile;
+      this.sTextId = FileIO.getFileNameWithoutDirectory(fFile.getName().replace(oCrp.getTextExt(), ""));
       this.QCcurrentLine = -1;
       this.ndxCurrentForest = null;
       this.currentPeriod = "";

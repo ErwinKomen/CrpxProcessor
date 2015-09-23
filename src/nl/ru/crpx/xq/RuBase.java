@@ -66,11 +66,13 @@ public class RuBase /* extends Job */ {
   public static final QName ru_qnNegraLoc = new QName("", "", "id");      // location in negra <s> node
   public static final QName ru_qnNegraId = new QName("", "", "id");       // Id of negra <s> or <t> node
   public static final QName ru_qnNegraEdgeId = new QName("", "", "refid");// Id of negra <edge> node
-  public static final QName ru_qnFoliaId = new QName("", "", "id");       // Id of negra <s> or <t> node
   public static final QName ru_qnAlpinoId = new QName("", "", "id");      // Identifier for Alpinoa <node> elements
   public static final QName ru_qnResultLoc = new QName("", "", "Search");
   public static final QName ru_qnEleaf = new QName("", "", "eLeaf");      // Nodename for <eLeaf> nodes
   public static final QName ru_qnWord = new QName("", "", "word");        // The @word attribute
+  // FoLiA processing: the xml:id of <su>, <s> and other elements
+  public static final QName ru_qnFoliaId = new QName("xml", "http://www.w3.org/XML/1998/namespace", "id");
+  public static final QName ru_qnFoliaWrefId = new QName("", "", "id");      // Simple identifier for <wref> element
 
   // =========================== Local constants ===============================
   private final String RU_LEX = "-Lex";
@@ -464,6 +466,7 @@ public class RuBase /* extends Job */ {
       CorpusResearchProject crpThis = oCF.crpThis;
       // Initialize, depending on project type
       switch(oCF.crpThis.intProjType) {
+        case ProjFolia: // FoLiA: act as if we behave the same as Psdx
         case ProjPsdx:
           // Get the division id with this name
           List<JSONObject> lDiv = crpThis.getListDivision();
@@ -488,8 +491,6 @@ public class RuBase /* extends Job */ {
           }
           break;
         case ProjNegra:
-          return "";
-        case ProjFolia:
           return "";
         case ProjPsd:
           return "";
@@ -569,8 +570,19 @@ public class RuBase /* extends Job */ {
           }
           break;
         case ProjFolia:
+          // Get the ID of the node
+          switch(sNodeName) {
+            case "wref":
+              strRef = ndSax.getAttributeValue(ru_qnFoliaWrefId);
+              break;
+            case "su": case "s": case "p": case "w": case "div": case "text":
+              strRef = ndSax.getAttributeValue(ru_qnFoliaId);
+              break;
+            default:
+              // Cannot handle this
+              return "";
+          }
           // Nodes in folia have the same kind of identifier: [xml:id]
-          strRef = ndSax.getAttributeValue(ru_qnFoliaId);
           break;
         case ProjAlp:
           // The identifier for the alpino <node> elements is @id, but it is only unique within one sentence (apparently)
