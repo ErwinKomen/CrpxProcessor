@@ -50,6 +50,7 @@ public class RuBase /* extends Job */ {
   private static ErrHandle errHandle;
   private static XPathSelector ru_xpeNodeText_Psdx;   // Search expression for ProjPsdx
   private static XPathSelector ru_xpeNodeText_Folia;  // Search expression for ProjFolia
+  private static XPathSelector ru_xpeNodeText_Folia2; // We need a second expression for ProjFolia
   private static XPathSelector ru_xpeNodeText_Negra;  // Search expression for ProjNegra
   private static XPathSelector ru_xpeNodeText_Alp;    // Search expression for ProjAlp  
   // ===================== public constants ====================================
@@ -98,7 +99,8 @@ public class RuBase /* extends Job */ {
         // Set up the compiler
         this.xpComp = this.objSaxon.newXPathCompiler();
         ru_xpeNodeText_Psdx = xpComp.compile("./descendant-or-self::eLeaf[@Type = 'Vern' or @Type = 'Punct']").load();
-        ru_xpeNodeText_Folia = xpComp.compile("./descendant-or-self::w/child::t").load();
+        ru_xpeNodeText_Folia = xpComp.compile("./descendant-or-self::wref").load();
+        ru_xpeNodeText_Folia2 = xpComp.compile("./ancestor::s/child::w[@class='Punct' or class='Vern']").load();
         ru_xpeNodeText_Alp = xpComp.compile("./descendant-or-self::node[count(@word)>0]").load();
         ru_xpeNodeText_Negra = xpComp.compile("./descendant-or-self::t").load();
         // Indicate we are initialized
@@ -406,10 +408,22 @@ public class RuBase /* extends Job */ {
           // Make a list of all <t> nodes that have a <w> parent
           selectXp = ru_xpeNodeText_Folia;
           selectXp.setContextItem(ndStart);
+          // Go through all the items and add them to a new list
+          List<String> lSuId = new ArrayList<>();
+          for (XdmItem item : selectXp) {
+            lSuId.add(((XdmNode) item).getAttributeValue(ru_qnFoliaId));
+          }
+          // Make a list of all the <wref> nodes under me
+          selectXp = ru_xpeNodeText_Folia;
+          selectXp.setContextItem(ndStart);
           // Go through all the items
           for (XdmItem item : selectXp) {
-            // Get the text value of the node
-            sBuild.append(((XdmNode) item).getStringValue()).append(" ");
+            // Check if this @id is in the list
+            String sId =((XdmNode) item).getAttributeValue(ru_qnFoliaWrefId);
+            if (lSuId.contains(sId)) {
+              // Get the text value of the node
+              sBuild.append(((XdmNode) item).getStringValue()).append(" ");
+            }
           }
           break;
         case ProjAlp:
