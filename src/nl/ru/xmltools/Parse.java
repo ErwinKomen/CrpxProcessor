@@ -221,7 +221,7 @@ public class Parse {
             case "forest":
               // Output location
               String sLoc = ndxThis.getAttributeValue(loc_xq_Loc);
-              if (!sLoc.isEmpty()) sbBack.argValue.append( ": " + sLoc);
+              if (sLoc != null && !sLoc.isEmpty()) sbBack.argValue.append( ": " + sLoc);
               break;
             case "eTree":
               // Action depends on kind of label
