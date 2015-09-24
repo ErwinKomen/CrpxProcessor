@@ -6,21 +6,36 @@
 
 package nl.ru.xmltools;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.xpath.XPathExpressionException;
 import net.sf.saxon.Configuration;
 import net.sf.saxon.query.DynamicQueryContext;
+import net.sf.saxon.s9api.Axis;
 import net.sf.saxon.s9api.DOMDestination;
 import net.sf.saxon.s9api.DocumentBuilder;
 import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.SaxonApiException;
+import net.sf.saxon.s9api.XPathCompiler;
+import net.sf.saxon.s9api.XPathSelector;
 import net.sf.saxon.s9api.XQueryEvaluator;
 import net.sf.saxon.s9api.XdmDestination;
+import net.sf.saxon.s9api.XdmItem;
+import net.sf.saxon.s9api.XdmNode;
+import net.sf.saxon.s9api.XdmNodeKind;
+import net.sf.saxon.s9api.XdmSequenceIterator;
 import net.sf.saxon.trans.XPathException;
 import nl.ru.crpx.project.CorpusResearchProject;
+import nl.ru.crpx.project.CorpusResearchProject.ProjType;
 import nl.ru.crpx.project.Query;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.crpx.xq.CrpFile;
+import static nl.ru.crpx.xq.RuBase.ru_qnFoliaId;
+import nl.ru.util.ByRef;
+import nl.ru.util.StringUtil;
 import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
 import org.w3c.dom.DOMException;
@@ -43,9 +58,17 @@ public class Parse {
   private static final QName loc_xq_EtreeId = new QName("", "", "eTreeId");
   private static final QName loc_xq_Msg = new QName("", "", "Msg");  
   private static final QName loc_xq_Cat = new QName("", "", "Cat");  
+  private static final QName loc_xq_Label = new QName("", "", "Label");
+  private static final QName loc_xq_Type = new QName("", "", "Type");
+  private static final QName loc_xq_Text = new QName("", "", "Text");
+  private static final QName loc_xq_Loc = new QName("", "", "Loc");  
   private static final QName loc_xq_Db = new QName("", "", "Db");  
   private static final QName loc_xq_File = new QName("", "", "File");
   private static final QName loc_xq_forestId = new QName("", "", "forestId");  
+  private static final QName loc_xq_FoliaT = new QName("", "", "t");
+  private static final QName loc_xq_FoliaClass = new QName("", "", "class");
+  private static XPathSelector ru_xpeNodeText_Folia; // Path to all <w> elements in a FoLiA <s> element
+  private XPathCompiler xpComp;             // My own xpath compiler (Xdm, saxon)
   // ========== Variables for this class =======================================
   CorpusResearchProject crpThis;    // Which CRP are we working with?
   DocumentBuilderFactory dfactory;  // Dom document factory
@@ -59,6 +82,9 @@ public class Parse {
       // Initialize the DOM handling
       dfactory = DocumentBuilderFactory.newInstance();
       dbuilder = dfactory.newDocumentBuilder();
+      // Set up the compiler
+      this.xpComp = this.crpThis.getSaxProc().newXPathCompiler();
+      ru_xpeNodeText_Folia = xpComp.compile("./descendant-or-self::s[1]/child::w[@class='Punct' or @class='Vern']").load();
     } catch (Exception ex) {
       errHandle.DoError("Cannot initialize the [Parse] class: ", ex, Parse.class);
     }
@@ -174,6 +200,113 @@ public class Parse {
       return "";
     }
   }
+  
+  /**
+   * TravTree -- Travel a tree to derive bracketed labelling
+   * 
+   * @param ptThis
+   * @param ndxThis
+   * @param iLevel
+   * @param sbBack
+   * @return 
+   */
+  public boolean TravTree(ProjType ptThis, XdmNode ndxThis, int iLevel, ByRef<StringBuilder> sbBack) {
+    try {
+      // Validate
+      if (ndxThis == null || ndxThis.getNodeKind() != XdmNodeKind.ELEMENT) return false;
+      // Action prior to going down
+      switch(ptThis) {
+        case ProjPsdx:
+          switch (ndxThis.getNodeName().toString()) {
+            case "forest":
+              // Output location
+              String sLoc = ndxThis.getAttributeValue(loc_xq_Loc);
+              if (!sLoc.isEmpty()) sbBack.argValue.append( ": " + sLoc);
+              break;
+            case "eTree":
+              // Action depends on kind of label
+              String sLabel = ndxThis.getAttributeValue(loc_xq_Label);
+              if (sLabel.startsWith("CP") || sLabel.startsWith("IP")) 
+                sbBack.argValue.append( "\n" + StringUtil.repeatChar(iLevel, ' ') +
+                        "(" + sLabel + " ");                // Start a new line
+              else if (sLabel.equals("CODE")) return true;  // Jump out of here
+              else sbBack.argValue.append(" (" + sLabel + " ");      // Continue
+              break;
+            case "eLeaf":
+              // Action depends on the type of eLeaf
+              String sType = ndxThis.getAttributeValue(loc_xq_Type);
+              switch (sType) {
+                case "Vern": case "Punct": case "Star": case "Zero":
+                  sbBack.argValue.append(ndxThis.getAttributeValue(loc_xq_Text));
+                  break;
+                default: // no action
+                  break;
+              }
+              break;
+          }
+          break;
+        case ProjFolia:
+          switch (ndxThis.getNodeName().toString()) {
+            case "s":
+              // Output location
+              /*
+              String sLoc = ndxThis.getAttributeValue(loc_xq_Loc);
+              if (!sLoc.isEmpty()) sbBack.append( ": " + sLoc);
+              */
+              break;
+            case "su":
+              // Action depends on kind of label
+              String sLabel = ndxThis.getAttributeValue(loc_xq_FoliaClass);
+              if (sLabel.startsWith("CP") || sLabel.startsWith("IP")) 
+                sbBack.argValue.append( "\n" + StringUtil.repeatChar(iLevel, ' ') +
+                        "(" + sLabel + " ");                // Start a new line
+              else if (sLabel.equals("CODE")) return true;  // Jump out of here
+              else sbBack.argValue.append(" (" + sLabel + " ");      // Continue
+              break;
+            case "wref":
+              // Any wref gets taken by us
+              sbBack.argValue.append(ndxThis.getAttributeValue(loc_xq_FoliaT));
+              break;
+          }
+          break;
+      }
+      // Now process all children, going one level down
+      XdmSequenceIterator iter = ndxThis.axisIterator(Axis.CHILD);
+      while (iter.hasNext()) {
+        // Go to the following siblinb
+        XdmNode ndxNext = (XdmNode) iter.next();
+        if (ndxNext.getNodeKind() == XdmNodeKind.ELEMENT) {
+          // Process this node
+          if (!TravTree(ptThis, ndxNext, iLevel+1, sbBack)) return false;
+        }
+      }
+      // Any action after having gone down
+      switch(ptThis) {
+        case ProjPsdx:
+          switch (ndxThis.getNodeName().toString()) {
+            case "eTree":
+              // Close a bracket
+              sbBack.argValue.append(")");
+              break;
+          }
+          break;
+        case ProjFolia:
+          switch (ndxThis.getNodeName().toString()) {
+            case "su":
+              // Close a bracket
+              sbBack.argValue.append(")");
+              break;
+          }
+          break;
+      }
+      
+      // Return positively
+      return true;
+    } catch (Exception ex) {
+      errHandle.DoError("Parse/TravTree xpath error", ex, Parse.class);
+      return false;
+    }
+  }
   // ----------------------------------------------------------------------------------------------------------
   // Name :  DoParse
   // Goal :  Perform one Xquery on one XML node
@@ -213,12 +346,28 @@ public class Parse {
       // Additional parameters to identify the query
       dqc.setParameter("qfile", qThis.QueryFile);
       dqc.setParameter("sentid", ndxThis.getAttributeValue(crpThis.getAttrLineId() /*loc_xq_forestId */));
+      // If this is FoLiA, then we need to add some more to the dynamic context
+      if (oCrpThis.crpThis.intProjType == ProjType.ProjFolia) {
+        // Make a list of all <t> nodes that have a <w> parent
+        XPathSelector selectXp = ru_xpeNodeText_Folia;
+        try {
+          selectXp.setContextItem(ndxThis);
+        } catch (SaxonApiException ex) {
+          return errHandle.DoError("Runtime error while retrieving FoLiA context [" + strQname + "]: ", ex, Parse.class);
+        }
+        // Go through all the items and add them to a new list
+        List<String> lSuId = new ArrayList<>();
+        for (XdmItem item : selectXp) {
+          lSuId.add(((XdmNode) item).getAttributeValue(ru_qnFoliaId));
+        }
+        // Add this 'valid words' context variable to this line
+        dqc.setParameter("words", lSuId);
+      }
       // Execute the query with the set context items
       try {
         objQuery.run(new DOMDestination(pdxDoc));
       } catch (SaxonApiException ex) {
-        return errHandle.DoError("Runtime error while executing [" + strQname + "]: ", ex, Parse.class);
-        
+        return errHandle.DoError("Runtime error while executing [" + strQname + "]: ", ex, Parse.class);        
       }
       /* } */
       // Get all the <forest> results from the [pdxDoc] answer

@@ -466,7 +466,12 @@ public class XmlForestFoliaIndex extends XmlForest {
   // ----------------------------------------------------------------------------------------------------------
   @Override
   public String GetSyntax(ByRef<XmlNode> ndxForest) {
-    return "";
+    ByRef<StringBuilder> sbBack = new ByRef(null);
+    sbBack.argValue = new StringBuilder();
+    if (objParse.TravTree(crpThis.intProjType, ndxForest.argValue.getNode(), 0, sbBack))
+      return sbBack.argValue.toString();
+    else
+      return "";
   }
 
   // ----------------------------------------------------------------------------------------------------------

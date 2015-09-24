@@ -219,6 +219,13 @@ public class SearchCache {
     // If we're low on memory, always remove a few searches from cache.
     int minSearchesToRemove = 0;
     long freeMegs = MemoryUtil.getFree() / 1000000;
+    
+    // ===== Debugging ========
+    logger.debug("Free mem = " + freeMegs + " Mb (" + freeMegs / 1000 + " Gb)");
+    // ========================
+    
+    // ERK: low on memory -- wait until memory becomes available
+    
     if (freeMegs < minFreeMemTargetMegs) {
       minSearchesToRemove = numberOfJobsToPurgeWhenBelowTargetMem; // arbitrary, number but will keep on being removed every call until enough free mem has been reclaimed
       logger.debug("Not enough free mem, will remove some searches.");

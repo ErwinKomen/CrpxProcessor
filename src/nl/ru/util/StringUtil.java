@@ -949,4 +949,14 @@ public class StringUtil {
 		return capitalizeFirst(spaceified.toLowerCase());
 	}
 
+  /**
+   * repeatChar - Create a string that consists of [iNumber] times [chThis]
+   * 
+   * @param iNumber
+   * @param chThis
+   * @return 
+   */
+  public static String repeatChar(int iNumber, char chThis) {
+    return new String(new char[iNumber]).replace('\0', chThis);
+  }
 }

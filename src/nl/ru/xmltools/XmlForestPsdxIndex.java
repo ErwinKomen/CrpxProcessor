@@ -430,9 +430,10 @@ public class XmlForestPsdxIndex extends XmlForest {
       if (objJob.intPrecNum > 0) {
         // Attempt to get the preceding context
         for (int intI = 0; intI < objJob.intPrecNum; intI++) {
+          String sLoc = (loc_arPrecCnt[intI].Loc.isEmpty()) ? "" : "[" + loc_arPrecCnt[intI].Loc + "]";
           // Only load existing context
           if (loc_arPrecCnt[intI].Seg != null && loc_arPrecCnt[intI].Seg.length() > 0) {
-            strPrec += "[" + loc_arPrecCnt[intI].Loc + "]" + loc_arPrecCnt[intI].Seg;
+            strPrec += sLoc + loc_arPrecCnt[intI].Seg;
           }
         }
       }
@@ -440,8 +441,9 @@ public class XmlForestPsdxIndex extends XmlForest {
       if (objJob.intFollNum > 0) {
         // Attempt to get the preceding context
         for (int intI = 0; intI < objJob.intFollNum; intI++) {
+          String sLoc = (loc_arPrecCnt[intI].Loc.isEmpty()) ? "" : "[" + loc_arPrecCnt[intI].Loc + "]";
           if (loc_arFollCnt[intI].Seg != null && loc_arFollCnt[intI].Seg.length() > 0) {
-            strFoll += "[" + loc_arFollCnt[intI].Loc + "]" + loc_arFollCnt[intI].Seg;
+            strFoll += sLoc + loc_arFollCnt[intI].Seg;
           }
         }
       }
@@ -453,7 +455,8 @@ public class XmlForestPsdxIndex extends XmlForest {
         strBack = "<div><b>[" + loc_cntThis.Loc + "\r\n" + "]</b></div>";
       } else {
         // Convert into html
-        strBack = "<div>" + strPrec + "</div>" + "<div><b>[" + loc_cntThis.Loc + "]</b>" + "\r\n" + "<Font color=#0000ff>" + strBack + "</Font>" + "\r\n" + "</div>" + "<div>" + strFoll + "</div>" + "\r\n";
+        String sLoc = (loc_cntThis.Loc.isEmpty()) ? "" : "[" + loc_cntThis.Loc + "]";
+        strBack = "<div>" + strPrec + "</div>" + "<div><b>" + sLoc + "</b>" + "\r\n" + "<Font color=#0000ff>" + strBack + "</Font>" + "\r\n" + "</div>" + "<div>" + strFoll + "</div>" + "\r\n";
       }
       // Set the local context string
       loc_strCombi = strBack;
@@ -475,7 +478,12 @@ public class XmlForestPsdxIndex extends XmlForest {
   // ----------------------------------------------------------------------------------------------------------
   @Override
   public String GetSyntax(ByRef<XmlNode> ndxForest) {
-    return "";
+    ByRef<StringBuilder> sbBack = new ByRef(null);
+    sbBack.argValue = new StringBuilder();
+    if (objParse.TravTree(crpThis.intProjType, ndxForest.argValue.getNode(), 0, sbBack))
+      return sbBack.argValue.toString();
+    else
+      return "";
   }
 
   // ----------------------------------------------------------------------------------------------------------

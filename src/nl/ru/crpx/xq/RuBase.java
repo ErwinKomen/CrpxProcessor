@@ -73,7 +73,8 @@ public class RuBase /* extends Job */ {
   public static final QName ru_qnWord = new QName("", "", "word");        // The @word attribute
   // FoLiA processing: the xml:id of <su>, <s> and other elements
   public static final QName ru_qnFoliaId = new QName("xml", "http://www.w3.org/XML/1998/namespace", "id");
-  public static final QName ru_qnFoliaWrefId = new QName("", "", "id");      // Simple identifier for <wref> element
+  public static final QName ru_qnFoliaWrefId = new QName("", "", "id");     // Simple identifier for <wref> element
+  public static final QName ru_qnFoliaWrefT = new QName("", "", "t");       // Text in a <wref> element
 
   // =========================== Local constants ===============================
   private final String RU_LEX = "-Lex";
@@ -99,8 +100,8 @@ public class RuBase /* extends Job */ {
         // Set up the compiler
         this.xpComp = this.objSaxon.newXPathCompiler();
         ru_xpeNodeText_Psdx = xpComp.compile("./descendant-or-self::eLeaf[@Type = 'Vern' or @Type = 'Punct']").load();
-        ru_xpeNodeText_Folia = xpComp.compile("./descendant-or-self::wref").load();
-        ru_xpeNodeText_Folia2 = xpComp.compile("./ancestor::s/child::w[@class='Punct' or class='Vern']").load();
+        ru_xpeNodeText_Folia = xpComp.compile("./descendant-or-self::wref[count(ancestor::su[@class='CODE'])=0]").load();
+        ru_xpeNodeText_Folia2 = xpComp.compile("./ancestor::s/child::w[@class='Punct' or @class='Vern']").load();
         ru_xpeNodeText_Alp = xpComp.compile("./descendant-or-self::node[count(@word)>0]").load();
         ru_xpeNodeText_Negra = xpComp.compile("./descendant-or-self::t").load();
         // Indicate we are initialized
@@ -359,12 +360,97 @@ public class RuBase /* extends Job */ {
     return RuNodeText(objXp, ndStart, "");
   }
   public static String RuNodeText(XPathContext objXp, XdmNode ndStart, String strType) {
+    String sBack;           // Resulting string
+    XPathSelector selectXp; // The actual selector we are using
+    StringBuilder sBuild;   // Resulting string that is being built
+    CorpusResearchProject crpThis;
+    
     try {
       // Validate
       if (ndStart == null) return "";
       // Determine which CRP this is
       CrpFile oCF = getCrpFile(objXp);
-      return RuNodeText(oCF.crpThis, ndStart, strType);
+      // return RuNodeText(oCF.crpThis, ndStart, strType);
+      crpThis = oCF.crpThis;
+      // Default value for array
+      selectXp = null; sBuild = new StringBuilder();
+      // Action depends on the kind of xml project we have
+      switch(crpThis.intProjType) {
+        case ProjPsdx:
+          // Validate: this should be a <forest> or <eTree> node
+          switch(ndStart.getNodeName().getLocalName()) {
+            case "eTree": case "forest": case "eLeaf":
+              // Make a list of all <eLeaf> nodes
+              selectXp = ru_xpeNodeText_Psdx;
+              selectXp.setContextItem(ndStart);
+              // Go through all the items
+              for (XdmItem item : selectXp) {
+                // Get the @Text attribute values
+                sBuild.append(((XdmNode) item).getAttributeValue(ru_qnText)).append(" ");
+              }
+              break;
+            default:
+              // Default behaviour: get the string value of this node
+              String sValue = ndStart.getStringValue();
+              // Only add it if it is not empty
+              if (!sValue.isEmpty()) sBuild.append(sValue);
+          }
+          break;
+        case ProjFolia:
+          // Retrieve the list of words from the dynamic context
+          List<String> lSuId = getWordList(objXp);
+          /*
+          // Make a list of all <t> nodes that have a <w> parent
+          selectXp = ru_xpeNodeText_Folia2;
+          selectXp.setContextItem(ndStart);
+          // Go through all the items and add them to a new list
+          List<String> lSuId = new ArrayList<>();
+          for (XdmItem item : selectXp) {
+            lSuId.add(((XdmNode) item).getAttributeValue(ru_qnFoliaId));
+          }
+          */
+          // Make a list of all the <wref> nodes under me
+          selectXp = ru_xpeNodeText_Folia;
+          selectXp.setContextItem(ndStart);
+          // Go through all the items
+          for (XdmItem item : selectXp) {
+            // Check if this @id is in the list
+            String sId =((XdmNode) item).getAttributeValue(ru_qnFoliaWrefId);
+            if (lSuId.contains(sId)) {
+              // Get the text value of the node
+              sBuild.append(((XdmNode) item).getAttributeValue(ru_qnFoliaWrefT)).append(" ");
+            }
+          }
+          break;
+        case ProjAlp:
+          // Make a list of all end nodes; Alpino only uses <node> tags
+          selectXp = ru_xpeNodeText_Alp;
+          selectXp.setContextItem(ndStart);
+          // Go through all the items
+          for (XdmItem item : selectXp) {
+            // Get the @word attribute values
+            sBuild.append(((XdmNode) item).getAttributeValue(ru_qnWord)).append(" ");
+          }
+          break;
+        case ProjNegra:
+          // Make a list of all end nodes; Negra has them under <terminals> as <t> items
+          selectXp = ru_xpeNodeText_Negra;
+          selectXp.setContextItem(ndStart);
+          // Go through all the items
+          for (XdmItem item : selectXp) {
+            // Get the @word attribute values
+            sBuild.append(((XdmNode) item).getAttributeValue(ru_qnWord)).append(" ");
+          }
+          break;
+        default:
+          errHandle.DoError("RuNodeText: cannot process type " + crpThis.getProjectType(), RuBase.class);
+      }
+      // Combine the result
+      sBack = sBuild.toString();
+      // Possibly apply filtering
+      if (!strType.isEmpty()) sBack = RuConv(sBack, strType);
+      // Build a string from the array
+      return sBack;      
     } catch (Exception ex) {
       // Warn user
       errHandle.DoError("RuBase/RuNodeText error", ex, RuBase.class);
@@ -405,8 +491,11 @@ public class RuBase /* extends Job */ {
           }
           break;
         case ProjFolia:
+          /*
+          // Retrieve the list of words from the dynamic context
+          List<String> lSuId = 
           // Make a list of all <t> nodes that have a <w> parent
-          selectXp = ru_xpeNodeText_Folia;
+          selectXp = ru_xpeNodeText_Folia2;
           selectXp.setContextItem(ndStart);
           // Go through all the items and add them to a new list
           List<String> lSuId = new ArrayList<>();
@@ -424,7 +513,7 @@ public class RuBase /* extends Job */ {
               // Get the text value of the node
               sBuild.append(((XdmNode) item).getStringValue()).append(" ");
             }
-          }
+          } */
           break;
         case ProjAlp:
           // Make a list of all end nodes; Alpino only uses <node> tags
@@ -622,6 +711,22 @@ public class RuBase /* extends Job */ {
   static CrpFile getCrpFile(XPathContext objXp) {
     try {
       return (CrpFile) objXp.getController().getParameter("crpfile");
+    } catch (Exception ex) {
+      errHandle.DoError("RuBase/getCrpFile error", ex, RuBase.class);
+      return null;
+    }
+  }
+  /**
+   * getWordList - retrieve the list of words for this sentence from the context
+   * 
+   * @param objXp
+   * @return 
+   * @history
+   *  24/sep/2015 ERK Created
+   */
+  static List<String> getWordList(XPathContext objXp) {
+    try {
+      return (List<String>) objXp.getController().getParameter("words");
     } catch (Exception ex) {
       errHandle.DoError("RuBase/getCrpFile error", ex, RuBase.class);
       return null;

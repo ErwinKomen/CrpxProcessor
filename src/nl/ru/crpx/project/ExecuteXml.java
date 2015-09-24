@@ -224,8 +224,10 @@ public class ExecuteXml extends Execute {
    *    
    * @param sFileName
    * @param sTextId
+   * @param sSubType
    * @param lstFtInfo
    * @param oXqf
+   * @param iResId
    * @return 
    */
   public String getResultXml(String sFileName, String sTextId, 

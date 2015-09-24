@@ -308,6 +308,9 @@ public class ExecutePsdxStream extends ExecuteXml {
           // Create a name for the combined database for this QC
           String sCombi = this.crpThis.getDbaseName(iQCid, this.getDbaseDir());
           File fCombi = new File(sCombi);
+          // Delete any previous versions of the database
+          if (fCombi.exists()) fCombi.delete();
+          // Now open it for append
           PrintWriter pCombi = FileUtil.openForAppend(fCombi);
           // Indexing: set the name of the index file
           arIdxFileName[i] = sCombi.substring(0, sCombi.lastIndexOf(crpThis.getTextExt(ProjType.Dbase))) + ".index";
@@ -412,6 +415,46 @@ public class ExecutePsdxStream extends ExecuteXml {
     }
   }
   
+  /**
+   * getSubType -- get the subtype (time-period, genre) of the current file
+   * 
+   * @param oCrpFile
+   * @param ndxHeader
+   * @return 
+   */
+  private String getSubType(CrpFile oCrpFile, XmlNode ndxHeader) {
+    try {
+      // Determine (if possible) the CurrentPeriod
+      String sSubType = "";
+      
+      switch (oCrpFile.crpThis.intProjType) {
+        case ProjPsdx:
+          // Downwards compatibility: see if the period is in the <teiHeader>
+          XmlNode ndxCreation = ndxHeader.SelectSingleNode("./descendant::creation");
+          if (ndxCreation != null) {
+            sSubType = ndxCreation.getAttributeValue(loc_xq_subtype);
+            oCrpFile.currentPeriod = sSubType;
+          }
+          break;
+        case ProjFolia:
+          // Check if the textid contains a dot indicating a period
+          int iPos = oCrpFile.sTextId.lastIndexOf(".");
+          if (iPos>0) {
+            sSubType = oCrpFile.sTextId.substring(iPos+1);
+          }
+          break;
+        default:
+          // No default action
+          break;
+      }
+      // Return the result
+      return sSubType;
+    } catch (Exception ex) {
+      // Warn user
+      errHandle.DoError("ExecutePsdxStream/getSubType error: ", ex, ExecutePsdxStream.class);
+      return "";
+    }
+  }
   /* ---------------------------------------------------------------------------
      Name:    getResultsTable
      Goal:    Re-combine the overall Xq counts from [arLines] to make it a better
@@ -742,6 +785,7 @@ public class ExecutePsdxStream extends ExecuteXml {
     JSONArray colParseJson;     // Array with json results
     XmlForest objProcType;      // Access to the XmlForest object allocated to me
     JSONArray[] arXqf;          // An array of JSONArray results for each QC item
+    JSONArray[] arXqfL;         // A 'little' version of Xqf, excluding context, syntax, pde
     JSONObject[] arXqfSub;      // An array of JSONObject items containing subcat-count pairs
     // DataObjectList arHitList;   // List with hit information per hit: file // qc // number
     JSONArray[] arDbRes;        // Array with RESULT elements
@@ -792,7 +836,6 @@ public class ExecutePsdxStream extends ExecuteXml {
       objProcType = oCrpFile.objProcType;
       ndxForest = new ByRef(null); 
       ndxHeader = new ByRef(null);
-      strSubType = oCrpFile.currentPeriod;
       intForestId = new ByRef(-1);
       intPtc = new ByRef(0);
       ndxDbList = new ArrayList<>();
@@ -803,12 +846,14 @@ public class ExecutePsdxStream extends ExecuteXml {
       arCmpExists = new boolean[arQuery.length + 2];
       // Initialise the array of JSONArray results and some other arrays
       arXqf = new JSONArray[arQuery.length];
+      arXqfL = new JSONArray[arQuery.length];
       arXqfSub = new JSONObject[arQuery.length];
       arDbRes = new JSONArray[arQuery.length];
       arQeval = new XQueryEvaluator[arQuery.length];
       for (int i=0; i< arXqf.length; i++) { 
         // Initialise the JSON array for this query
         arXqf[i] = new JSONArray(); 
+        arXqfL[i] = new JSONArray();
         // Set a new XQueryEvaluator for this combination of Query / File
         arQeval[i] = arQuery[i].Exe.load();
         // Initialise the JSONObject containing sub-cat counts per QC-item
@@ -826,23 +871,19 @@ public class ExecutePsdxStream extends ExecuteXml {
       // String sCurrentFile = this.sFile;
       
       // Start walking through the file...
-      // (a) Read the first <forest>, including the <teiHeader>
+      // (a) Read the first sentence (psdx: <forest>) as well as the header (psdx: <teiHeader>)
       if (!objProcType.FirstForest(ndxForest, ndxHeader, strForestFile)) 
         return errHandle.DoError("ExecuteQueriesFile could not process firest forest of " + fName);
       
       // This is when we can also read the textid
       String sTextId = objProcType.getCurrentTxtId();
 
-      // Downwards compatibility: determine (if possible) the CurrentPeriod
-      oCrpFile.currentPeriod = "";
-      XmlNode ndxCreation = ndxHeader.argValue.SelectSingleNode("./descendant::creation");
-      if (ndxCreation != null) {
-        String sSubType = ndxCreation.getAttributeValue(loc_xq_subtype);
-        oCrpFile.currentPeriod = sSubType;
-      }
-      
       // Store the [ndxHeader] in the CrpFile object
       oCrpFile.ndxHeader = ndxHeader.argValue;
+      
+      // Now calculate the sub type
+      oCrpFile.currentPeriod = getSubType(oCrpFile, ndxHeader.argValue);
+      strSubType = oCrpFile.currentPeriod;
       
       // If this is database, then the first <forest> element should be the one
       //   referred to from the current [ndxDbRes] element
@@ -1032,6 +1073,9 @@ public class ExecutePsdxStream extends ExecuteXml {
                         // TODO: calculate correct numbers for the sub-categorization...
                       }
                     }
+                    // The 'little' version of arXqf only needs limited info
+                    JSONObject oThisLittle = new JSONObject(oThisRes.toString());
+                    arXqfL[k].put(oThisLittle);
                     
                     // Check if a database output is required
                     if (arQuery[k].DbFeatSize>0) {
@@ -1089,7 +1133,7 @@ public class ExecutePsdxStream extends ExecuteXml {
         oCombi = new JSONObject();
         oCombi.put("qc", k+1);
         oCombi.put("count", arXqf[k].length());
-        oCombi.put("results", arXqf[k]);
+        oCombi.put("results", arXqfL[k]);
         // gather the results-per-subcategory
         JSONArray arPerCat = new JSONArray();
         if (arXqfSub[k].length()>0) {
@@ -1112,6 +1156,7 @@ public class ExecutePsdxStream extends ExecuteXml {
                 oAdd.put("msg", oThis.getString("msg"));
                 /*
                 // Possibly copy database features
+                // ***** NO ***** this is not needed
                 if (oThis.has("locl")) oAdd.put("locl", oThis.getString("locl"));
                 if (oThis.has("con")) oAdd.put("con", oThis.getString("con"));
                 if (oThis.has("syn")) oAdd.put("syn", oThis.getString("syn"));
@@ -1213,7 +1258,7 @@ public class ExecutePsdxStream extends ExecuteXml {
 
       // Return positively
       return true;
-    } catch (RuntimeException | XPathExpressionException ex) {
+    } catch (RuntimeException ex) {
       // Warn user
       errHandle.DoError("ExecutePsdxStream/ExecuteQueriesFile runtime error: ", ex);
       // Return failure
