@@ -59,9 +59,16 @@ public class XmlIndexRaReader {
   // ----------------------------------------------------------------------------------------------------------
   public XmlIndexRaReader(File fThis, CorpusResearchProject prjThis, XmlDocument pdxThis, ProjType ptThis) throws FileNotFoundException  {
     try {
-      // Set the error handler
-      this.errHandle = prjThis.errHandle;
+      // Take over the CRP
       this.crpThis = prjThis;
+      // Set the error handler
+      if (this.crpThis == null) {
+        // If no CRP has been given, then use my own error handler
+        this.errHandle = new ErrHandle(XmlIndexRaReader.class);
+      } else {
+        // A CRP is given, so use its error handler
+        this.errHandle = prjThis.errHandle;
+      }
       this.loc_pdxThis = pdxThis;
       this.loc_fThis = fThis;
       this.lstParts = new ArrayList<>();
@@ -114,10 +121,10 @@ public class XmlIndexRaReader {
       // Do we need to check on the file extension??
       loc_fIndexDir = new File(strFile);
       // Get the file extension that is expected for this file
-      int iExt = strFile.lastIndexOf(crpThis.getTextExt(ptThis));
+      int iExt = strFile.lastIndexOf(CorpusResearchProject.getTextExt(ptThis));
       // Validate
       if (iExt==0) throw new FileNotFoundException("XmlIndexRaReader doesn't find expected extension [" + 
-              crpThis.getTextExt(ptThis) + "] in " + fThis.getName());
+              CorpusResearchProject.getTextExt(ptThis) + "] in " + fThis.getName());
       // Set the base of the index correctly: file without extension
       loc_sIndexBase = (iExt<0) ? strFile : strFile.substring(0, iExt);
       // Look for the .index file
@@ -132,7 +139,7 @@ public class XmlIndexRaReader {
         // Create an XmlChunkReader to do this
         XmlChunkReader rdThis = new XmlChunkReader(fThis);
         // First read the header
-        String sTagHeader = crpThis.getTagHeader(ptThis);
+        String sTagHeader = CorpusResearchProject.getTagHeader(ptThis);
         iPos = 0;
         if (!sTagHeader.isEmpty()) {
           
@@ -154,12 +161,12 @@ public class XmlIndexRaReader {
         // Add header file name to IndexData (this is a separate starting line)
         sIndexData.append(sHeaderFile).append("\n");
         // Copy and create chunks for each line
-        String sTagLine = crpThis.getTagLine(ptThis);
-        QName qAttrLineId = crpThis.getAttrLineId(ptThis);
-        QName qAttrConstId = crpThis.getAttrConstId(ptThis);
-        QName qAttrPartId = crpThis.getAttrPartId(ptThis);    // Added 14/sep/15
-        String sPathLine = crpThis.getNodeLine(ptThis);
-        String sLastNode = crpThis.getNodeLast(ptThis);
+        String sTagLine = CorpusResearchProject.getTagLine(ptThis);
+        QName qAttrLineId = CorpusResearchProject.getAttrLineId(ptThis);
+        QName qAttrConstId = CorpusResearchProject.getAttrConstId(ptThis);
+        QName qAttrPartId = CorpusResearchProject.getAttrPartId(ptThis);    // Added 14/sep/15
+        String sPathLine = CorpusResearchProject.getNodeLine(ptThis);
+        String sLastNode = CorpusResearchProject.getNodeLast(ptThis);
         while (!rdThis.EOF ) {
           // Read to the following start-of-line
           rdThis.ReadToFollowing(sTagLine);

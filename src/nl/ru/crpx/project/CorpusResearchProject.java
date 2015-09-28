@@ -783,7 +783,7 @@ public class CorpusResearchProject {
   public String getTextExt() {
     return getTextExt(this.intProjType);
   }
-  public String getTextExt(ProjType ptThis) {
+  public static String getTextExt(ProjType ptThis) {
     switch (ptThis) {
       case ProjPsdx: return ".psdx";
       case ProjNegra: return ".negra";
@@ -798,7 +798,7 @@ public class CorpusResearchProject {
   public String getTagPara() {
     return getTagPara(this.intProjType);
   }
-  public String getTagPara(ProjType ptThis) {
+  public static String getTagPara(ProjType ptThis) {
     switch (ptThis) {
       case ProjPsdx: return "@Para";
       case ProjNegra: return "";
@@ -813,7 +813,7 @@ public class CorpusResearchProject {
   public String getTagHeader() {
     return getTagHeader(this.intProjType);
   }
-  public String getTagHeader(ProjType ptThis) {
+  public static String getTagHeader(ProjType ptThis) {
     switch (ptThis) {
       case ProjPsdx: return "teiHeader";
       case ProjNegra: return "teiHeader";
@@ -828,7 +828,7 @@ public class CorpusResearchProject {
   public String getTagLine() {
     return getTagLine(this.intProjType);
   }
-  public String getTagLine(ProjType ptThis) {
+  public static String getTagLine(ProjType ptThis) {
     switch (ptThis) {
       case ProjPsdx: return "forest";
       case ProjNegra: return "s";
@@ -843,7 +843,7 @@ public class CorpusResearchProject {
   public String getNodeLine() {
     return getNodeLine(this.intProjType);
   }
-  public String getNodeLine(ProjType ptThis) {
+  public static String getNodeLine(ProjType ptThis) {
     switch (ptThis) {
       case ProjPsdx: return "./descendant-or-self::forest[1]";
       case ProjNegra: return "./descendant-or-self::s[1]";
@@ -857,7 +857,7 @@ public class CorpusResearchProject {
   public String getNodeLast() {
     return getNodeLast(this.intProjType);
   }
-  public String getNodeLast(ProjType ptThis) {
+  public static String getNodeLast(ProjType ptThis) {
     switch (ptThis) {
       case ProjPsdx: return "./descendant::eTree[last()]";
       case ProjNegra: return "./descendant::su[last()]";
@@ -871,7 +871,7 @@ public class CorpusResearchProject {
   public QName getAttrLineId() {
     return getAttrLineId(this.intProjType);
   }
-  public QName getAttrLineId(ProjType ptThis) {
+  public static QName getAttrLineId(ProjType ptThis) {
     switch(ptThis) {
       case ProjPsdx: return new QName("", "", "forestId");
       case ProjFolia: return new QName("xml", "http://www.w3.org/XML/1998/namespace", "id");
@@ -885,7 +885,7 @@ public class CorpusResearchProject {
   public QName getAttrConstId() {
     return getAttrConstId(this.intProjType);
   }
-  public QName getAttrConstId(ProjType ptThis) {
+  public static QName getAttrConstId(ProjType ptThis) {
     switch(ptThis) {
       case ProjPsdx: return new QName("", "", "Id");
       case ProjFolia: return new QName("xml", "http://www.w3.org/XML/1998/namespace", "id");
@@ -899,7 +899,7 @@ public class CorpusResearchProject {
   public QName getAttrPartId() {
     return getAttrConstId(this.intProjType);
   }
-  public QName getAttrPartId(ProjType ptThis) {
+  public static QName getAttrPartId(ProjType ptThis) {
     switch(ptThis) {
       case ProjPsdx: return new QName("", "", "");
       case ProjFolia: return new QName("", "", "");

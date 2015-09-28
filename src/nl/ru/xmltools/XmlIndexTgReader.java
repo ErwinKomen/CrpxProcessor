@@ -67,9 +67,16 @@ public class XmlIndexTgReader {
   // ----------------------------------------------------------------------------------------------------------
   public XmlIndexTgReader(File fThis, CorpusResearchProject prjThis, XmlDocument pdxThis, ProjType ptThis) throws FileNotFoundException  {
     try {
-      // Set the error handler
-      this.errHandle = prjThis.errHandle;
+      // Take over the CRP
       this.crpThis = prjThis;
+      // Set the error handler
+      if (this.crpThis == null) {
+        // If no CRP has been given, then use my own error handler
+        this.errHandle = new ErrHandle(XmlIndexRaReader.class);
+      } else {
+        // A CRP is given, so use its error handler
+        this.errHandle = prjThis.errHandle;
+      }
       this.loc_pdxThis = pdxThis;
       this.loc_fThis = fThis;
       this.lstParts = new ArrayList<>();
@@ -106,8 +113,16 @@ public class XmlIndexTgReader {
    * @history
    *  14/sep/2015 ERK Database xml files get an index that splits over the 'Part' items
    *  15/sep/2015 ERK A database xml file gets just one .index file for random read access
+   *  28/sep/2015 ERK Made it possible to create and access this class 
+   *                  *without* having an instance of a CorpusResearchProject
    */
   private boolean doCheckIndex(File fThis, ProjType ptThis) {
+    // This call is only possible if there is an instance of a CRP
+    if (crpThis == null) return false;
+    // We are safe: continue
+    return doCheckIndex(fThis, ptThis, crpThis.getTextExt());
+  }
+  private boolean doCheckIndex(File fThis, ProjType ptThis, String sTextExt) {
     List<IndexFile> lIndices; // List of <IndexFile> elements
     int iIndexLine = 0;       // index line used to make a file name
     int iPos = 0;             // POsition in file
@@ -126,10 +141,10 @@ public class XmlIndexTgReader {
       // Do we need to check on the file extension??
       loc_fIndexDir = new File(strFile);
       // Get the file extension that is expected for this file
-      int iExt = strFile.lastIndexOf(crpThis.getTextExt(ptThis));
+      int iExt = strFile.lastIndexOf(CorpusResearchProject.getTextExt(ptThis));
       // Validate
       if (iExt==0) throw new FileNotFoundException("XmlIndexReader doesn't find expected extension [" + 
-              crpThis.getTextExt(ptThis) + "] in " + fThis.getName());
+              CorpusResearchProject.getTextExt(ptThis) + "] in " + fThis.getName());
       // Set the directory name correctly
       loc_sIndexDir = (iExt<0) ? strFile : strFile.substring(0, iExt);
       loc_fIndexDir = new File(loc_sIndexDir);
@@ -154,7 +169,7 @@ public class XmlIndexTgReader {
         // FileChannel fcDebug = FileChannel.open(fThis.toPath(), StandardOpenOption.READ );
         // =============================
         // First read the header
-        String sTagHeader = crpThis.getTagHeader(ptThis);
+        String sTagHeader = CorpusResearchProject.getTagHeader(ptThis);
         iPos = 0;
         if (!sTagHeader.isEmpty()) {
           
@@ -173,12 +188,12 @@ public class XmlIndexTgReader {
           FileUtil.writeFile(loc_fHeader, sHeaderXml); 
         }
         // Copy and create chunks for each line
-        String sTagLine = crpThis.getTagLine(ptThis);
-        QName qAttrLineId = crpThis.getAttrLineId(ptThis);
-        QName qAttrConstId = crpThis.getAttrConstId(ptThis);
-        QName qAttrPartId = crpThis.getAttrPartId(ptThis);    // Added 14/sep/15
-        String sPathLine = crpThis.getNodeLine(ptThis);
-        String sLastNode = crpThis.getNodeLast(ptThis);
+        String sTagLine = CorpusResearchProject.getTagLine(ptThis);
+        QName qAttrLineId = CorpusResearchProject.getAttrLineId(ptThis);
+        QName qAttrConstId = CorpusResearchProject.getAttrConstId(ptThis);
+        QName qAttrPartId = CorpusResearchProject.getAttrPartId(ptThis);    // Added 14/sep/15
+        String sPathLine = CorpusResearchProject.getNodeLine(ptThis);
+        String sLastNode = CorpusResearchProject.getNodeLast(ptThis);
         while (!rdThis.EOF ) {
           // Read to the following start-of-line
           rdThis.ReadToFollowing(sTagLine);
@@ -220,9 +235,9 @@ public class XmlIndexTgReader {
               //              each part = directory within the above directory
               String sPartDir = loc_sIndexDir + "/" + sPartId;
               // Check the extension
-              if (sPartDir.endsWith(crpThis.getTextExt())) {
+              if (sPartDir.endsWith(sTextExt)) {
                 // Remove the text extension
-                sPartDir = sPartDir.substring(0, sPartDir.length() - crpThis.getTextExt().length());
+                sPartDir = sPartDir.substring(0, sPartDir.length() - sTextExt.length());
               }
               // Create a part directory
               File fPartDir = new File(sPartDir);
