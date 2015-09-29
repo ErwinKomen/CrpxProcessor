@@ -585,6 +585,7 @@ public class CorpusResearchProject {
           JSONObject oQuery = new JSONObject(sQuery);
           oStatus.put("lng", oQuery.getString("lng"));
           if (oQuery.has("dir")) oStatus.put("dir", oQuery.getString("dir"));
+          if (oQuery.has("dbase")) oStatus.put("dbase", oQuery.getString("dbase"));
           FileUtil.writeFile(fStatusFile, oQuery.toString());
         }
       }
