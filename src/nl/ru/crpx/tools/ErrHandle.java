@@ -39,20 +39,34 @@ public class ErrHandle {
     JSONObject oThis = new JSONObject();  // Where we store all the info
     boolean bFound = false;               // Prevent additional entries
     
-    // Fill the object
-    oThis.put("msg", msg);
-    if (ex==null) oThis.put("ex", ""); else oThis.put("ex", ex.getMessage());
-    if (cls==null) 
-      oThis.put("cls", "unknown");
-    else
-      oThis.put("cls", cls.getName());
-    // Add the error to the list (provided it is not there already)
-    addErr(oThis);
-    // DEBUGGING: also show it in the error logger
-    // logger.error(msg, ex);
-    Logger.getLogger(cls).error(msg, ex);
-    // Return failure
-    return false;
+    try {
+      // Fill the object
+      oThis.put("msg", msg);
+      // Add the exception message
+      if (ex==null) 
+        oThis.put("ex", ""); 
+      else {
+        String sErr = ex.getMessage();
+        if (sErr == null || sErr.isEmpty())
+          oThis.put("ex", "null pointer?");
+        else
+          oThis.put("ex", ex.getMessage());
+      }
+      if (cls==null) 
+        oThis.put("cls", "unknown");
+      else
+        oThis.put("cls", cls.getName());
+      // Add the error to the list (provided it is not there already)
+      addErr(oThis);
+      // DEBUGGING: also show it in the error logger
+      // logger.error(msg, ex);
+      Logger.getLogger(cls).error(msg, ex);
+      // Return failure
+      return false;
+    } catch (Exception loc_ex) {
+      Logger.getLogger(this.clsDefault).error("DoError produces error: " + loc_ex.getMessage());
+      return false;
+    }
   }
   
   public boolean DoError(List<JSONObject> arErr, Exception ex, Class cls) {
