@@ -1068,10 +1068,17 @@ public class CorpusResearchProject {
           break;
         case "projtype": if (!this.getProjectType().equals(sValue)) {this.setProjectType(sValue);  bChanged =true; } 
           break;
+        case "source":
+          if (!this.getSource().equals(sValue)) {this.setSource(sValue); bChanged = true; }
+          break;
         case "dbaseinput": 
           if (!this.getDbaseInput().equals(sValue)) {
             this.setDbaseInput(sValue); 
             bChanged = true;
+            errHandle.debug("CrpChg dbaseinput: true");
+          } else {
+            errHandle.debug("CrpChg dbaseinput: FALSE (current=" + 
+                   this.getDbaseInput() + ", new="+sValue+")");
           }
           break;
         default:
