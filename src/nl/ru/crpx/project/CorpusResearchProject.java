@@ -1072,6 +1072,13 @@ public class CorpusResearchProject {
           break;
         case "part": if (!this.getPart().equals(sValue)) {this.setPart(sValue);  bChanged =true; } 
           break;
+        case "corpus":
+          String[] arCrp = sValue.split(":");
+          String sLng = arCrp[0];
+          String sDir = "";
+          if (arCrp.length>1) sDir = arCrp[1];
+          if (!this.getLanguage().equals(sLng)) {this.setLanguage(sLng);  bChanged =true; }
+          if (!this.getPart().equals(sDir)) {this.setPart(sDir);  bChanged =true; }
         case "source":
           if (!this.getSource().equals(sValue)) {this.setSource(sValue); bChanged = true; }
           break;
