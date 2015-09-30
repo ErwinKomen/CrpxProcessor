@@ -1068,6 +1068,10 @@ public class CorpusResearchProject {
           break;
         case "projtype": if (!this.getProjectType().equals(sValue)) {this.setProjectType(sValue);  bChanged =true; } 
           break;
+        case "language": if (!this.getLanguage().equals(sValue)) {this.setLanguage(sValue);  bChanged =true; } 
+          break;
+        case "part": if (!this.getPart().equals(sValue)) {this.setPart(sValue);  bChanged =true; } 
+          break;
         case "source":
           if (!this.getSource().equals(sValue)) {this.setSource(sValue); bChanged = true; }
           break;
