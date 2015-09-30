@@ -1072,14 +1072,23 @@ public class CorpusResearchProject {
           if (!this.getSource().equals(sValue)) {this.setSource(sValue); bChanged = true; }
           break;
         case "dbaseinput": 
+          // ========= Debugging =============
+          errHandle.debug("CrpChg dbaseinput: " + 
+                  (this.getDbaseInput().equals(sValue) ? "change" : "keep") + 
+                  " (current=" + this.getDbaseInput() + ", new="+sValue+")");
+          // =================================
           if (!this.getDbaseInput().equals(sValue)) {
             this.setDbaseInput(sValue); 
             bChanged = true;
-            errHandle.debug("CrpChg dbaseinput: true");
-          } else {
-            errHandle.debug("CrpChg dbaseinput: FALSE (current=" + 
-                   this.getDbaseInput() + ", new="+sValue+")");
-          }
+            // Additional changes when the new sValue is 'false':
+            if (sValue.equals("False")) {
+              // Need to put the "source" value back up again
+              this.setSource("*" + this.getTextExt());
+              // ========= Debugging =============
+              errHandle.debug("CrpChg dbaseinput: set source=" + this.getSource());
+              // =================================
+            }
+          } 
           break;
         default:
           errHandle.DoError("doChange: unknown key="+sKey, CorpusResearchProject.class);
