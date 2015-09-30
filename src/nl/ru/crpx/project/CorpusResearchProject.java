@@ -220,6 +220,8 @@ public class CorpusResearchProject {
       this.Author = getSetting("Author");
       this.ProjectType = getSetting("ProjectType");
       this.intProjType = ProjType.getType(this.ProjectType);
+      this.Language = getSetting("Language");
+      this.Part = getSetting("Part");
       this.HasDbaseInput = getSetting("DbaseInput").equals("True");
       // Load the dates
       this.dtChanged = stringToDate(getDateSetting("Changed"));
