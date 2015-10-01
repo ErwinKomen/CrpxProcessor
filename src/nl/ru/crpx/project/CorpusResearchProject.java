@@ -1070,19 +1070,19 @@ public class CorpusResearchProject {
           break;
         case "projtype": if (!this.getProjectType().equals(sValue)) {this.setProjectType(sValue);  bChanged =true; } 
           break;
-        case "language": if (!this.getLanguage().equals(sValue)) {this.setLanguage(sValue);  bChanged =true; } 
+        case "language": if (!this.getLanguage().equals(sValue)) {this.setLanguage(sValue); errHandle.debug("CrpChgDD language");  bChanged =true; } 
           break;
-        case "part": if (!this.getPart().equals(sValue)) {this.setPart(sValue);  bChanged =true; } 
+        case "part": if (!this.getPart().equals(sValue)) {this.setPart(sValue);  errHandle.debug("CrpChgDD part");  bChanged =true; } 
           break;
         case "corpus":
           String[] arCrp = sValue.split(":");
           String sLng = arCrp[0];
           String sDir = "";
           if (arCrp.length>1) sDir = arCrp[1];
-          if (!this.getLanguage().equals(sLng)) {this.setLanguage(sLng);  bChanged =true; }
-          if (!this.getPart().equals(sDir)) {this.setPart(sDir);  bChanged =true; }
+          if (!this.getLanguage().equals(sLng)) {this.setLanguage(sLng); errHandle.debug("CrpChgDD corpus:language");   bChanged =true; }
+          if (!this.getPart().equals(sDir)) {this.setPart(sDir);  errHandle.debug("CrpChgDD corpus:part");  bChanged =true; }
         case "source":
-          if (!this.getSource().equals(sValue)) {this.setSource(sValue); bChanged = true; }
+          if (!this.getSource().equals(sValue)) {this.setSource(sValue); errHandle.debug("CrpChgDD source");  bChanged = true; }
           break;
         case "dbaseinput": 
           // ========= Debugging =============
