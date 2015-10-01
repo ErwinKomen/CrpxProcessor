@@ -709,6 +709,7 @@ public class CorpusResearchProject {
   public List<JSONObject> getListDef() { return lDefList;}
   public JSONObject getListDefItem(int iValue) {return lDefList.get(iValue); }
   // ================ Database Feature list elements
+  public List<JSONObject> getListDbFeat() { return this.lDbFeatList;}
   public int getListDbFeatSize() { return lDbFeatList.size(); }
   public int getListDbFeatSize(int iQC, boolean bOnlyCalculated) { 
     int iSize = 0;    // Size of the list
