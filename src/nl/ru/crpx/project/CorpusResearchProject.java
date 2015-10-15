@@ -700,14 +700,17 @@ public class CorpusResearchProject {
   public int getListQCsize() { return lQueryConstructor.size(); }
   public List<JSONObject> getListQC() { return lQueryConstructor;}
   public JSONObject getListQCitem(int iValue) {return lQueryConstructor.get(iValue); }
+  public void setListQCitem(int iValue, JSONObject oItem) {lQueryConstructor.set(iValue, oItem);}
   // ================ Query list elements
   public int getListQuerySize() { return lQueryList.size(); }
   public List<JSONObject> getListQuery() { return lQueryList;}
   public JSONObject getListQueryItem(int iValue) {return lQueryList.get(iValue); }
+  public void setListQueryItem(int iValue, JSONObject oItem) {lQueryList.set(iValue, oItem);}
   // ================ Definition list elements
   public int getListDefSize() { return lDefList.size(); }
   public List<JSONObject> getListDef() { return lDefList;}
   public JSONObject getListDefItem(int iValue) {return lDefList.get(iValue); }
+  public void setListDefItem(int iValue, JSONObject oItem) {lDefList.set(iValue, oItem);}
   // ================ Database Feature list elements
   public List<JSONObject> getListDbFeat() { return this.lDbFeatList;}
   public int getListDbFeatSize() { return lDbFeatList.size(); }
@@ -745,6 +748,7 @@ public class CorpusResearchProject {
     return lstBack;
   }
   public JSONObject getListDbFeatItem(int iValue) {return lDbFeatList.get(iValue); }
+  public void setListDbFeatItem(int iValue, JSONObject oItem) {lDbFeatList.set(iValue, oItem);}
   // ================ Division list elements
   public List<JSONObject> getListDivision() { return lDivisionList; }
   public JSONObject getListDivisionItem(int iValue) {return lDivisionList.get(iValue); }
@@ -992,6 +996,59 @@ public class CorpusResearchProject {
     // Return positively
     return true;
   }
+  
+  /**
+   * getIdField -- get the name of the @id field
+   * 
+   * @param sItemType
+   * @return 
+   */
+  private String getIdField(String sItemType) {
+    switch(sItemType.toLowerCase()) {
+      case "query": return "QueryId";
+      case "definition": return "DefId";
+      case "constructor": return "QCid";
+      case "dbfeat": return "DbFeatId";
+      default: return "";
+    }
+  }
+  /**
+   * setItemValue -- set 'Setting' named @sName at value @sValue
+   * 
+   * @param sItemType
+   * @param iItemId
+   * @param sName
+   * @param sValue
+   * @return 
+   */
+  private boolean setItemValue(String sItemType, int iItemId, String sName, String sValue) {
+    
+    try {
+      // Get the name of the @id field
+      String sIdField = getIdField(sItemType);
+      // Get the correct node from this list
+      Node ndxThis = (Node) xpath.evaluate("./descendant::"+sItemType+"[@" + sIdField+"="+iItemId+"]", 
+                                           this.docProject, XPathConstants.NODE);
+      // Validate
+      if (ndxThis == null) {
+        // SOmething is really wrong
+        return false;
+      }
+      // Set attribute named @sName with value [sValue]
+      ndxThis.getAttributes().getNamedItem(sName).setNodeValue(sValue);
+    } catch (XPathExpressionException ex) {      
+      errHandle.DoError("Problem with setItemValue ["+sItemType+"/"+iItemId+"/@" + sName + "]", ex);
+    }
+    // Return positively
+    return true;
+  }
+  
+  /**
+   * getDateSetting -- get the date setting of [sName]
+   * 
+   * @param sName
+   * @return 
+   */
   private String getDateSetting(String sName) {
     String strValue = ""; // Default value
     Date dtThis;
@@ -1043,74 +1100,155 @@ public class CorpusResearchProject {
    * @param sValue
    * @return 
    */
-  public boolean doChange(String sKey, String sValue) {
+  public boolean doChange(String sKey, String sValue, int iItemId) {
     boolean bChanged = false;
     try {
       // Validate
       if (sKey.isEmpty()) return false;
-      switch (sKey.toLowerCase()) {
-        case "author": if (!this.getAuthor().equals(sValue)) {this.setAuthor(sValue); bChanged =true; } 
-          break;
-        case "comments": if (!this.getComments().equals(sValue)) {this.setComments(sValue);  bChanged =true; } 
-          break;
-        case "datechanged": 
-          // Special treatment: don't signal change, otherwise date will get changed again
-          this.setDateChanged(stringToDate(sValue)); bChanged=false; 
-          break;
-        case "datecreated": if (!dateToString(this.getDateCreated()).equals(sValue)) {this.setDateCreated(stringToDate(sValue));  bChanged =true; } 
-          break;
-        case "follnum": if (this.getFollNum() != Integer.parseInt(sValue)) {this.setFollNum(Integer.parseInt(sValue));  bChanged =true; } 
-          break;
-        case "fortype": if (this.getForType()!= ForType.forValue(sValue)) {this.setForType(ForType.forValue(sValue));  bChanged =true; } 
-          break;
-        case "goal": if (!this.getGoal().equals(sValue)) {this.setGoal(sValue);  bChanged =true; } 
-          break;
-        case "name": if (!this.getName().equals(sValue)) {this.setName(sValue);  bChanged =true; } 
-          break;
-        case "precnum": if (this.getPrecNum() != Integer.parseInt(sValue)) {this.setPrecNum(Integer.parseInt(sValue));  bChanged =true; } 
-          break;
-        case "projtype": if (!this.getProjectType().equals(sValue)) {this.setProjectType(sValue);  bChanged =true; } 
-          break;
-        case "language": if (!this.getLanguage().equals(sValue)) {errHandle.debug("CrpChgDD language"); this.setLanguage(sValue);  bChanged =true; } 
-          break;
-        case "part": if (!this.getPart().equals(sValue)) {errHandle.debug("CrpChgDD part");  this.setPart(sValue);  bChanged =true; } 
-          break;
-        case "corpus":
-          String[] arCrp = sValue.split(":");
-          String sLng = arCrp[0];
-          String sDir = "";
-          if (arCrp.length>1) sDir = arCrp[1];
-          if (!this.getLanguage().equals(sLng)) {this.setLanguage(sLng); errHandle.debug("CrpChgDD corpus:language");   bChanged =true; }
-          if (!this.getPart().equals(sDir)) {this.setPart(sDir);  errHandle.debug("CrpChgDD corpus:part");  bChanged =true; }
-          break;
-        case "source":
-          if (!this.getSource().equals(sValue)) {errHandle.debug("CrpChgDD source [" + this.getSource() + 
-                  "] >> [" + sValue + "]"); this.setSource(sValue); bChanged = true; }
-          break;
-        case "dbaseinput": 
-          // ========= Debugging =============
-          errHandle.debug("CrpChg dbaseinput: " + 
-                  (this.getDbaseInput().equals(sValue) ? "change" : "keep") + 
-                  " (current=" + this.getDbaseInput() + ", new="+sValue+")");
-          // =================================
-          if (!this.getDbaseInput().equals(sValue)) {
-            this.setDbaseInput(sValue); 
-            bChanged = true;
-            // Additional changes when the new sValue is 'false':
-            if (sValue.equals("False")) {
-              // Need to put the "source" value back up again
-              this.setSource("*" + this.getTextExt());
-              // ========= Debugging =============
-              errHandle.debug("CrpChg dbaseinput: set source=" + this.getSource());
-              // =================================
+      // Determine the section we are in
+      if (iItemId <0) {
+        switch (sKey.toLowerCase()) {
+          case "author": if (!this.getAuthor().equals(sValue)) {this.setAuthor(sValue); bChanged =true; } 
+            break;
+          case "comments": if (!this.getComments().equals(sValue)) {this.setComments(sValue);  bChanged =true; } 
+            break;
+          case "datechanged": 
+            // Special treatment: don't signal change, otherwise date will get changed again
+            this.setDateChanged(stringToDate(sValue)); bChanged=false; 
+            break;
+          case "datecreated": if (!dateToString(this.getDateCreated()).equals(sValue)) {this.setDateCreated(stringToDate(sValue));  bChanged =true; } 
+            break;
+          case "follnum": if (this.getFollNum() != Integer.parseInt(sValue)) {this.setFollNum(Integer.parseInt(sValue));  bChanged =true; } 
+            break;
+          case "fortype": if (this.getForType()!= ForType.forValue(sValue)) {this.setForType(ForType.forValue(sValue));  bChanged =true; } 
+            break;
+          case "goal": if (!this.getGoal().equals(sValue)) {this.setGoal(sValue);  bChanged =true; } 
+            break;
+          case "name": if (!this.getName().equals(sValue)) {this.setName(sValue);  bChanged =true; } 
+            break;
+          case "precnum": if (this.getPrecNum() != Integer.parseInt(sValue)) {this.setPrecNum(Integer.parseInt(sValue));  bChanged =true; } 
+            break;
+          case "projtype": if (!this.getProjectType().equals(sValue)) {this.setProjectType(sValue);  bChanged =true; } 
+            break;
+          case "language": if (!this.getLanguage().equals(sValue)) {errHandle.debug("CrpChgDD language"); this.setLanguage(sValue);  bChanged =true; } 
+            break;
+          case "part": if (!this.getPart().equals(sValue)) {errHandle.debug("CrpChgDD part");  this.setPart(sValue);  bChanged =true; } 
+            break;
+          case "corpus":
+            String[] arCrp = sValue.split(":");
+            String sLng = arCrp[0];
+            String sDir = "";
+            if (arCrp.length>1) sDir = arCrp[1];
+            if (!this.getLanguage().equals(sLng)) {this.setLanguage(sLng); errHandle.debug("CrpChgDD corpus:language");   bChanged =true; }
+            if (!this.getPart().equals(sDir)) {this.setPart(sDir);  errHandle.debug("CrpChgDD corpus:part");  bChanged =true; }
+            break;
+          case "source":
+            if (!this.getSource().equals(sValue)) {errHandle.debug("CrpChgDD source [" + this.getSource() + 
+                    "] >> [" + sValue + "]"); this.setSource(sValue); bChanged = true; }
+            break;
+          case "dbaseinput": 
+            // ========= Debugging =============
+            errHandle.debug("CrpChg dbaseinput: " + 
+                    (this.getDbaseInput().equals(sValue) ? "change" : "keep") + 
+                    " (current=" + this.getDbaseInput() + ", new="+sValue+")");
+            // =================================
+            if (!this.getDbaseInput().equals(sValue)) {
+              this.setDbaseInput(sValue); 
+              bChanged = true;
+              // Additional changes when the new sValue is 'false':
+              if (sValue.equals("False")) {
+                // Need to put the "source" value back up again
+                this.setSource("*" + this.getTextExt());
+                // ========= Debugging =============
+                errHandle.debug("CrpChg dbaseinput: set source=" + this.getSource());
+                // =================================
+              }
+            } 
+            break;
+          default:
+            return errHandle.DoError("doChange: unknown key="+sKey, CorpusResearchProject.class);
+        }
+      } else {
+        String[] arKey = sKey.split("[.]");
+        // Validate
+        if (arKey.length != 2) return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
+        String sItemType = arKey[0];
+        String sItemKey = arKey[1];
+        switch(sItemType) {
+          case "query":
+            JSONObject oItemQry = this.getListQueryItem(iItemId);
+            switch(sItemKey) {
+              case "name": if (!oItemQry.getString("Name").equals(sValue)) {oItemQry.put("Name", sValue); bChanged = true;} break;
+              case "file": if (!oItemQry.getString("File").equals(sValue)) {oItemQry.put("File", sValue); bChanged = true;} break;
+              case "goal": if (!oItemQry.getString("Goal").equals(sValue)) {oItemQry.put("Goal", sValue); bChanged = true;} break;
+              case "comment": if (!oItemQry.getString("Comment").equals(sValue)) {oItemQry.put("Comment", sValue); bChanged = true;} break;
+              case "text": if (!oItemQry.getString("Text").equals(sValue)) {oItemQry.put("Text", sValue); bChanged = true;} break;
+              default: return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
             }
-          } 
-          break;
-        default:
-          errHandle.DoError("doChange: unknown key="+sKey, CorpusResearchProject.class);
-          return false;
+            // Process changes
+            if (bChanged) {
+              this.setListQueryItem(iItemId, oItemQry);
+              this.setItemValue("Query", iItemId, sItemKey, sValue);
+              // The change date of the definition needs to be adapted
+              this.setItemValue("Query", iItemId, "Changed", dateToString(new Date()));
+            }
+            break;
+          case "definition":
+            JSONObject oItemDef = this.getListQueryItem(iItemId);
+            switch(sItemKey) {
+              case "name": if (!oItemDef.getString("Name").equals(sValue)) {oItemDef.put("Name", sValue); bChanged = true;} break;
+              case "file": if (!oItemDef.getString("File").equals(sValue)) {oItemDef.put("File", sValue); bChanged = true;} break;
+              case "goal": if (!oItemDef.getString("Goal").equals(sValue)) {oItemDef.put("Goal", sValue); bChanged = true;} break;
+              case "comment": if (!oItemDef.getString("Comment").equals(sValue)) {oItemDef.put("Comment", sValue); bChanged = true;} break;
+              case "text": if (!oItemDef.getString("Text").equals(sValue)) {oItemDef.put("Text", sValue); bChanged = true;} break;
+              default: return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
+            }
+            // Process changes
+            if (bChanged) { 
+              this.setListDefItem(iItemId, oItemDef);
+              this.setItemValue("Definition", iItemId, sItemKey, sValue);
+              // The change date of the definition needs to be adapted
+              this.setItemValue("Definition", iItemId, "Changed", dateToString(new Date()));
+            }
+            break;
+          case "constructor":
+            JSONObject oItemQc = this.getListQCitem(iItemId);
+            switch(sItemKey) {
+              case "input": if (!oItemQc.getString("Input").equals(sValue)) {oItemQc.put("Input", sValue); bChanged = true;} break;
+              case "query": if (!oItemQc.getString("Query").equals(sValue)) {oItemQc.put("Query", sValue); bChanged = true;} break;
+              case "output": if (!oItemQc.getString("Output").equals(sValue)) {oItemQc.put("Output", sValue); bChanged = true;} break;
+              case "result": if (!oItemQc.getString("Result").equals(sValue)) {oItemQc.put("Result", sValue); bChanged = true;} break;
+              case "cmp": if (!oItemQc.getString("Cmp").equals(sValue)) {oItemQc.put("Cmp", sValue); bChanged = true;} break;
+              case "mother": if (!oItemQc.getString("Mother").equals(sValue)) {oItemQc.put("Mother", sValue); bChanged = true;} break;
+              case "goal": if (!oItemQc.getString("Goal").equals(sValue)) {oItemQc.put("Goal", sValue); bChanged = true;} break;
+              case "comment": if (!oItemQc.getString("Comment").equals(sValue)) {oItemQc.put("Comment", sValue); bChanged = true;} break;
+              default: return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
+            }
+            // Process changes
+            if (bChanged) {
+              this.setListQCitem(iItemId, oItemQc);
+              this.setItemValue("QC", iItemId, sItemKey, sValue);
+            }
+            break;
+          case "dbfeat":
+            JSONObject oItemDbf = this.getListDbFeatItem(iItemId);
+            switch(sItemKey) {
+              case "name": if (!oItemDbf.getString("Name").equals(sValue)) {oItemDbf.put("Name", sValue); bChanged = true;} break;
+              case "pre": if (!oItemDbf.getString("Pre").equals(sValue)) {oItemDbf.put("Pre", sValue); bChanged = true;} break;
+              case "qcid": if (!oItemDbf.getString("QCid").equals(sValue)) {oItemDbf.put("QCid", sValue); bChanged = true;} break;
+              case "ftnum": if (!oItemDbf.getString("FtNum").equals(sValue)) {oItemDbf.put("FtNum", sValue); bChanged = true;} break;
+              default: return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
+            }
+            // Process changes
+            if (bChanged) {
+              this.setListDbFeatItem(iItemId, oItemDbf);
+              this.setItemValue("DbFeat", iItemId, sItemKey, sValue);
+            }
+            break;
+          default: return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
+        }
       }
-      // the change date needs to be adapted
+      // the change date of the whole CRP needs to be adapted
       if (bChanged) this.setDateChanged(new Date());
       // Return positively
       return bChanged;

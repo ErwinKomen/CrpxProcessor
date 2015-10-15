@@ -236,6 +236,8 @@ public class FileUtil {
    * @param encoding
    *            the encoding to use, e.g. "utf-8"
    * @return list of lines
+   * @history
+   *    15/oct/2015 ERK removed "line.trim()", since this is undesired
    */
   public static List<String> readLines(File inputFile, String encoding) {
     try {
@@ -244,7 +246,8 @@ public class FileUtil {
       try {
         String line;
         while ((line = in.readLine()) != null) {
-          result.add(line.trim());
+          result.add(line);
+          // UNDESIRED: result.add(line.trim());
         }
       } finally {
         in.close();
