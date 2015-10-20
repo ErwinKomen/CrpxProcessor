@@ -714,6 +714,11 @@ public class CorpusResearchProject {
         return i;
     return -1;
   }
+  public JSONObject getListQueryByName(String sQname) {
+    for (int i=0;i<lQueryList.size();i++) 
+      if (lQueryList.get(i).getString("Name").equals(sQname)) return lQueryList.get(i);
+    return null;
+  }
   public int getListQuerySize() { return lQueryList.size(); }
   public List<JSONObject> getListQuery() { return lQueryList;}
   public JSONObject getListQueryItem(int iValue) {return lQueryList.get(iValue); }
@@ -724,6 +729,11 @@ public class CorpusResearchProject {
       if (lDefList.get(i).getInt("DefId") == iDefId) 
         return i;
     return -1;
+  }
+  public JSONObject getListDefByName(String sDname) {
+    for (int i=0;i<lDefList.size();i++) 
+      if (lDefList.get(i).getString("Name").equals(sDname)) return lDefList.get(i);
+    return null;
   }
   public int getListDefSize() { return lDefList.size(); }
   public List<JSONObject> getListDef() { return lDefList;}
