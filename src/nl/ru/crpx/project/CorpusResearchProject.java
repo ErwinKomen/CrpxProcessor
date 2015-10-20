@@ -719,10 +719,29 @@ public class CorpusResearchProject {
       if (lQueryList.get(i).getString("Name").equals(sQname)) return lQueryList.get(i);
     return null;
   }
+  public int getListQueryIndex(JSONObject oItem) {
+    String sQname = oItem.getString("Name");
+    for (int i=0;i<lQueryList.size();i++) 
+      if (lQueryList.get(i).getString("Name").equals(sQname)) return i;
+    return -1;
+  }
   public int getListQuerySize() { return lQueryList.size(); }
   public List<JSONObject> getListQuery() { return lQueryList;}
   public JSONObject getListQueryItem(int iValue) {return lQueryList.get(iValue); }
   public void setListQueryItem(int iValue, JSONObject oItem) {lQueryList.set(iValue, oItem);}
+  public int addListQueryItem(JSONObject oItem) {
+    int iIdx = getListQueryIndex(oItem);
+    if (iIdx<0) { lQueryList.add(oItem);  renumberListQuery(); iIdx = getListQueryIndex(oItem); }
+    if (iIdx>=0) return lQueryList.get(iIdx).getInt("QueryId");
+    else return -1;
+  }
+  public void renumberListQuery() { for (int i=0;i<lQueryList.size(); i++) { lQueryList.get(i).put("QueryId", i+1);}}
+  public boolean delListQueryItem(JSONObject oItem) {
+    for (int i=0;i<lQueryList.size(); i++) { 
+      if (lQueryList.get(i).equals(oItem)) { lQueryList.remove(i); renumberListQuery(); return true; }
+    }
+    return false;
+  }
   // ================ Definition list elements
   public int getListDefId(int iDefId) {
     for (int i=0;i<lDefList.size();i++) 
@@ -735,10 +754,29 @@ public class CorpusResearchProject {
       if (lDefList.get(i).getString("Name").equals(sDname)) return lDefList.get(i);
     return null;
   }
+  public int getListDefIndex(JSONObject oItem) {
+    String sDname = oItem.getString("Name");
+    for (int i=0;i<lDefList.size();i++) 
+      if (lDefList.get(i).getString("Name").equals(sDname)) return i;
+    return -1;
+  }
   public int getListDefSize() { return lDefList.size(); }
   public List<JSONObject> getListDef() { return lDefList;}
   public JSONObject getListDefItem(int iValue) {return lDefList.get(iValue); }
   public void setListDefItem(int iValue, JSONObject oItem) {lDefList.set(iValue, oItem);}
+  public int addListDefItem(JSONObject oItem) {
+    int iIdx = getListDefIndex(oItem);
+    if (iIdx<0) { lDefList.add(oItem);  renumberListDef(); iIdx = getListDefIndex(oItem); }
+    if (iIdx>=0) return lDefList.get(iIdx).getInt("DefId");
+    else return -1;
+  }
+  public void renumberListDef() { for (int i=0;i<lDefList.size(); i++) { lDefList.get(i).put("DefId", i+1);}}
+  public boolean delListDefItem(JSONObject oItem) {
+    for (int i=0;i<lDefList.size(); i++) { 
+      if (lDefList.get(i).equals(oItem)) { lDefList.remove(i); renumberListDef(); return true; }
+    }
+    return false;
+  }
   // ================ Database Feature list elements
   public int getListDbFeatId(int iDbFeatId) {
     for (int i=0;i<lDbFeatList.size();i++) 
@@ -746,7 +784,18 @@ public class CorpusResearchProject {
         return i;
     return -1;
   }
+  public JSONObject getListDbFeatByName(String sDname) {
+    for (int i=0;i<lDbFeatList.size();i++) 
+      if (lDbFeatList.get(i).getString("Name").equals(sDname)) return lDbFeatList.get(i);
+    return null;
+  }
   public List<JSONObject> getListDbFeat() { return this.lDbFeatList;}
+  public int getListDbFeatIndex(JSONObject oItem) {
+    String sDname = oItem.getString("Name");
+    for (int i=0;i<lDbFeatList.size();i++) 
+      if (lDbFeatList.get(i).getString("Name").equals(sDname)) return i;
+    return -1;
+  }
   public int getListDbFeatSize() { return lDbFeatList.size(); }
   public int getListDbFeatSize(int iQC, boolean bOnlyCalculated) { 
     int iSize = 0;    // Size of the list
@@ -783,6 +832,19 @@ public class CorpusResearchProject {
   }
   public JSONObject getListDbFeatItem(int iValue) {return lDbFeatList.get(iValue); }
   public void setListDbFeatItem(int iValue, JSONObject oItem) {lDbFeatList.set(iValue, oItem);}
+  public int addListDbFeatItem(JSONObject oItem) {
+    int iIdx = getListDbFeatIndex(oItem);
+    if (iIdx<0) { lDbFeatList.add(oItem);  renumberListDef(); iIdx = getListDbFeatIndex(oItem); }
+    if (iIdx>=0) return lDbFeatList.get(iIdx).getInt("DbFeatId");
+    else return -1;
+  }
+  public void renumberListDbFeat() { for (int i=0;i<lDbFeatList.size(); i++) { lDbFeatList.get(i).put("DbFeatId", i+1);}}
+  public boolean delListDbFeatItem(JSONObject oItem) {
+    for (int i=0;i<lDbFeatList.size(); i++) { 
+      if (lDbFeatList.get(i).equals(oItem)) { lDbFeatList.remove(i); renumberListDbFeat(); return true; }
+    }
+    return false;
+  }
   // ================ Division list elements
   public List<JSONObject> getListDivision() { return lDivisionList; }
   public JSONObject getListDivisionItem(int iValue) {return lDivisionList.get(iValue); }
