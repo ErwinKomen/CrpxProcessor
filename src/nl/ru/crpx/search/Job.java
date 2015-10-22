@@ -60,6 +60,7 @@ public abstract class Job implements Comparable<Job> {
   protected JSONObject jobList;             // Results for this Xqf job
   protected JSONObject jobProgress;         // Details of where we are in this job
   protected List<JSONObject> jobErrList;    // List of errors
+  protected List<String> jobMsgList;        // List of messages supplied by ru:message()
   protected DataObject jobTable;            // Tabular result 
   protected DataObject jobHits;             // List of hits: [file // forestId // constId // index into [file].hits]
   protected DataObject jobDbList;           // List of databases per QC line
@@ -315,6 +316,8 @@ public abstract class Job implements Comparable<Job> {
   public void setJobDbList(DataObject oList) { jobDbList = oList;}
   public List<JSONObject> getJobErrors() { return jobErrList;}
   public void setJobErrors(List<JSONObject> arErr) {jobErrList = arErr;}
+  public List<String> getJobMessage() {return jobMsgList;}
+  public void setJobMessage(List<String> lstMsg) {jobMsgList = lstMsg;}
   // public DataObject getJobHits() { return jobHits;}
   // public void setJobHits(DataObject oHits) {jobHits = oHits;}
   public String getJobStatus() {return jobStatus;}

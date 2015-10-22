@@ -8,8 +8,6 @@ package nl.ru.xmltools;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.xpath.XPathExpressionException;
 import net.sf.saxon.Configuration;
@@ -27,7 +25,6 @@ import net.sf.saxon.s9api.XdmItem;
 import net.sf.saxon.s9api.XdmNode;
 import net.sf.saxon.s9api.XdmNodeKind;
 import net.sf.saxon.s9api.XdmSequenceIterator;
-import net.sf.saxon.trans.XPathException;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.project.CorpusResearchProject.ProjType;
 import nl.ru.crpx.project.Query;

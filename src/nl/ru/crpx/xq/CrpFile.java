@@ -38,11 +38,13 @@ public class CrpFile {
   public String currentSentId;          // ID of the currently treated sentence
   public String sTextId;                // The name of the text this is
   public XmlNode ndxHeader;             // The header object of this file
+  public XmlNode ndxRoot;               // The root element of the XmlDocument
   public DocumentBuilder oSaxDoc;       // The document-builder used for this CRP-File combination
   public DocumentBuilderFactory oDocFac;// The DOM document-builder used for this CRP-File combination
   public XmlForest objProcType;         // My own copy of the XmlForest processor
   public String currentPeriod;          // Downwards compatibility: current period
   public List<LexDict> lstLexDict;      // One ru:lex() dictionary per QC
+  public List<String> lstMessage;       // List of messages
   // ================= Local variables =========================================
   private Processor objSaxon;           // The processor (shared among threads)
   private ErrHandle errHandle;          // My own access to the error handler
@@ -58,7 +60,10 @@ public class CrpFile {
       this.QCcurrentLine = -1;
       this.ndxCurrentForest = null;
       this.currentPeriod = "";
+      this.ndxHeader = null;
+      this.ndxRoot = null;
       this.lstLexDict = new ArrayList<>();  // A list of LexDict items
+      this.lstMessage = new ArrayList<>();
       // Initialize the lexdict items
       for (int i=0;i<oCrp.getListQC().size();i++) {
         this.lstLexDict.add(new LexDict(i+1));

@@ -1124,6 +1124,8 @@ public class ExecutePsdxStream extends ExecuteXml {
         }
       }
       
+      // The actual search is ready -- now do additional bookkeeping stuff
+      
       // TODO: combine the results of the queries
       JSONObject oHitInfo = new JSONObject();
       oHitInfo.put("file", fName);
@@ -1234,7 +1236,11 @@ public class ExecutePsdxStream extends ExecuteXml {
       oCount = new JSONObject();
       oCount.put("file", fThis.getName());
       oCount.put("hits", arHitsCount);
+      oCount.put("message", oCrpFile.lstMessage);
       jobCaller.setJobCount(oCount);
+      
+      // Keep the 'message' results
+      jobCaller.setJobMessage(oCrpFile.lstMessage);
       
       // Pass on the arXqf information for this XqF job in job.getJobList
       JSONObject oTotal = new JSONObject();

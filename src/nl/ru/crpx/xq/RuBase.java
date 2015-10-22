@@ -6,6 +6,7 @@
 
 package nl.ru.crpx.xq;
 
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.xpath.XPath;
@@ -20,10 +21,12 @@ import net.sf.saxon.s9api.XPathSelector;
 import net.sf.saxon.s9api.XdmItem;
 import net.sf.saxon.s9api.XdmNode;
 import nl.ru.crpx.project.CorpusResearchProject;
-import nl.ru.crpx.project.CorpusResearchProject.ProjType;
 import nl.ru.crpx.tools.ErrHandle;
 import static nl.ru.crpx.xq.English.VernToEnglish;
 import nl.ru.util.json.JSONObject;
+import nl.ru.xmltools.XmlNode;
+import org.xml.sax.InputSource;
+import org.w3c.dom.Node;
 
 /**
  *
@@ -733,5 +736,27 @@ public class RuBase /* extends Job */ {
     }
   }
 
+  /**
+   * xmlNodeToNode
+   *    Convert 'XmlNode' to interface 'Node'
+   * 
+   * @param oCF
+   * @param ndxThis
+   * @return 
+   */
+  static Node xmlNodeToNode(CrpFile oCF, XmlNode ndxThis) {
+    Node ndxBack = null;
+    try {
+      // Convert Xdm or Xml node to Node
+      if (ndxThis != null) {
+        ndxBack = oCF.oDocFac.newDocumentBuilder().parse(new InputSource(new StringReader(ndxThis.toString())));
+      }
+      // Return the result
+      return ndxBack;
+    } catch (Exception ex) {
+      errHandle.DoError("RuBase/xmlNodeToNode error", ex, RuBase.class);
+      return null;
+    }
+  }
 // </editor-fold>
 }

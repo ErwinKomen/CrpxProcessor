@@ -7,20 +7,15 @@
 package nl.ru.crpx.xq;
 
 import java.io.StringReader;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.stream.StreamSource;
 import net.sf.saxon.expr.XPathContext;
-import net.sf.saxon.om.Item;
 import net.sf.saxon.om.NodeInfo;
 import net.sf.saxon.om.SequenceIterator;
 import net.sf.saxon.s9api.Axis;
 import net.sf.saxon.s9api.QName;
-import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.SaxonApiUncheckedException;
 import net.sf.saxon.s9api.XdmAtomicValue;
 import net.sf.saxon.s9api.XdmNode;
@@ -28,7 +23,6 @@ import net.sf.saxon.s9api.XdmSequenceIterator;
 import net.sf.saxon.s9api.XdmValue;
 import net.sf.saxon.trans.XPathException;
 import net.sf.saxon.type.Type;
-import net.sf.saxon.value.AtomicValue;
 import net.sf.saxon.value.Value;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.tools.ErrHandle;
@@ -207,6 +201,35 @@ public class Extensions extends RuBase {
 
 // </editor-fold>
   
+// <editor-fold defaultstate="collapsed" desc="ru:docroot">
+  /**
+   * docroot
+   *    Return a pointer to the document's root 
+   *    For psdx texts it is the <TEI> node
+   *    This function only 'makes sense' when parsing is such
+   *      that whole files are kept in memory
+   * 
+   * @param objXp - Context providing information
+   * @return      - Node pointing to the document's root
+   */
+  public static Node docroot(XPathContext objXp) {
+    try {
+      // Get the CrpFile associated with me
+      CrpFile oCrpFile = getCrpFile(objXp);
+      // Get the root node (if available)
+      XmlNode ndxRoot = oCrpFile.ndxRoot;
+      // Return the node that we found
+      return xmlNodeToNode(oCrpFile, ndxRoot);
+      // return jsBack.toString();
+    } catch (RuntimeException ex) {
+      // Warn user
+      errHandle.DoError("Extensions/docroot() error", ex, Extensions.class);
+      // Return failure
+      return null;
+    }
+  }  
+// </editor-fold>
+  
 // <editor-fold defaultstate="collapsed" desc="ru:feature">
   // ----------------------------------------------------------------------------------------------------------
   // Name :  feature
@@ -336,6 +359,33 @@ public class Extensions extends RuBase {
     }
   }
 // </editor-fold>
+  
+// <editor-fold defaultstate="collapsed" desc="ru:header">
+  /**
+   * header
+   *    Return a pointer to the document's header node 
+   *    For psdx texts it is the <teiHeader> node
+   * 
+   * @param objXp - Context providing information
+   * @return      - Node pointing to the document's root
+   */
+  public static Node header(XPathContext objXp) {
+    try {
+      // Get the CrpFile associated with me
+      CrpFile oCrpFile = getCrpFile(objXp);
+      // Get the root node (if available)
+      XmlNode ndxHeader = oCrpFile.ndxHeader;
+      // Return the node that we found
+      return xmlNodeToNode(oCrpFile, ndxHeader);
+      // return jsBack.toString();
+    } catch (RuntimeException ex) {
+      // Warn user
+      errHandle.DoError("Extensions/header() error", ex, Extensions.class);
+      // Return failure
+      return null;
+    }
+  }  
+// </editor-fold>
 
 // <editor-fold defaultstate="collapsed" desc="ru:lex">
   // ------------------------------------------------------------------------------------
@@ -364,7 +414,6 @@ public class Extensions extends RuBase {
     return RuAddLex(objXp, strText, strPos);
   }
 // </editor-fold>
-
     
 // <editor-fold desc="ru:line">
     // ------------------------------------------------------------------------------------
@@ -424,6 +473,49 @@ public class Extensions extends RuBase {
       }
     }
 // </editor-fold>
+    
+// <editor-fold defaultstate="collapsed" desc="ru:message">
+  // ------------------------------------------------------------------------------------
+  // Name:   message
+  // Goal:   show a message box or what is appropriate with the indicated message
+  //         Within a web service, the action only shows up in log files
+  // History:
+  // 03-10-2013  ERK Created
+  // 22/oct/2015 ERK Adapted for Java
+  // ------------------------------------------------------------------------------------
+  public static boolean message(XPathContext objXp, Value strText) {
+    try {
+      return Message(objXp, strText.getStringValue());
+    } catch (XPathException ex) {
+      // Show error
+      errHandle.DoError("Extensions/message saxon error", ex, Extensions.class );
+      // Return failure
+      return false;
+    }
+  }
+  public static boolean Message(XPathContext objXp, Value strText) {
+    try {
+      return Message(objXp, strText.getStringValue());
+    } catch (XPathException ex) {
+      // Show error
+      errHandle.DoError("Extensions/Message saxon error", ex, Extensions.class );
+      // Return failure
+      return false;
+    }
+  }
+  private static boolean Message(XPathContext objXp, String strText) {
+    // How can we 'show' a message from a web service? 
+    // Two ways: 
+    // (1) Show the message 'real-time' in the logging
+    errHandle.debug("Message: [" + strText + "]");
+    // (2) Gather all the messages and make them available for the caller
+    CrpFile oCF = getCrpFile(objXp);
+    oCF.lstMessage.add(strText);
+    // Always return positively
+    return true;
+  }
+// </editor-fold>
+    
 // <editor-fold defaultstate="collapsed" desc="ru:matches">
   // ------------------------------------------------------------------------------------
   // Name:   matches
