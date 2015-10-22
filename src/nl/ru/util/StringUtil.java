@@ -421,6 +421,11 @@ public class StringUtil {
     // Compress the input into the output
     int compressedDataLength = compresser.deflate(arCompr);
     compresser.end();
+    // COpy to smaller array
+    byte[] arSmall = new byte[compressedDataLength];
+    for (int i=0;i<arSmall.length;i++) {
+      arSmall[i] = arCompr[i];
+    }
     /* 
     // Convert the compressed output to HEX 
 		for (int i = 0; i < compressedDataLength; i++) {
@@ -435,7 +440,7 @@ public class StringUtil {
 		return result.toString();
     /* */
     /* Alternative: base64 encoding */
-    String sEnc = Base64.encode(arCompr);
+    String sEnc = Base64.encode(arSmall);
     return sEnc;
     /* */
 	}
