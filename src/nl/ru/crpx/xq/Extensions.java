@@ -150,6 +150,36 @@ public class Extensions extends RuBase {
       return null;
     }
   }
+  static NodeInfo getOneNode(XPathContext objXp, XdmSequenceIterator sIt, String sFunction) {
+    ErrHandle errCaller = getCrpFile(objXp).crpThis.errHandle;
+    int iCheck = 0;
+    
+    try {
+      // Get the first node
+      NodeInfo ndFirst = (NodeInfo) sIt.next();
+      // Check how many there are
+      while (sIt.next() != null) { iCheck++; }
+      // Action depends on the length
+      if (iCheck > 1) {
+        String sErrMsg = "The function ["+sFunction+
+                "] function must be called with only 1 (one) node in the first argument. It now receives a sequence of "+iCheck;
+
+        synchronized(errCaller) {
+          errCaller.DoError(sErrMsg, sFunction, objXp);
+          errCaller.bInterrupt = true;
+        }
+        errHandle.DoError(sErrMsg , sFunction,objXp);
+        errHandle.bInterrupt = true;
+        ndFirst = null;
+      } 
+      return ndFirst;
+    }  catch (Exception ex) {
+      errHandle.DoError("Extensions/getOneNode error: " , ex, Extensions.class);
+      errHandle.bInterrupt = true;
+    }
+      
+    return null;
+  }
 // </editor-fold>
   
 // <editor-fold defaultstate="collapsed" desc="ru:conv">

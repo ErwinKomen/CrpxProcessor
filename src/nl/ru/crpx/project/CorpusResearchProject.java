@@ -288,6 +288,19 @@ public class CorpusResearchProject {
       this.QueryDir = new File(FileUtil.nameNormalize(sQueryDir));
       this.DstDir = new File(FileUtil.nameNormalize(sDstDir));
       this.SrcDir = new File(FileUtil.nameNormalize(sSrcDir));
+      // Create alternative directories if we still have problems
+      if (!this.DstDir.exists()) {
+        // Create alternative dst dir
+        sDstDir = "/etc/project/dst";
+        this.DstDir = new File(FileUtil.nameNormalize(sDstDir));
+        if (!this.DstDir.exists()) this.DstDir.mkdir();
+      }
+      if (!this.QueryDir.exists()) {
+        // Create alternative query dir
+        sQueryDir = "/etc/project/xq";
+        this.QueryDir = new File(FileUtil.nameNormalize(sQueryDir));
+        if (!this.QueryDir.exists()) this.QueryDir.mkdir();
+      }
       // Load the list of definitions
       ReadCrpList(lDefList, "./descendant::DefList/child::Definition", 
                   "DefId;Name;File;Goal;Comment;Created;Changed", "Text");

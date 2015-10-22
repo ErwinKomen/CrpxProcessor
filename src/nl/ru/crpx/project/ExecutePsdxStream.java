@@ -465,6 +465,7 @@ public class ExecutePsdxStream extends ExecuteXml {
   private DataObject getResultsTable(JSONArray arLines) {
     List<String> arSub = new ArrayList<>();   // each sub-category gets an entry here
     List<String> arFile = new ArrayList<>();  // List of files
+    List<DataObjectList> arMsg = new ArrayList<>();   // List of message strings
     List<Integer> arSubCount = new ArrayList<>(); // each sub-category gets a count total here
     JSONObject arJsonRes[];                   // Object "hits" of the current QC line
     JSONObject arJsonSub[];                   // Object "sub" of the current QC line
@@ -488,6 +489,11 @@ public class ExecutePsdxStream extends ExecuteXml {
           JSONArray oHit = arLines.getJSONObject(i).getJSONArray("hits");
           // Add the file name to the list
           arFile.add(arLines.getJSONObject(i).getString("file"));
+          // Add the array of messages to the list
+          DataObjectList doThis = new DataObjectList("msg");
+          JSONArray arMsgSrc = arLines.getJSONObject(i).getJSONArray("message");
+          for (int j=0;j<arMsgSrc.length(); j++) { doThis.add(arMsgSrc.getString(j)); }
+          arMsg.add(doThis);
           // Get the element corresponding with the current QC line
           JSONObject oEl = oHit.getJSONObject(iQC);
           arJsonRes[i] = oEl;
@@ -533,6 +539,7 @@ public class ExecutePsdxStream extends ExecuteXml {
           DataObjectMapElement oResThis = new DataObjectMapElement();
           // Add the "count" and the "file" parameters
           oResThis.put("file", arFile.get(i));
+          oResThis.put("message", arMsg.get(i));
           oResThis.put("count", arJsonRes[i].getInt("count"));
           // Also keep track of overall total
           iTotal += arJsonRes[i].getInt("count");
