@@ -1143,8 +1143,14 @@ public class CorpusResearchProject {
         // SOmething is really wrong
         return false;
       }
+      // Get attribute @sName
+      Node ndAttr = ndxThis.getAttributes().getNamedItem(sName);
+      if (ndAttr == null) {
+        errHandle.DoError("setItemValue error: (" + sItemType + ","+iItemId+","+sName+","+sValue+")");
+        return false;
+      }
       // Set attribute named @sName with value [sValue]
-      ndxThis.getAttributes().getNamedItem(sName).setNodeValue(sValue);
+      ndAttr.setNodeValue(sValue);
     } catch (XPathExpressionException ex) {      
       errHandle.DoError("Problem with setItemValue ["+sItemType+"/"+iItemId+"/@" + sName + "]", ex);
     }
