@@ -30,6 +30,7 @@ import java.util.regex.Pattern;
 import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
+import nl.ru.crpx.tools.ErrHandle;
 
 /**
  * Een collectie reguliere expressies om verschillende patronen uit Strings te filteren.
@@ -426,21 +427,11 @@ public class StringUtil {
     for (int i=0;i<arSmall.length;i++) {
       arSmall[i] = arCompr[i];
     }
-    /* 
-    // Convert the compressed output to HEX 
-		for (int i = 0; i < compressedDataLength; i++) {
-      char[] hexChars = new char[2];
-      // Get a byt-to-hex equivalent efficiently
-      int v = arCompr[i] & 0xFF;
-      hexChars[0] = hexArray[v >>> 4];
-      hexChars[1] = hexArray[v & 0x0F];
-      // Add the byte-to-hex equivalent to the result
-      result.append(new String(hexChars));
-		}
-		return result.toString();
-    /* */
     /* Alternative: base64 encoding */
     String sEnc = Base64.encode(arSmall);
+    // ======== Debugging ===========
+    int iBase64Len = sEnc.length();
+    // ==============================
     return sEnc;
     /* */
 	}
@@ -459,37 +450,32 @@ public class StringUtil {
    * @throws java.util.zip.DataFormatException
    */
   public static String unescapeHexCoding(String input) throws IOException, DataFormatException {
-    int resultLength = 0;
-		// StringBuilder result = new StringBuilder();
-    int compressedDataLength = input.length();
-    // Convert Base64 into byte array
-    byte[] arByte = Base64.decode(input);
-    
-    /*
-    // Turn hex input into byte array
-    byte[] arByte = new byte[compressedDataLength];
-    for (int i = 0; i < input.length(); i+=2) {
-      char[] hexChars = new char[2];
-      hexChars[0] = input.charAt(i);
-      hexChars[1] = input.charAt(i+1);
-      int iHC0 = hexChars[0] << 4;
-      int iHC1 = hexChars[1] & 0x0F;
-      int v = 16 *  iHC0 + iHC1;
-      arByte[i/2] = (byte) v;
-    }
-    */
-    // Decompress byte-array
-    byte[] arDecr = new byte[compressedDataLength * 10];
-    Inflater decompresser = new Inflater();
-    // decompresser.setInput(arByte, 0, compressedDataLength);
-    decompresser.setInput(arByte);
-    resultLength = decompresser.inflate(arDecr);
-    decompresser.end();    
-    
-    // Convert byte array into string again
-    String sResult = new String(arDecr, 0, resultLength, "UTF-8");
+    ErrHandle errHandle = new ErrHandle(StringUtil.class);
 
-		return sResult;
+    try {
+      int resultLength = 0;
+      // StringBuilder result = new StringBuilder();
+      int compressedDataLength = input.length();
+      // Check for spaces -- the result of URL encoding
+      input = input.replace(' ', '+');
+      // Convert Base64 into byte array
+      byte[] arByte = Base64.decode(input);
+      // Decompress byte-array
+      byte[] arDecr = new byte[compressedDataLength * 10];
+      Inflater decompresser = new Inflater();
+      // decompresser.setInput(arByte, 0, compressedDataLength);
+      decompresser.setInput(arByte);
+      resultLength = decompresser.inflate(arDecr);
+      decompresser.end();    
+
+      // Convert byte array into string again
+      String sResult = new String(arDecr, 0, resultLength, "UTF-8");
+
+      return sResult;
+    } catch (Exception ex) {
+      errHandle.DoError("Uploading a CRP failed", ex);
+      return null;
+    }
   }
 
 	/**
