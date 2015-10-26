@@ -1146,8 +1146,21 @@ public class CorpusResearchProject {
       // Get attribute @sName
       Node ndAttr = ndxThis.getAttributes().getNamedItem(sName);
       if (ndAttr == null) {
-        errHandle.DoError("setItemValue error: (" + sItemType + ","+iItemId+","+sName+","+sValue+")");
-        return false;
+        // It could be that we are dealing wiht a CHILD instead of an attribute
+        NodeList ndList = ndxThis.getChildNodes();
+        for (int i=0;i<ndList.getLength();i++) {
+          Node ndItem = ndList.item(i);
+          if (ndItem.getNodeName().equals(sName)) {
+            // Found the child named @sName
+            ndAttr = ndItem;
+            break;
+          }
+        }
+        // Double check the outcome
+        if (ndAttr == null) {
+          errHandle.DoError("setItemValue error: (" + sItemType + ","+iItemId+","+sName+","+sValue+")");
+          return false;
+        }
       }
       // Set attribute named @sName with value [sValue]
       ndAttr.setNodeValue(sValue);
@@ -1299,15 +1312,6 @@ public class CorpusResearchProject {
             } else {
               return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
             }
-            /*
-            switch(sItemKey) {
-              case "Name": if (!oItemQry.getString("Name").equals(sValue)) {oItemQry.put("Name", sValue); bChanged = true;} break;
-              case "File": if (!oItemQry.getString("File").equals(sValue)) {oItemQry.put("File", sValue); bChanged = true;} break;
-              case "Goal": if (!oItemQry.getString("Goal").equals(sValue)) {oItemQry.put("Goal", sValue); bChanged = true;} break;
-              case "Comment": if (!oItemQry.getString("Comment").equals(sValue)) {oItemQry.put("Comment", sValue); bChanged = true;} break;
-              case "Text": if (!oItemQry.getString("Text").equals(sValue)) {oItemQry.put("Text", sValue); bChanged = true;} break;
-              default: return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
-            }  */
             // Process changes
             if (bChanged) {
               this.setListQueryItem(iIdx, oItemQry);
@@ -1324,15 +1328,6 @@ public class CorpusResearchProject {
             } else {
               return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
             }
-            /*
-            switch(sItemKey) {
-              case "name": if (!oItemDef.getString("Name").equals(sValue)) {oItemDef.put("Name", sValue); bChanged = true;} break;
-              case "file": if (!oItemDef.getString("File").equals(sValue)) {oItemDef.put("File", sValue); bChanged = true;} break;
-              case "goal": if (!oItemDef.getString("Goal").equals(sValue)) {oItemDef.put("Goal", sValue); bChanged = true;} break;
-              case "comment": if (!oItemDef.getString("Comment").equals(sValue)) {oItemDef.put("Comment", sValue); bChanged = true;} break;
-              case "text": if (!oItemDef.getString("Text").equals(sValue)) {oItemDef.put("Text", sValue); bChanged = true;} break;
-              default: return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
-            } */
             // Process changes
             if (bChanged) { 
               this.setListDefItem(iIdx, oItemDef);
@@ -1349,18 +1344,6 @@ public class CorpusResearchProject {
             } else {
               return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
             }
-            /*
-            switch(sItemKey) {
-              case "input": if (!oItemQc.getString("Input").equals(sValue)) {oItemQc.put("Input", sValue); bChanged = true;} break;
-              case "query": if (!oItemQc.getString("Query").equals(sValue)) {oItemQc.put("Query", sValue); bChanged = true;} break;
-              case "output": if (!oItemQc.getString("Output").equals(sValue)) {oItemQc.put("Output", sValue); bChanged = true;} break;
-              case "result": if (!oItemQc.getString("Result").equals(sValue)) {oItemQc.put("Result", sValue); bChanged = true;} break;
-              case "Cmp": if (!oItemQc.getString("Cmp").equals(sValue)) {oItemQc.put("Cmp", sValue); bChanged = true;} break;
-              case "Mother": if (!oItemQc.getString("Mother").equals(sValue)) {oItemQc.put("Mother", sValue); bChanged = true;} break;
-              case "Goal": if (!oItemQc.getString("Goal").equals(sValue)) {oItemQc.put("Goal", sValue); bChanged = true;} break;
-              case "Comment": if (!oItemQc.getString("Comment").equals(sValue)) {oItemQc.put("Comment", sValue); bChanged = true;} break;
-              default: return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
-            } */
             // Process changes
             if (bChanged) {
               this.setListQCitem(iIdx, oItemQc);
@@ -1375,15 +1358,6 @@ public class CorpusResearchProject {
             } else {
               return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
             }
-            /*
-            switch(sItemKey) {
-              case "Name": if (!oItemDbf.getString("Name").equals(sValue)) {oItemDbf.put("Name", sValue); bChanged = true;} break;
-              case "Pre": if (!oItemDbf.getString("Pre").equals(sValue)) {oItemDbf.put("Pre", sValue); bChanged = true;} break;
-              case "QCid": if (!oItemDbf.getString("QCid").equals(sValue)) {oItemDbf.put("QCid", sValue); bChanged = true;} break;
-              case "FtNum": if (!oItemDbf.getString("FtNum").equals(sValue)) {oItemDbf.put("FtNum", sValue); bChanged = true;} break;
-              default: return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
-            }
-            */
             // Process changes
             if (bChanged) {
               this.setListDbFeatItem(iIdx, oItemDbf);
