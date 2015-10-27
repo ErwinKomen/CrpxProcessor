@@ -1153,7 +1153,10 @@ public class CorpusResearchProject {
           if (ndItem.getNodeName().equals(sName)) {
             // Found the child named @sName
             ndAttr = ndItem;
-            break;
+            // Set the text content of this child
+            ndAttr.setTextContent(sValue);
+            // Return positively
+            return true;
           }
         }
         // Double check the outcome
@@ -1164,8 +1167,10 @@ public class CorpusResearchProject {
       }
       // Set attribute named @sName with value [sValue]
       ndAttr.setNodeValue(sValue);
+      // Return positively (see further down...)
     } catch (XPathExpressionException ex) {      
       errHandle.DoError("Problem with setItemValue ["+sItemType+"/"+iItemId+"/@" + sName + "]", ex);
+      // TODO: why not return 'false' here??
     }
     // Return positively
     return true;
