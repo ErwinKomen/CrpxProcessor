@@ -503,6 +503,13 @@ public class FileUtil {
     }
   }
   // ERK: added string-to-string file name normalization using .nio
+  /**
+   * nameNormalize
+   *    Normalize the file @sName according to Windows, Mac or Linux practice
+   * 
+   * @param sName
+   * @return 
+   */
   public static String nameNormalize(String sName) {
     Path pThis = null;
     LinkOption lThis;
@@ -516,23 +523,19 @@ public class FileUtil {
       // Check the path
       if (sMac.exists())  sReplace = sMac.getAbsolutePath();
       else { if (sLinux.exists()) sReplace = sLinux.getAbsolutePath(); }
-      // Perform conversion first
+      // Perform conversion first (Windows to Linux)
       sName = sName.replace("\\", "/").toLowerCase().replace("d:/", sReplace + "/");
+      // Make sure the C and U drive are treated in the same fashion
+      sName = sName.toLowerCase().replace("c:/", sReplace + "/");
+      sName = sName.toLowerCase().replace("u:/", sReplace + "/");
     }
     try {
-      // Perform normalization
-      pThis = Paths.get(sName);
-      pThis = pThis.normalize();
+      // Perform normalization using the NIO interface
+      pThis = Paths.get(sName).normalize();
       // Determine file-separator
-      if (pThis.toString().contains("/"))
-        fs = "/";
-      else
-        fs = "\\";
+      fs =  (pThis.toString().contains("/")) ? "/" : "\\";
       
-      /* ======== OBSOLETE ====
-      lThis = LinkOption.NOFOLLOW_LINKS; 
-         ======================  */
-      // Get the string equivalent and turn it into a File
+      // Get the string equivalent and turn it into a File 
       File fFile = pThis.toFile();
       // Check if the path exists
       if (!fFile.exists()) {
@@ -542,6 +545,7 @@ public class FileUtil {
           arDir = fFile.toString().replace("\\", "/").split("/");
         else
           arDir = fFile.toString().split(fs);
+        // Initialize dir-by-dir walking...
         String sTmpPath = "";
         // Action depends on what is inside arDir[0]
         if (arDir[0].endsWith(":")) sTmpPath += arDir[0];
@@ -559,7 +563,8 @@ public class FileUtil {
             }
             String[] arHere = fOld.list();
             if (arHere == null) {
-              Logger.getLogger(FileUtil.class.getName()).log(Level.SEVERE, "arHere is null");
+              Logger.getLogger(FileUtil.class.getName()).log(Level.SEVERE, 
+                      "arHere is null. Source=["+sName+"]. Attempt breaks at dir=["+fNew.toString()+"]");
               return "";
             }
             // Find the variant
