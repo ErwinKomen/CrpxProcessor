@@ -56,6 +56,28 @@ public class RuBase /* extends Job */ {
   private static XPathSelector ru_xpeNodeText_Folia2; // We need a second expression for ProjFolia
   private static XPathSelector ru_xpeNodeText_Negra;  // Search expression for ProjNegra
   private static XPathSelector ru_xpeNodeText_Alp;    // Search expression for ProjAlp  
+  private static XPathSelector ru_xpeWords_Psdx;      // Search expression for ProjPsdx
+  private static XPathSelector ru_xpeWords_Folia;     // Search expression for ProjFolia
+  private static XPathSelector ru_xpeWords_Folia2;    // We need a second expression for ProjFolia
+  private static XPathSelector ru_xpeWords_Negra;     // Search expression for ProjNegra
+  private static XPathSelector ru_xpeWords_Alp;       // Search expression for ProjAlp  
+  
+  private static XPathSelector ru_xpPreceding_Psdx;   // List of preceding nodes for ProjPsdx
+  private static XPathSelector ru_xpPreceding_Folia;  // List of preceding nodes for ProjFolia
+  private static XPathSelector ru_xpPreceding_Alp;    // List of preceding nodes for ProjAlp
+
+  private static XPathSelector ru_xpFollowing_Psdx;   // List of following nodes for ProjPsdx
+  private static XPathSelector ru_xpFollowing_Folia;  // List of following nodes for ProjFolia
+  private static XPathSelector ru_xpFollowing_Alp;    // List of following nodes for ProjAlp
+
+  private static XPathSelector ru_xpDescendant_Psdx;  // List of descendant nodes for ProjPsdx
+  private static XPathSelector ru_xpDescendant_Folia; // List of descendant nodes for ProjFolia
+  private static XPathSelector ru_xpDescendant_Alp;   // List of descendant nodes for ProjAlp
+
+  private static XPathSelector ru_xpSibling_Psdx;     // List of descendant nodes for ProjPsdx
+  private static XPathSelector ru_xpSibling_Folia;    // List of descendant nodes for ProjFolia
+  private static XPathSelector ru_xpSibling_Alp;      // List of descendant nodes for ProjAlp
+
   // ===================== public constants ====================================
   public static final QName ru_qnETreeId = new QName("", "", "Id");       // Id feature name of an <eTree> element
   public static final QName ru_qnTreeId = new QName("", "", "eTreeId");    // TreeId feature name
@@ -102,11 +124,35 @@ public class RuBase /* extends Job */ {
          lCrpCaller = new ArrayList<>();
         // Set up the compiler
         this.xpComp = this.objSaxon.newXPathCompiler();
+        // Create search expressions for NodeText
         ru_xpeNodeText_Psdx = xpComp.compile("./descendant-or-self::eLeaf[@Type = 'Vern' or @Type = 'Punct']").load();
         ru_xpeNodeText_Folia = xpComp.compile("./descendant-or-self::wref[count(ancestor::su[@class='CODE'])=0]").load();
         ru_xpeNodeText_Folia2 = xpComp.compile("./ancestor::s/child::w[@class='Punct' or @class='Vern']").load();
         ru_xpeNodeText_Alp = xpComp.compile("./descendant-or-self::node[count(@word)>0]").load();
         ru_xpeNodeText_Negra = xpComp.compile("./descendant-or-self::t").load();
+        // Create search expressions for RuWords()
+        ru_xpeWords_Psdx = xpComp.compile("./descendant-or-self::eLeaf[@Type = 'Vern' and count(ancestor::eTree[@Label='CODE'])=0]").load();
+        ru_xpeWords_Folia = xpComp.compile("./descendant-or-self::wref[count(ancestor::su[@class='CODE'])=0]").load();
+        ru_xpeWords_Folia2 = xpComp.compile("./ancestor::s/child::w[@class='Vern']").load();
+        ru_xpeWords_Alp = xpComp.compile("./descendant-or-self::node[count(@word)>0]").load();
+        ru_xpeWords_Negra = xpComp.compile("./descendant-or-self::t").load();
+        // Create search expressions for RuRelates()
+        // (1) PRECEDING
+        ru_xpPreceding_Psdx = xpComp.compile("./following::eTree").load();
+        ru_xpPreceding_Folia = xpComp.compile("./following::su").load();
+        ru_xpPreceding_Alp = xpComp.compile("./following::node").load();
+        // (2) FOLLOWING
+        ru_xpPreceding_Psdx = xpComp.compile("./preceding::eTree").load();
+        ru_xpPreceding_Folia = xpComp.compile("./preceding::su").load();
+        ru_xpPreceding_Alp = xpComp.compile("./preceding::node").load();        
+        // (3) DESCENDANT
+        ru_xpPreceding_Psdx = xpComp.compile("./descendant::eTree").load();
+        ru_xpPreceding_Folia = xpComp.compile("./descendant::su").load();
+        ru_xpPreceding_Alp = xpComp.compile("./descendant::node").load();        
+        // (4) SIBLING
+        ru_xpPreceding_Psdx = xpComp.compile("./preceding-sibling::eTree | ./following-sibling::eTree").load();
+        ru_xpPreceding_Folia = xpComp.compile("./preceding-sibling::su | ./following-sibling::su").load();
+        ru_xpPreceding_Alp = xpComp.compile("./preceding-sibling::node | ./following-sibling::node").load();        
         // Indicate we are initialized
         bInit = true;
       }
@@ -611,6 +657,185 @@ public class RuBase /* extends Job */ {
       // Return failure
       return "";
     }      
+  }
+  
+  /**
+   * doOneRelation
+   *    
+   * 
+   * @param selectXp  - The Xpath expression to use
+   * @param ndStart   - the node we start from 
+   * @param ndFind    - the node we are looking for
+   * @param qId       - the @id attribute Qname
+   * @param sType     - either 'first' or 'contains'
+   * @return 
+   */
+  static private boolean doOneRelation(XPathSelector selectXp, XdmNode ndStart, XdmNode ndFind, QName qId, String sType) {
+    try {
+      // Validate
+      if (selectXp == null || ndStart == null) return false;
+      // Start the search
+      selectXp.setContextItem(ndStart);
+      // Are there any?
+      if (!selectXp.iterator().hasNext()) return false;
+      // Get the id we are looking for
+      String sSearchedId = ndFind.getAttributeValue(qId);
+      // Action depends on the type
+      switch(sType) {
+        case "first":
+          // Get the first one
+          XdmItem itFirst = selectXp.iterator().next();
+          XdmNode ndFirst = (XdmNode) itFirst;
+          return (ndFirst.getAttributeValue(qId).equals(sSearchedId));
+        case "contains":
+          // Go through all the items
+          for (XdmItem item : selectXp) {
+            if (((XdmNode) item).getAttributeValue(qId).equals(sSearchedId)) return true;
+          }
+          break;
+      }
+      // Getting here: failure
+      return false;
+    } catch (Exception ex) {
+      
+      return false;
+    }
+  }
+
+  // ------------------------------------------------------------------------------------
+  // Name:   RuRelates
+  // Goal:   Check whether the relation holds betwee @id=strId1 and @id=strId2
+  //         The relation types are as follows:
+  //         precedes  -- ndId1 linearly precedes ndId2
+  //         iPrecedes -- ndId1 is the preceding sibling of ndId2
+  //         follows   -- ndId2 linearly follows ndId1
+  //         iFollows  -- ndId2 is the following sibling of ndId1
+  //         dominates -- ndId1 dominates ndId2 (and is not equal to ndId2)
+  //         iDominates-- ndId2 is a child of ndId1
+  //         Sibling   -- ndId1 is a sibling of ndId2
+  // History:
+  // 05-07-2011  ERK Created for .NET
+  // 29/oct/2015 ERK Implemented for Java
+  // ------------------------------------------------------------------------------------
+  static boolean RuRelates(XPathContext objXp, XdmNode ndSax1, XdmNode ndSax2, String sType) {
+    boolean bBack = false;
+    CorpusResearchProject crpThis;
+
+    try {
+      // Validate
+      if (ndSax1 == null || ndSax2 == null) return false;
+      
+      // Determine which CRP this is
+      CrpFile oCF = getCrpFile(objXp);
+      crpThis = oCF.crpThis;
+      // Action depends on the kind of xml project we have
+      switch(crpThis.intProjType) {
+        case ProjPsdx: 
+          switch(sType.toLowerCase()) {
+            case "precedes": bBack = doOneRelation(ru_xpPreceding_Psdx, ndSax1, ndSax2, ru_qnETreeId, "contains"); break;
+            case "iprecedes": bBack = doOneRelation(ru_xpPreceding_Psdx, ndSax1, ndSax2, ru_qnETreeId, "first"); break;
+            case "follows": bBack = doOneRelation(ru_xpFollowing_Psdx, ndSax1, ndSax2, ru_qnETreeId, "contains"); break;
+            case "ifollows": bBack = doOneRelation(ru_xpFollowing_Psdx, ndSax1, ndSax2, ru_qnETreeId, "first"); break;
+            case "dominates":bBack = doOneRelation(ru_xpDescendant_Psdx, ndSax1, ndSax2, ru_qnETreeId, "contains"); break;
+            case "idominates":bBack = doOneRelation(ru_xpDescendant_Psdx, ndSax1, ndSax2, ru_qnETreeId, "first"); break;
+            case "sibling":bBack = doOneRelation(ru_xpSibling_Psdx, ndSax1, ndSax2, ru_qnETreeId, "contains"); break;
+          }
+          break;
+        case ProjFolia: 
+          switch(sType.toLowerCase()) {
+            case "precedes": bBack = doOneRelation(ru_xpPreceding_Folia, ndSax1, ndSax2, ru_qnFoliaId, "contains"); break;
+            case "iprecedes": bBack = doOneRelation(ru_xpPreceding_Folia, ndSax1, ndSax2, ru_qnFoliaId, "first"); break;
+            case "follows": bBack = doOneRelation(ru_xpFollowing_Folia, ndSax1, ndSax2, ru_qnFoliaId, "contains"); break;
+            case "ifollows": bBack = doOneRelation(ru_xpFollowing_Folia, ndSax1, ndSax2, ru_qnFoliaId, "first"); break;
+            case "dominates":bBack = doOneRelation(ru_xpDescendant_Folia, ndSax1, ndSax2, ru_qnFoliaId, "contains"); break;
+            case "idominates":bBack = doOneRelation(ru_xpDescendant_Folia, ndSax1, ndSax2, ru_qnFoliaId, "first"); break;
+            case "sibling":bBack = doOneRelation(ru_xpSibling_Folia, ndSax1, ndSax2, ru_qnFoliaId, "contains"); break;
+          }
+          break;
+        case ProjAlp: 
+          switch(sType.toLowerCase()) {
+            case "precedes": bBack = doOneRelation(ru_xpPreceding_Alp, ndSax1, ndSax2, ru_qnAlpinoId, "contains"); break;
+            case "iprecedes": bBack = doOneRelation(ru_xpPreceding_Alp, ndSax1, ndSax2, ru_qnAlpinoId, "first"); break;
+            case "follows": bBack = doOneRelation(ru_xpFollowing_Alp, ndSax1, ndSax2, ru_qnAlpinoId, "contains"); break;
+            case "ifollows": bBack = doOneRelation(ru_xpFollowing_Alp, ndSax1, ndSax2, ru_qnAlpinoId, "first"); break;
+            case "dominates":bBack = doOneRelation(ru_xpDescendant_Alp, ndSax1, ndSax2, ru_qnAlpinoId, "contains"); break;
+            case "idominates":bBack = doOneRelation(ru_xpDescendant_Alp, ndSax1, ndSax2, ru_qnAlpinoId, "first"); break;
+            case "sibling":bBack = doOneRelation(ru_xpSibling_Alp, ndSax1, ndSax2, ru_qnAlpinoId, "contains"); break;
+          }
+          break;
+        case ProjNegra: 
+          switch(sType.toLowerCase()) {
+            case "precedes":
+              break;
+            case "iprecedes":
+              break;
+            case "follows":
+              break;
+            case "ifollows":
+              break;
+            case "dominates":
+              break;
+            case "idominates":
+              break;
+            case "sibling":
+              break;
+          }
+          break;
+      }
+      // Return the result
+      return bBack;
+    } catch (Exception ex) {
+       // Warn user
+       errHandle.DoError("RuBase/RuRelates error", ex, RuBase.class);
+       // Return failure
+       return false;
+    }
+  }
+  
+  // ------------------------------------------------------------------------------------
+  // Name:   RuWords
+  // Goal:   Get the number of words in the constituent [ndStart]
+  // History:
+  // 23-01-2013  ERK Created for .NET
+  // 29/oct/2015 ERK Implemented for Java
+  // ------------------------------------------------------------------------------------
+  static int RuWords(XPathContext objXp, XdmNode ndStart) {
+    int iBack = 0;              // Resulting count
+    XPathSelector selectXp; // The actual selector we are using
+    CorpusResearchProject crpThis;
+    
+    try {
+      // Validate
+      if (ndStart == null) return -1;
+      // Determine which CRP this is
+      CrpFile oCF = getCrpFile(objXp);
+      crpThis = oCF.crpThis;
+      // Default value for array
+      selectXp = null;
+      // Action depends on the kind of xml project we have
+      switch(crpThis.intProjType) {
+        case ProjPsdx: selectXp = ru_xpeWords_Psdx; break;
+        case ProjFolia: selectXp = ru_xpeWords_Folia; break;
+        case ProjAlp: selectXp = ru_xpeWords_Alp; break;
+        case ProjNegra: selectXp = ru_xpeWords_Negra; break;
+      }
+      // Satisfy Netbeans (which doesn't recognize this in the 'default' part of a switch)
+      if (selectXp == null) {
+          errHandle.DoError("RuWords: cannot process type " + crpThis.getProjectType(), RuBase.class);
+          return -1;
+      }
+      // Count the words by taking the selection
+      selectXp.setContextItem(ndStart);
+      // Go through all the items
+      for (XdmItem item : selectXp) iBack++;
+      // Return what we found
+      return iBack;
+    } catch (Exception ex) {
+      // Warn user
+      errHandle.DoError("RuBase/RuWords error", ex, RuBase.class);
+      // Return failure
+      return -1;
+    }
   }
 
 // </editor-fold>

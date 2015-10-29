@@ -858,6 +858,83 @@ public class Extensions extends RuBase {
   }
 // </editor-fold>
 
+// <editor-fold defaultstate="collapsed" desc="ru:relates">
+  // ----------------------------------------------------------------------------------------------------------
+  // Name :  relates
+  // Goal :  Check if the node [ndSax1] stands in a relation of [strType] to [ndSax2]
+  // History:
+  // 12-07-2011  ERK Created for .NET 
+  // 29/oct/2015 ERK Ported to Java
+  // ----------------------------------------------------------------------------------------------------------
+  public static boolean relates(XPathContext objXp, NodeInfo node1, NodeInfo node2, Value varType) {
+    try {
+      String sType = varType.getStringValue();
+      return relates(objXp, node1, node2, sType);
+    } catch (Exception ex) {
+      // Show error
+      errHandle.DoError("Extensions/relates", ex);
+      // Return failure
+      return false;
+    }
+  }
+  public static boolean relates(XPathContext objXp, NodeInfo node1, NodeInfo node2, String sType) {
+    XdmNode ndSax1;   // Myself, if I am a proper node
+    XdmNode ndSax2;   // Myself, if I am a proper node
+    boolean bResult;      // Resulting value
+
+    try {
+      // Validate
+      if (node1 == null || node2 == null) return false;
+      if (node1.getNodeKind() != Type.ELEMENT) return false;
+      if (node2.getNodeKind() != Type.ELEMENT) return false;
+      // Get the XdmNode representation of the node
+      ndSax1 = objSaxDoc.wrap(node1);      
+      ndSax2 = objSaxDoc.wrap(node2);      
+      // Convert to text
+      bResult = RuRelates(objXp, ndSax1, ndSax2, sType);
+      // Return the result
+      return bResult;
+    } catch (Exception ex) {
+      // Show error
+      errHandle.DoError("Extensions/relates", ex);
+      // Return failure
+      return false;
+    }
+  }
+  
+// <editor-fold defaultstate="collapsed" desc="ru:words">
+  // ----------------------------------------------------------------------------------------------------------
+  // Name :  words
+  // Goal :  Count the number of 'words' under the indicated node
+  // History:
+  // 23-01-2013  ERK Created for .NET 
+  // 29/oct/2015 ERK Ported to Java
+  // ----------------------------------------------------------------------------------------------------------
+  public static int words(XPathContext objXp, NodeInfo node) {
+    XdmNode ndSax;    // Myself, if I am a proper node
+    int iResult;      // Resulting value
+    int nodeKind;     // The kind of object getting passed as argument
+
+    try {
+      // Validate
+      if (node == null) return -1;
+      nodeKind = node.getNodeKind();
+      if (nodeKind != Type.ELEMENT) return -1;
+      // Get the XdmNode representation of the node
+      ndSax = objSaxDoc.wrap(node);      
+      // Convert to text
+      iResult = RuWords(objXp, ndSax);
+      // Return the result
+      return iResult;
+    } catch (Exception ex) {
+      // Show error
+      logger.error("Extensions/words error: " + ex.getMessage() + "\r\n");
+      // Return failure
+      return -1;
+    }
+  }
+// </editor-fold>
+
 // <editor-fold defaultstate="collapsed" desc="Private functions">
   private static boolean hasStringValue(XdmValue varText) {
     String strType = varText.getClass().getName();
