@@ -529,6 +529,27 @@ public class FileUtil {
       sName = sName.toLowerCase().replace("c:/", sReplace + "/");
       sName = sName.toLowerCase().replace("u:/", sReplace + "/");
     }
+    // Check for URL-style name, which we cannot accept
+    if (sName.startsWith("//")) {
+      // Try to replace the URL-style header
+      int iRuCrpStudio = sName.indexOf("/ru/corpusstudio");
+      if (iRuCrpStudio == 0) {
+        // Look for "fdl-homedirs"
+        int iRuHomeDirs = sName.indexOf("/fdl-homedirs");
+        if (iRuHomeDirs ==0) {
+          // Remove the first URL-style part
+          sName = sName.substring(2);
+          int iFirst = sName.indexOf("/");
+          if (iFirst >0) sName = sName.substring(iFirst);
+        } else {
+          // Replace from start until and including fdl-homedirs
+          sName = "/etc/project" + sName.substring(iRuCrpStudio + "/fdl-homedirs".length());
+        }
+      } else {
+        // Replace from start until and including /ru/corpusstudio
+        sName = "/etc/project" + sName.substring(iRuCrpStudio + "/ru/corpusstudio".length());
+      }
+    }
     try {
       // Perform normalization using the NIO interface
       pThis = Paths.get(sName).normalize();

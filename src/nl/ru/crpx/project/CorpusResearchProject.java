@@ -1261,7 +1261,7 @@ public class CorpusResearchProject {
             break;
           case "precnum": if (this.getPrecNum() != Integer.parseInt(sValue)) {this.setPrecNum(Integer.parseInt(sValue));  bChanged =true; } 
             break;
-          case "projtype": if (!this.getProjectType().equals(sValue)) {this.setProjectType(sValue);  bChanged =true; } 
+          case "projecttype": if (!this.getProjectType().equals(sValue)) {this.setProjectType(sValue);  bChanged =true; } 
             break;
           case "language": if (!this.getLanguage().equals(sValue)) {errHandle.debug("CrpChgDD language"); this.setLanguage(sValue);  bChanged =true; } 
             break;

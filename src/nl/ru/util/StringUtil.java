@@ -23,6 +23,7 @@ import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.ParsePosition;
 import java.text.RuleBasedCollator;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -30,6 +31,8 @@ import java.util.regex.Pattern;
 import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
+import java.util.Base64.Decoder;
+import java.util.Base64.Encoder;
 import nl.ru.crpx.tools.ErrHandle;
 
 /**
@@ -401,7 +404,7 @@ public class StringUtil {
 	}
   
   /**
-   * escapeHexCoding
+   * compressSafe
 	 *    Escape a string for inclusion in JSON output:
    *        (1) compress it
    *        (2) convert it to a hex-dump
@@ -409,34 +412,44 @@ public class StringUtil {
 	 * @param input the input string
 	 * @return the HEX coded output string
 	 */
-	public static String escapeHexCoding(String input) {
-		StringBuilder result = new StringBuilder();
-    // Turn string into bytes using UTF8
-    byte[] arByte = input.getBytes(Charset.forName("UTF-8"));
-    // Compress the byte array
-    Deflater compresser = new Deflater();
-    compresser.setInput(arByte);
-    compresser.finish();
-    // Make room for the output
-    byte[] arCompr = new byte[arByte.length];
-    // Compress the input into the output
-    int compressedDataLength = compresser.deflate(arCompr);
-    compresser.end();
-    // COpy to smaller array
-    byte[] arSmall = new byte[compressedDataLength];
-    for (int i=0;i<arSmall.length;i++) {
-      arSmall[i] = arCompr[i];
+	public static String compressSafe(String input) {
+    ErrHandle errHandle = new ErrHandle(StringUtil.class);
+
+    try {
+      // StringBuilder result = new StringBuilder();
+      String sStart = input;
+      // Turn string into bytes using UTF8
+      byte[] arByte = sStart.getBytes("UTF-8");
+      // Compress the byte array
+      Deflater compresser = new Deflater();
+      compresser.setInput(arByte);
+      compresser.finish();
+      
+      // Make room for the output (which may, in fact, be *larger* than the input!!)
+      byte[] arCompr = new byte[2*arByte.length];
+      // Compress the input into the output
+      int compressedDataLength = compresser.deflate(arCompr);
+      // compresser.end();
+      compresser.finish();
+      // Copy to a smaller array
+      byte[] arSmall = Arrays.copyOf(arCompr, compressedDataLength);
+      // Then use base64 encoding (adapted)
+      // String sEnc = Base64.encode(arSmall);
+
+      // Use Java 8 Base64
+      String sEnc = java.util.Base64.getEncoder().encodeToString(arSmall);
+      // Convert + into ~
+      sEnc = sEnc.replace('+', '~');
+      // Return the result
+      return sEnc;
+    } catch (Exception ex) {
+      errHandle.DoError("compressSafe failed", ex);
+      return null;
     }
-    /* Alternative: base64 encoding */
-    String sEnc = Base64.encode(arSmall);
-    // ======== Debugging ===========
-    int iBase64Len = sEnc.length();
-    // ==============================
-    return sEnc;
     /* */
 	}
   /**
-   * unescapeHexCoding
+   * decompressSafe
 	 *    Unescape a string that was turned into a hex dump:
    *      (1) hex to byte array
    *      (2) byte array unzip
@@ -449,22 +462,22 @@ public class StringUtil {
    * @throws java.io.IOException
    * @throws java.util.zip.DataFormatException
    */
-  public static String unescapeHexCoding(String input) throws IOException, DataFormatException {
+  public static String decompressSafe(String input) throws IOException, DataFormatException {
     ErrHandle errHandle = new ErrHandle(StringUtil.class);
 
     try {
       int resultLength = 0;
       // StringBuilder result = new StringBuilder();
       int compressedDataLength = input.length();
-      // Check for spaces -- the result of URL encoding
-      input = input.replace(' ', '+');
+      // Convert ~ back into +
+      input = input.replace('~', '+');
       // Convert Base64 into byte array
-      byte[] arByte = Base64.decode(input);
+      byte[] arByte = java.util.Base64.getDecoder().decode(input);
       // Decompress byte-array
       byte[] arDecr = new byte[compressedDataLength * 10];
       Inflater decompresser = new Inflater();
       // decompresser.setInput(arByte, 0, compressedDataLength);
-      decompresser.setInput(arByte);
+      decompresser.setInput(arByte, 0, arByte.length);
       resultLength = decompresser.inflate(arDecr);
       decompresser.end();    
 
@@ -473,7 +486,7 @@ public class StringUtil {
 
       return sResult;
     } catch (Exception ex) {
-      errHandle.DoError("Uploading a CRP failed", ex);
+      errHandle.DoError("decompressSafe a CRP failed", ex);
       return null;
     }
   }
