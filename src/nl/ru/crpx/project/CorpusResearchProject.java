@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.io.StringReader;
 import java.nio.file.Paths;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -26,8 +27,10 @@ import java.util.List;
 import java.util.Map;
 import javax.xml.parsers.*;
 import javax.xml.xpath.*;
+import net.sf.saxon.om.NodeInfo;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.QName;
+import net.sf.saxon.s9api.XdmNode;
 import nl.ru.crpx.dataobject.DataFormat;
 import nl.ru.crpx.search.Job;
 import nl.ru.crpx.search.SearchManager;
@@ -38,10 +41,12 @@ import nl.ru.util.json.JSONObject;
 import nl.ru.xmltools.XmlForest.ForType;
 import static nl.ru.xmltools.XmlIO.WriteXml;
 import org.apache.log4j.Logger;
+import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 /* ---------------------------------------------------------------------------
@@ -1231,6 +1236,7 @@ public class CorpusResearchProject {
    * 
    * @param sKey
    * @param sValue
+   * @param iItemId
    * @return 
    */
   public boolean doChange(String sKey, String sValue, int iItemId) {
@@ -1308,69 +1314,113 @@ public class CorpusResearchProject {
         String sItemType = arKey[0];
         String sItemKey = arKey[1];
         int iIdx = -1;
-        switch(sItemType) {
-          case "query":
-            iIdx = this.getListQueryId(iItemId);
-            JSONObject oItemQry = this.getListQueryItem(iIdx);
-            if (oItemQry.has(sItemKey)) {
-              if (!oItemQry.getString(sItemKey).equals(sValue)) {oItemQry.put(sItemKey, sValue); bChanged = true;} 
-            } else {
-              return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
-            }
-            // Process changes
-            if (bChanged) {
-              this.setListQueryItem(iIdx, oItemQry);
-              this.setItemValue("Query", iItemId, sItemKey, sValue);
-              // The change date of the definition needs to be adapted
-              this.setItemValue("Query", iItemId, "Changed", dateToString(new Date()));
+        // Check for special keys: create, delete
+        switch (sItemKey) {
+          case "create":
+            // Create specifics depend on the item
+            switch(sItemType) {
+              case "query":
+                if (createCrpListItem(lQueryList, "./descendant::QueryList", "Query", 
+                                  "QueryId;Name;File;Goal;Comment;Created;Changed", "Text")) bChanged = true;
+                break;
+              case "definition":
+                if (createCrpListItem(lDefList, "./descendant::DefList", "Definition", 
+                                  "DefId;Name;File;Goal;Comment;Created;Changed", "Text")) bChanged = true;;
+                break;
+              case "constructor":
+                if (createCrpListItem(lQueryConstructor, "./descendant::QueryConstructor", "QC", 
+                                  "QCid;Input;Query;Output;Result;Cmp;Mother;Goal;Comment", "")) bChanged = true;;
+                break;
+              case "dbfeat":
+                if (createCrpListItem(lDbFeatList, "./descendant::DbFeatList", "DbFeat", 
+                                  "DbFeatId;Name;Pre;QCid;FtNum", "")) bChanged = true;;
+                break;
+            }            
+            break;
+          case "delete":
+            // Delete specifics depend on the item
+            switch(sItemType) {
+              case "query":
+                if (removeCrpListItem(lQueryList, "./descendant::QueryList/child::Query", "QueryId", iItemId)) bChanged = true;
+                break;
+              case "definition":
+                if (removeCrpListItem(lDefList, "./descendant::DefList/child::Definition", "DefId", iItemId)) bChanged = true;;
+                break;
+              case "constructor":
+                if (removeCrpListItem(lQueryConstructor, "./descendant::QueryConstructor/child::QC", "QCid", iItemId)) bChanged = true;;
+                break;
+              case "dbfeat":
+                if (removeCrpListItem(lDbFeatList, "./descendant::DbFeatList/child::DbFeat", "DbFeatId", iItemId)) bChanged = true;;
+                break;
+            }            
+            break;
+          default:
+            switch(sItemType) {
+              case "query":
+                iIdx = this.getListQueryId(iItemId);
+                JSONObject oItemQry = this.getListQueryItem(iIdx);
+                if (oItemQry.has(sItemKey)) {
+                  if (!oItemQry.getString(sItemKey).equals(sValue)) {oItemQry.put(sItemKey, sValue); bChanged = true;} 
+                } else {
+                  return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
+                }
+                // Process changes
+                if (bChanged) {
+                  this.setListQueryItem(iIdx, oItemQry);
+                  this.setItemValue("Query", iItemId, sItemKey, sValue);
+                  // The change date of the definition needs to be adapted
+                  this.setItemValue("Query", iItemId, "Changed", dateToString(new Date()));
+                }
+                break;
+              case "definition":
+                iIdx = this.getListDefId(iItemId);
+                JSONObject oItemDef = this.getListDefItem(iIdx);
+                if (oItemDef.has(sItemKey)) {
+                  if (!oItemDef.getString(sItemKey).equals(sValue)) {oItemDef.put(sItemKey, sValue); bChanged = true;} 
+                } else {
+                  return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
+                }
+                // Process changes
+                if (bChanged) { 
+                  this.setListDefItem(iIdx, oItemDef);
+                  this.setItemValue("Definition", iItemId, sItemKey, sValue);
+                  // The change date of the definition needs to be adapted
+                  this.setItemValue("Definition", iItemId, "Changed", dateToString(new Date()));
+                }
+                break;
+              case "constructor":
+                iIdx = this.getListQcId(iItemId);
+                JSONObject oItemQc = this.getListQCitem(iIdx);
+                if (oItemQc.has(sItemKey)) {
+                  if (!oItemQc.getString(sItemKey).equals(sValue)) {oItemQc.put(sItemKey, sValue); bChanged = true;} 
+                } else {
+                  return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
+                }
+                // Process changes
+                if (bChanged) {
+                  this.setListQCitem(iIdx, oItemQc);
+                  this.setItemValue("QC", iItemId, sItemKey, sValue);
+                }
+                break;
+              case "dbfeat":
+                iIdx = this.getListDbFeatId(iItemId);
+                JSONObject oItemDbf = this.getListDbFeatItem(iIdx);
+                if (oItemDbf.has(sItemKey)) {
+                  if (!oItemDbf.getString(sItemKey).equals(sValue)) {oItemDbf.put(sItemKey, sValue); bChanged = true;} 
+                } else {
+                  return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
+                }
+                // Process changes
+                if (bChanged) {
+                  this.setListDbFeatItem(iIdx, oItemDbf);
+                  this.setItemValue("DbFeat", iItemId, sItemKey, sValue);
+                }
+                break;
+              default: return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
             }
             break;
-          case "definition":
-            iIdx = this.getListDefId(iItemId);
-            JSONObject oItemDef = this.getListDefItem(iIdx);
-            if (oItemDef.has(sItemKey)) {
-              if (!oItemDef.getString(sItemKey).equals(sValue)) {oItemDef.put(sItemKey, sValue); bChanged = true;} 
-            } else {
-              return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
-            }
-            // Process changes
-            if (bChanged) { 
-              this.setListDefItem(iIdx, oItemDef);
-              this.setItemValue("Definition", iItemId, sItemKey, sValue);
-              // The change date of the definition needs to be adapted
-              this.setItemValue("Definition", iItemId, "Changed", dateToString(new Date()));
-            }
-            break;
-          case "constructor":
-            iIdx = this.getListQcId(iItemId);
-            JSONObject oItemQc = this.getListQCitem(iIdx);
-            if (oItemQc.has(sItemKey)) {
-              if (!oItemQc.getString(sItemKey).equals(sValue)) {oItemQc.put(sItemKey, sValue); bChanged = true;} 
-            } else {
-              return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
-            }
-            // Process changes
-            if (bChanged) {
-              this.setListQCitem(iIdx, oItemQc);
-              this.setItemValue("QC", iItemId, sItemKey, sValue);
-            }
-            break;
-          case "dbfeat":
-            iIdx = this.getListDbFeatId(iItemId);
-            JSONObject oItemDbf = this.getListDbFeatItem(iIdx);
-            if (oItemDbf.has(sItemKey)) {
-              if (!oItemDbf.getString(sItemKey).equals(sValue)) {oItemDbf.put(sItemKey, sValue); bChanged = true;} 
-            } else {
-              return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
-            }
-            // Process changes
-            if (bChanged) {
-              this.setListDbFeatItem(iIdx, oItemDbf);
-              this.setItemValue("DbFeat", iItemId, sItemKey, sValue);
-            }
-            break;
-          default: return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
         }
+
       }
       // the change date of the whole CRP needs to be adapted
       if (bChanged) this.setDateChanged(new Date());
@@ -1510,6 +1560,126 @@ public class CorpusResearchProject {
     return(true);
   }
 
+  /**
+   * createCrpListItem
+   *    Create a new XML node, appending it to the list in @sPath
+   *    The new node gets attributes specified in @sAttribs
+   *    It gets children specified in @sChildren
+   * 
+   * @param lThis
+   * @param sPath
+   * @param sTagName
+   * @param sAttribs
+   * @param sChildren
+   * @return 
+   */
+  private boolean createCrpListItem(List<JSONObject> lThis, String sPath, String sTagName, String sAttribs, String sChildren) {
+    String sIdName="";        // Name of the id field 
+    Node ndParent = null;     // Parent under which we will add
+    int iIdValue = -1;        // Value of the new id
+    
+    try {
+      // Get a list of nodes along sPath
+      ndParent = (Node) xpath.evaluate(sPath, this.docProject, XPathConstants.NODE);
+      // Validate: any result?
+      if (ndParent == null) return false;
+      // Create a new Node element
+      Element ndNew = this.docProject.createElement(sTagName);
+      // Create a new object for the list
+      JSONObject oNew = new JSONObject();
+      // Add the attributes
+      String[] arAttr = sAttribs.split("[;]");
+      for (int i=1;i<arAttr.length; i++) {
+        // Add this attribute
+        ndNew.setAttribute(arAttr[i], "");
+        // Add it in the JSON
+        oNew.put(arAttr[i], "");
+      }
+      // Create a new id element
+      sIdName = arAttr[0];
+      iIdValue = getNewId(lThis, sIdName);
+      ndNew.setAttribute(sIdName, String.valueOf(iIdValue));
+      // Also add it to the object -- but as an integer
+      oNew.put(sIdName, iIdValue);
+      // Add the children
+      String[] arChild = sChildren.split("[;]");
+      for (int i=0;i<arChild.length; i++) {
+        // Create child
+        Node ndChild = this.docProject.createElement(arChild[i]);
+        ndChild.setNodeValue("");
+        // Add this child
+        ndNew.appendChild(ndChild);
+        // Add it in the JSON
+        oNew.put(arChild[i], "");
+      }      
+      // Append the new node to this path
+      ndParent.appendChild(ndNew);
+      // Append the new JSON object to the list
+      lThis.add(oNew);      
+      // Return positively -- this means changes need to be saved!!
+      return true;
+    } catch (Exception ex) {
+      errHandle.DoError("createCrpListItem problem", ex);
+      return false;
+    }
+  }
+  
+  /**
+   * removeCrpListItem
+   *    Remove the item with the indicated id from the list
+   * 
+   * @param lThis
+   * @param sPath
+   * @param sIdName
+   * @param iItemId
+   * @return 
+   */
+  private boolean removeCrpListItem(List<JSONObject> lThis, String sPath, String sIdName, int iItemId) {
+    NodeList ndxList = null;  // List of all the nodes on the specified path
+    Node ndParent = null;     // Parent node
+    boolean bFound = false;   // Found node to be deleted
+
+    try {
+      // Get a list of all the nodes on @sPath
+      ndxList = (NodeList) xpath.evaluate(sPath, this.docProject, XPathConstants.NODESET);
+      // Double check
+      if (ndxList == null) return false;
+      // Walk through the list
+      for (int i = 0; i < ndxList.getLength(); i++) {
+        // Get the id of this item
+        int iId = Integer.parseInt(ndxList.item(i).getAttributes().getNamedItem(sIdName).getNodeValue());
+        // Is this the correct one?
+        if (iId == iItemId) {
+          // this is the one that needs to be deleted: proceed!
+          ndParent = ndxList.item(i).getParentNode();
+          ndParent.removeChild(ndxList.item(i));
+          // Indicate success
+          bFound = true;
+          break;
+        }
+      }
+      // Proceed if we found it
+      if (bFound) {
+        for (int i=0;i<lThis.size();i++) {
+          // Get this item
+          JSONObject oThis = lThis.get(i);
+          // Is this the one?
+          if (oThis.getInt(sIdName) == iItemId) {
+            // This is the one: delete it from the list
+            lThis.remove(i);
+            // Return positively -- this means changes need to be saved!!
+            return true;
+          }
+        }
+      }  
+      // Getting here means failure
+      return false;
+    } catch (Exception ex) {
+      errHandle.DoError("removeCrpListItem problem", ex);
+      return false;
+    }
+  }
+  
   /* ---------------------------------------------------------------------------
    Name:    ReadCrpList
    Goal:    Read a list of objects into a JSON list
@@ -1556,7 +1726,7 @@ public class CorpusResearchProject {
       // Copy the children
       for (int j=0; j< arChildren.length; j++) { 
         String sName = arChildren[j];
-        if (sName != "") {
+        if (!sName.isEmpty()) {
           Node ndxChild;
           try {
             ndxChild = (Node) xpath.compile("./child::" + sName).evaluate(ndxList.item(i), XPathConstants.NODE);
@@ -1619,7 +1789,32 @@ public class CorpusResearchProject {
     return true;
   }
   
+  /**
+   * getNewId
+   *    Derive a new id value
+   * 
+   * @param oList
+   * @param sIdField
+   * @return 
+   */
+  private int getNewId(List<JSONObject> oList, String sIdField) {
+    try {
+      // Validate
+      if (oList == null || sIdField.isEmpty()) return -1;
+      // Consider the length
+      if (oList.isEmpty()) return 1;
+      // Look at the *last* value in the list!!
+      int iLastId = oList.get(oList.size()-1).getInt(sIdField);
+      // Return one higher than the last id
+      return iLastId +1;
+    } catch (Exception ex) {
+      errHandle.DoError("CorpusResearchProject/getNewId problem", ex);
+      return -1;
+    }
+  }
+
 }
+
 
 /* ---------------------------------------------------------------------------
  Class:   QCidComparator
