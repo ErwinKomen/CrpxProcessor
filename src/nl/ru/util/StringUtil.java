@@ -31,9 +31,11 @@ import java.util.regex.Pattern;
 import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
+import nl.ru.crpx.tools.ErrHandle;
+/* ================ Uses Java8 ============
 import java.util.Base64.Decoder;
 import java.util.Base64.Encoder;
-import nl.ru.crpx.tools.ErrHandle;
+   ======================================== */
 
 /**
  * Een collectie reguliere expressies om verschillende patronen uit Strings te filteren.
@@ -433,13 +435,13 @@ public class StringUtil {
       compresser.finish();
       // Copy to a smaller array
       byte[] arSmall = Arrays.copyOf(arCompr, compressedDataLength);
-      // Then use base64 encoding (adapted)
-      // String sEnc = Base64.encode(arSmall);
+      // Then use base64 encoding (adapted, where + is replaced by ~)
+      String sEnc = Base64.encode(arSmall);
 
       // Use Java 8 Base64
-      String sEnc = java.util.Base64.getEncoder().encodeToString(arSmall);
+      // String sEnc = java.util.Base64.getEncoder().encodeToString(arSmall);
       // Convert + into ~
-      sEnc = sEnc.replace('+', '~');
+      // sEnc = sEnc.replace('+', '~');
       // Return the result
       return sEnc;
     } catch (Exception ex) {
@@ -467,16 +469,18 @@ public class StringUtil {
 
     try {
       int resultLength = 0;
-      // StringBuilder result = new StringBuilder();
       int compressedDataLength = input.length();
+      // Use our own Base63 decoding
+      byte[] arByte = Base64.decode(input);
+      /* === this makes use of Java8 =================
       // Convert ~ back into +
       input = input.replace('~', '+');
       // Convert Base64 into byte array
       byte[] arByte = java.util.Base64.getDecoder().decode(input);
+         ============================================= */
       // Decompress byte-array
       byte[] arDecr = new byte[compressedDataLength * 10];
       Inflater decompresser = new Inflater();
-      // decompresser.setInput(arByte, 0, compressedDataLength);
       decompresser.setInput(arByte, 0, arByte.length);
       resultLength = decompresser.inflate(arDecr);
       decompresser.end();    
