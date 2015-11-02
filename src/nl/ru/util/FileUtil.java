@@ -511,10 +511,11 @@ public class FileUtil {
    * @return 
    */
   public static String nameNormalize(String sName) {
-    Path pThis = null;
-    LinkOption lThis;
+    String[] arUrlParts = {"/ru/corpusstudio", "/fdl-homedirs"};
     File sMac = new File("/Users/erwin/");
     File sLinux = new File("/etc/project/");
+    Path pThis = null;
+    LinkOption lThis;
     String sReplace = "/";
     
     String fs = System.getProperty("file.separator");
@@ -523,33 +524,37 @@ public class FileUtil {
       // Check the path
       if (sMac.exists())  sReplace = sMac.getAbsolutePath();
       else { if (sLinux.exists()) sReplace = sLinux.getAbsolutePath(); }
-      // Perform conversion first (Windows to Linux)
-      sName = sName.replace("\\", "/").toLowerCase().replace("d:/", sReplace + "/");
-      // Make sure the C and U drive are treated in the same fashion
-      sName = sName.toLowerCase().replace("c:/", sReplace + "/");
-      sName = sName.toLowerCase().replace("u:/", sReplace + "/");
+      // First normalize backslash to slash
+      sName = sName.replace("\\", "/");
+      // Next take off any drive specification
+      if (sName.matches("\\w[:]")) 
+        sName = sName.substring(2);
     }
     // Check for URL-style name, which we cannot accept
-    if (sName.startsWith("//")) {
+    if (sName.startsWith("//") || sName.startsWith("\\\\")) {
+      int iRuCrpStudio; boolean bFound = false;
       // Try to replace the URL-style header
-      int iRuCrpStudio = sName.indexOf("/ru/corpusstudio");
-      if (iRuCrpStudio == 0) {
-        // Look for "fdl-homedirs"
-        int iRuHomeDirs = sName.indexOf("/fdl-homedirs");
-        if (iRuHomeDirs ==0) {
-          // Remove the first URL-style part
-          sName = sName.substring(2);
-          int iFirst = sName.indexOf("/");
-          if (iFirst >0) sName = sName.substring(iFirst);
-        } else {
-          // Replace from start until and including fdl-homedirs
-          sName = "/etc/project" + sName.substring(iRuCrpStudio + "/fdl-homedirs".length());
+      for (int i=0;i<arUrlParts.length;i++) {
+        // Check if we have a match -- either with forward or backward slashes
+        iRuCrpStudio = sName.toLowerCase().indexOf(arUrlParts[i]);
+        if (iRuCrpStudio <0) iRuCrpStudio = sName.toLowerCase().indexOf(arUrlParts[i].replace('/', '\\'));
+        // If there is a match...
+        if (iRuCrpStudio >=0) {
+          // Re-combine, starting from /etc/project
+          sName = "/etc/project" + sName.substring(iRuCrpStudio + arUrlParts[i].length());
+          // Indicate we found it and then break out of the for loop
+          bFound = true;
+          break;
         }
-      } else {
-        // Replace from start until and including /ru/corpusstudio
-        sName = "/etc/project" + sName.substring(iRuCrpStudio + "/ru/corpusstudio".length());
       }
-    }
+      // What if we didn't find it?
+      if (!bFound) {
+        // Remove the first URL-style part
+        sName = sName.substring(2);
+        int iFirst = sName.replace('\\', '/').indexOf("/");
+        if (iFirst >0) sName = sName.substring(iFirst);
+      }
+    } 
     try {
       // Perform normalization using the NIO interface
       pThis = Paths.get(sName).normalize();
