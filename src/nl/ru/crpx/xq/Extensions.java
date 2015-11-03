@@ -901,6 +901,7 @@ public class Extensions extends RuBase {
       return false;
     }
   }
+// </editor-fold>
   
 // <editor-fold defaultstate="collapsed" desc="ru:words">
   // ----------------------------------------------------------------------------------------------------------
