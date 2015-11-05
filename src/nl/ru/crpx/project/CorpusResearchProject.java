@@ -1399,7 +1399,7 @@ public class CorpusResearchProject {
                 // Process changes
                 if (bChanged) {
                   this.setListQCitem(iIdx, oItemQc);
-                  this.setItemValue("QC", iItemId, sItemKey, sValue);
+                  this.setItemValue("Constructor", iItemId, sItemKey, sValue);
                 }
                 break;
               case "dbfeat":
