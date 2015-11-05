@@ -1121,7 +1121,7 @@ public class CorpusResearchProject {
     switch(sItemType.toLowerCase()) {
       case "query": return "QueryId";
       case "definition": return "DefId";
-      case "constructor": return "QCid";
+      case "constructor": case "qc": return "QCid";
       case "dbfeat": return "DbFeatId";
       default: return "";
     }
@@ -1399,7 +1399,7 @@ public class CorpusResearchProject {
                 // Process changes
                 if (bChanged) {
                   this.setListQCitem(iIdx, oItemQc);
-                  this.setItemValue("Constructor", iItemId, sItemKey, sValue);
+                  this.setItemValue("QC", iItemId, sItemKey, sValue);
                 }
                 break;
               case "dbfeat":
@@ -1699,6 +1699,8 @@ public class CorpusResearchProject {
     }
     // Double check
     if (ndxList == null) return false;
+    // Make sure list is empty
+    lThis.clear();
     // Convert the [sAttribs] into an array
     String[] arAttribs = sAttribs.split(";");
     String[] arChildren = sChildren.split(";");

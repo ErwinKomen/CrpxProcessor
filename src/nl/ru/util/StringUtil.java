@@ -478,12 +478,20 @@ public class StringUtil {
       // Convert Base64 into byte array
       byte[] arByte = java.util.Base64.getDecoder().decode(input);
          ============================================= */
-      // Decompress byte-array
-      byte[] arDecr = new byte[compressedDataLength * 10];
-      Inflater decompresser = new Inflater();
-      decompresser.setInput(arByte, 0, arByte.length);
-      resultLength = decompresser.inflate(arDecr);
-      decompresser.end();    
+      // Decompress byte-array - guess the length until we have enough
+      int iDecrLength = 2 * compressedDataLength;
+      Inflater decompresser;
+      byte[] arDecr;
+      int iPrevLen;
+      do {
+        iDecrLength *= 2;
+        iPrevLen = resultLength;
+        arDecr = new byte[iDecrLength];
+        decompresser = new Inflater();
+        decompresser.setInput(arByte, 0, arByte.length);
+        resultLength = decompresser.inflate(arDecr);
+        decompresser.end();   
+      } while (!decompresser.finished() && resultLength > iPrevLen);
 
       // Convert byte array into string again
       String sResult = new String(arDecr, 0, resultLength, "UTF-8");
