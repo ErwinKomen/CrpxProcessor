@@ -1,0 +1,9 @@
+/nbproject/
+/build/
+/dist/
+*.xml
+*.properties
+*.jsp
+*.json
+/src/conf/
+/lib/
