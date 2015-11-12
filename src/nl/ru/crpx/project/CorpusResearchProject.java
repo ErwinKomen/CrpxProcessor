@@ -1246,6 +1246,19 @@ public class CorpusResearchProject {
     try {
       // Determine the new location name
       sLocNew = FileIO.getDirectory(sLocOld)+"/"+sNewName+".crpx";
+      // Try to change file name
+      File fOld = new File(sLocOld);
+      File fNew = new File(sLocNew);
+      if (!fOld.renameTo(fNew)) {
+        // Provide a warning
+        errHandle.DoError("changeLocation of CRP did not succeed");
+        return false;
+      }
+      // Set the new location
+      this.setLocation(sLocNew);
+      errHandle.debug("changeLocation: CRP renamed");
+      
+      /*
       // Save XML file into new location
       if (WriteXml(this.docProject, sLocNew)) {
         // Set the new location
@@ -1256,10 +1269,10 @@ public class CorpusResearchProject {
           // Everything went well!
           return true;
         }
-      }
+      } */
       
-      // Return failure
-      return false;
+      // Return success
+      return true;
     } catch (Exception ex) {
       errHandle.DoError("changeLocation error", ex);
       return false;

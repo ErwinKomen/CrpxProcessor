@@ -527,8 +527,10 @@ public class FileUtil {
       // First normalize backslash to slash
       sName = sName.replace("\\", "/");
       // Next take off any drive specification
-      if (sName.matches("\\w[:]")) 
+      if (sName.matches("\\w[:].*")) {
+        // Remove drive letter
         sName = sName.substring(2);
+      }
     }
     // Check for URL-style name, which we cannot accept
     if (sName.startsWith("//") || sName.startsWith("\\\\")) {
@@ -554,7 +556,10 @@ public class FileUtil {
         int iFirst = sName.replace('\\', '/').indexOf("/");
         if (iFirst >0) sName = sName.substring(iFirst);
       }
-    } 
+    } else if (!sName.startsWith("//") && sName.startsWith("/")) {
+      sName = sReplace + sName;
+    }
+
     try {
       // Perform normalization using the NIO interface
       pThis = Paths.get(sName).normalize();
