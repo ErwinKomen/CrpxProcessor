@@ -35,6 +35,7 @@ import nl.ru.crpx.dataobject.DataFormat;
 import nl.ru.crpx.search.Job;
 import nl.ru.crpx.search.SearchManager;
 import nl.ru.crpx.tools.ErrHandle;
+import nl.ru.crpx.tools.FileIO;
 import nl.ru.crpx.tools.General;
 import nl.ru.util.FileUtil;
 import nl.ru.util.json.JSONObject;
@@ -1231,6 +1232,41 @@ public class CorpusResearchProject {
   }
   
   /**
+   * changeLocation
+   *    Save the current CRP as XML in a location with filename @sNewName
+   *    Then remove the file at the old location
+   * 
+   * @param sNewName
+   * @return 
+   */
+  public boolean changeLocation(String sNewName) {
+    String sLocOld = this.Location;
+    String sLocNew = "";
+    
+    try {
+      // Determine the new location name
+      sLocNew = FileIO.getDirectory(sLocOld)+"/"+sNewName+".crpx";
+      // Save XML file into new location
+      if (WriteXml(this.docProject, sLocNew)) {
+        // Set the new location
+        this.setLocation(sLocNew);
+        // Remove the file from the old location
+        File fOld = new File(sLocOld);
+        if (fOld.delete()) {
+          // Everything went well!
+          return true;
+        }
+      }
+      
+      // Return failure
+      return false;
+    } catch (Exception ex) {
+      errHandle.DoError("changeLocation error", ex);
+      return false;
+    }
+  }
+  
+  /**
    * doChange
    *    Change the value of [sKey] to [sValue]
    * 
@@ -1263,7 +1299,12 @@ public class CorpusResearchProject {
             break;
           case "goal": if (!this.getGoal().equals(sValue)) {this.setGoal(sValue);  bChanged =true; } 
             break;
-          case "name": if (!this.getName().equals(sValue)) {this.setName(sValue);  bChanged =true; } 
+          case "name": if (!this.getName().equals(sValue)) {
+            // If the @Name feature changes, we need to change the filename associated with us
+            this.changeLocation(sValue);
+            this.setName(sValue);  
+            bChanged =true; 
+          } 
             break;
           case "precnum": if (this.getPrecNum() != Integer.parseInt(sValue)) {this.setPrecNum(Integer.parseInt(sValue));  bChanged =true; } 
             break;
@@ -1450,10 +1491,10 @@ public class CorpusResearchProject {
       if (sList.isEmpty() || iListId<0 || sKey.isEmpty()) return false;
       // Find the list
       switch (sList.toLowerCase() ) {
-        case "query": sFeatId = "QueryId"; lstThis = this.getListQuery(); break;
-        case "definition": sFeatId = "DefId"; lstThis = this.getListDef(); break;
-        case "qc": sFeatId = "QCid"; lstThis = this.getListQC(); break;
-        case "dbfeat": sFeatId = "DbFeatId"; lstThis = this.lDbFeatList; break;
+        case "query":       sFeatId = "QueryId";  lstThis = this.getListQuery();  break;
+        case "definition":  sFeatId = "DefId";    lstThis = this.getListDef();    break;
+        case "qc":          sFeatId = "QCid";     lstThis = this.getListQC();     break;
+        case "dbfeat":      sFeatId = "DbFeatId"; lstThis = this.lDbFeatList;     break;
         default:
           errHandle.DoError("doChange: unknown list="+sList, CorpusResearchProject.class);
           return false;
