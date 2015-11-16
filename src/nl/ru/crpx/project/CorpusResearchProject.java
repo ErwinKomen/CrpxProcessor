@@ -1313,11 +1313,11 @@ public class CorpusResearchProject {
           case "goal": if (!this.getGoal().equals(sValue)) {this.setGoal(sValue);  bChanged =true; } 
             break;
           case "name": if (!this.getName().equals(sValue)) {
-            // If the @Name feature changes, we need to change the filename associated with us
-            this.changeLocation(sValue);
-            this.setName(sValue);  
-            bChanged =true; 
-          } 
+              // If the @Name feature changes, we need to change the filename associated with us
+              this.changeLocation(sValue);
+              this.setName(sValue);  
+              bChanged =true; 
+            } 
             break;
           case "precnum": if (this.getPrecNum() != Integer.parseInt(sValue)) {this.setPrecNum(Integer.parseInt(sValue));  bChanged =true; } 
             break;
@@ -1373,6 +1373,10 @@ public class CorpusResearchProject {
           case "create":
             // Create specifics depend on the item
             switch(sItemType) {
+              case "project":
+                // Do not create just one new node, but create a whole new CRP
+
+                break;
               case "query":
                 if (createCrpListItem(lQueryList, "./descendant::QueryList", "Query", 
                                   "QueryId;Name;File;Goal;Comment;Created;Changed", "Text")) bChanged = true;
