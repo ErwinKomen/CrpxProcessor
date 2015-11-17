@@ -62,6 +62,36 @@ public class CorpusResearchProject {
   // private static String sGregorianFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSSXXX";
   // private static String sGregorianFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS";
   private static String sGregorianFormat = "yyyy-MM-dd'T'HH:mm:ss";
+  private static String sPrototype = "<?xml version='1.0' standalone='yes'?>\n" +
+    "<CorpusResearchProject>\n" +
+    "  <General>\n" +
+    "    <DateCreated></DateCreated>\n" +
+    "    <DateChanged></DateChanged>\n" +
+    "    <Setting Name='GenPrec' Value='2' />\n" +
+    "    <Setting Name='GenInpExt' Value='.psdx' />\n" +
+    "    <Setting Name='PrecNum' Value='2' />\n" +
+    "    <Setting Name='FollNum' Value='1' />\n" +
+    "    <Setting Name='ShowPsd' Value='True' />\n" +
+    "    <Setting Name='Locked' Value='True' />\n" +
+    "    <Setting Name='InputDir' Value='' />\n" +
+    "    <Setting Name='OutputDir' Value='' />\n" +
+    "    <Setting Name='Stream' Value='True' />\n" +
+    "    <Setting Name='Name' Value='' />\n" +
+    "    <Setting Name='QueryDir' Value='' />\n" +
+    "    <Setting Name='Source' Value='*.psdx' />\n" +
+    "    <Setting Name='DstDir' Value='' />\n" +
+    "    <Setting Name='SrcDir' Value='' />\n" +
+    "    <Setting Name='Goal' Value='' />\n" +
+    "    <Setting Name='Comments' Value='' />\n" +
+    "    <Setting Name='Author' Value='' />\n" +
+    "    <Setting Name='ProjectType' Value='Xquery-psdx' />\n" +
+    "  </General>\n" +
+    "  <QueryConstructor></QueryConstructor>\n" +
+    "  <DbFeatList></DbFeatList>\n" +
+    "  <QueryList></QueryList>\n" +
+    "  <DefList></DefList>\n" +
+    "  <PeriodInfo></PeriodInfo>\n" +
+    "</CorpusResearchProject>";
   // ================== Enumerations in use ==================================
   public enum ProjType {
     ProjPsd, ProjPsdx, ProjNegra, ProjAlp, ProjFolia, Dbase, None;
@@ -400,6 +430,32 @@ public class CorpusResearchProject {
     return(Load(sSrcDir, sDstDir, sQueryDir));
   }
   
+  /**
+   * Create
+   *    Create a new CRP structure, which exists in two realms:
+   *    1) In an XML file
+   *    2) Within this class
+   *    Method: create an XML structure, and then load it
+   *  
+   * @param loc
+   * @param sSrcDir
+   * @param sDstDir
+   * @param sQueryDir
+   * @return 
+   */
+  public boolean Create(String loc, String sSrcDir, String sDstDir, String sQueryDir) {
+    try {
+      // Gett he location for the file
+      this.Location = loc;
+      
+      return(true);
+    } catch (Exception ex) {
+      errHandle.DoError("CorpusResearchProject will not create", ex, CorpusResearchProject.class);
+      // Return failure
+      return false;
+    }
+  }
+
   /* ---------------------------------------------------------------------------
    Name:    Save
    Goal:    Save a project as xml. 
