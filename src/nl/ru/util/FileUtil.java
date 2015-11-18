@@ -556,7 +556,8 @@ public class FileUtil {
         int iFirst = sName.replace('\\', '/').indexOf("/");
         if (iFirst >0) sName = sName.substring(iFirst);
       }
-    } else if (!sName.startsWith("//") && sName.startsWith("/")) {
+    } else if (!sName.startsWith("//") && sName.startsWith("/") && 
+            !sReplace.equals("/")) {
       sName = sReplace + sName;
     }
 

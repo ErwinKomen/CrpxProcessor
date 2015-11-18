@@ -19,10 +19,12 @@ import java.nio.file.Paths;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import javax.xml.parsers.*;
@@ -61,37 +63,14 @@ public class CorpusResearchProject {
   private static final Logger logger = Logger.getLogger(CorpusResearchProject.class);
   // private static String sGregorianFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSSXXX";
   // private static String sGregorianFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS";
-  private static String sGregorianFormat = "yyyy-MM-dd'T'HH:mm:ss";
-  private static String sPrototype = "<?xml version='1.0' standalone='yes'?>\n" +
-    "<CorpusResearchProject>\n" +
-    "  <General>\n" +
-    "    <DateCreated></DateCreated>\n" +
-    "    <DateChanged></DateChanged>\n" +
-    "    <Setting Name='GenPrec' Value='2' />\n" +
-    "    <Setting Name='GenInpExt' Value='.psdx' />\n" +
-    "    <Setting Name='PrecNum' Value='2' />\n" +
-    "    <Setting Name='FollNum' Value='1' />\n" +
-    "    <Setting Name='ShowPsd' Value='True' />\n" +
-    "    <Setting Name='Locked' Value='True' />\n" +
-    "    <Setting Name='InputDir' Value='' />\n" +
-    "    <Setting Name='OutputDir' Value='' />\n" +
-    "    <Setting Name='Stream' Value='True' />\n" +
-    "    <Setting Name='Name' Value='' />\n" +
-    "    <Setting Name='QueryDir' Value='' />\n" +
-    "    <Setting Name='Source' Value='*.psdx' />\n" +
-    "    <Setting Name='DstDir' Value='' />\n" +
-    "    <Setting Name='SrcDir' Value='' />\n" +
-    "    <Setting Name='Goal' Value='' />\n" +
-    "    <Setting Name='Comments' Value='' />\n" +
-    "    <Setting Name='Author' Value='' />\n" +
-    "    <Setting Name='ProjectType' Value='Xquery-psdx' />\n" +
-    "  </General>\n" +
-    "  <QueryConstructor></QueryConstructor>\n" +
-    "  <DbFeatList></DbFeatList>\n" +
-    "  <QueryList></QueryList>\n" +
-    "  <DefList></DefList>\n" +
-    "  <PeriodInfo></PeriodInfo>\n" +
-    "</CorpusResearchProject>";
+  private static final String sGregorianFormat = "yyyy-MM-dd'T'HH:mm:ss";
+  private static final String sSettings = "{'GenPrec': '2', 'GenInpExt': '.psdx', 'PrecNum': '2', "
+      + "'FollNum': '1', 'ShowPsd': 'True', 'Locked': 'True', 'Stream': 'True', "
+      + "'Language': '', 'Part': '', 'DbaseInput': 'False'}";
+  private static final List<String> lCrpParts = Arrays.asList(
+      "General", "QueryConstructor", "DbFeatList", "QueryList", "DefList", "VarList", "PeriodInfo");
+  private static final List<String> lCrpDates = Arrays.asList(
+      "DateCreated", "DateChanged");
   // ================== Enumerations in use ==================================
   public enum ProjType {
     ProjPsd, ProjPsdx, ProjNegra, ProjAlp, ProjFolia, Dbase, None;
@@ -165,6 +144,7 @@ public class CorpusResearchProject {
   private String userId;                  // ID of calling user
   private ExecuteXml objEx = null;           // Execution object
   private static Processor objSaxon = null;             // The saxon processor (for global reference)
+  private static JSONObject oSetting = null;
   // Each project contains a number of lists
   List<JSONObject> lDefList = new ArrayList<>();
   List<JSONObject> lQueryList = new ArrayList<>();
@@ -195,6 +175,8 @@ public class CorpusResearchProject {
     this.intProjType = ProjType.ProjPsdx;
     // Set default forest-processing type for this kind of project
     this.forProcType = ForType.PsdxPerForest;
+    // Get the default settings
+    oSetting = new JSONObject(sSettings);
     // Should we initialize saxon?
     if (bUseSaxon) {
       // Create a processor that is NOT schema-aware (so we use Saxon-B 9.1.0.8)
@@ -444,11 +426,64 @@ public class CorpusResearchProject {
    * @return 
    */
   public boolean Create(String loc, String sSrcDir, String sDstDir, String sQueryDir) {
+    Element elGeneral = null;
+    Element elDate = null;
+
     try {
-      // Gett he location for the file
+      // Get the location for the file
       this.Location = loc;
+      // Create an Xml structure
+      this.docProject = this.parser.newDocument();
+      this.docProject.setXmlStandalone(true);
+      this.docProject.setXmlVersion("1.0");
+      // Create root element node
+      Element elRoot = this.docProject.createElement("CorpusResearchProject");
+      this.docProject.appendChild(elRoot);
+      // Add the children
+      for (String sPart : this.lCrpParts) {
+        Element elChild = this.docProject.createElement(sPart);
+        elRoot.appendChild(elChild);
+        if (sPart.equals("General")){
+          elGeneral = elChild;
+          for (String sDatePart : this.lCrpDates) {
+            elDate = this.docProject.createElement(sDatePart);
+            elGeneral.appendChild(elDate);
+          }
+        }
+      }
+      // General default settings
+      Iterator keys = oSetting.keys();
+      while (keys.hasNext()) {
+        String sKey = keys.next().toString();
+        this.setSetting(sKey, oSetting.getString(sKey));
+      }
+      // Get string for current date
+      Date dNow = new Date();
+      String sDateNow = dateToString(dNow);
+      // Initialize general settings
+      this.setName(Name);
+      this.setAuthor(this.userId);
+      this.setComments("<TODO: State details here>\n\n"
+              + "History:\n"+this.userId+"\t"+sDateNow+"\tCreated\n");
+      this.setGoal("<TODO: state the goal of this project here>");
+      this.setDateSetting("Created", sDateNow);
+      this.setDateSetting("Changed", sDateNow);
+      this.setSetting("SrcDir", sSrcDir);
+      this.setSetting("DstDir", sDstDir);
+      this.setSetting("QueryDir", sQueryDir);
+      this.setSetting("InputDir", sSrcDir);
+      this.setSetting("OutputDir", sDstDir);
+
+      this.setProjectType(ProjType.getName(intProjType));
       
-      return(true);
+      // Set the project file
+      this.flProject = new File(this.Location);
+
+      // Save what we have
+      if (!this.Save()) return false;
+      
+      // Load what has been saved properly
+      return(Load(sSrcDir, sDstDir, sQueryDir));      
     } catch (Exception ex) {
       errHandle.DoError("CorpusResearchProject will not create", ex, CorpusResearchProject.class);
       // Return failure
