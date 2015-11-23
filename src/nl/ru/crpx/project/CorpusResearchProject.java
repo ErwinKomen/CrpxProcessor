@@ -327,7 +327,7 @@ public class CorpusResearchProject {
                   "QueryId;Name;File;Goal;Comment;Created;Changed", "Text");
       // Load the list of QC items (query constructor)
       ReadCrpList(lQueryConstructor, "./descendant::QueryConstructor/child::QC", 
-                  "QCid;Input;Query;Output;Result;Cmp;Mother;Goal;Comment", "");
+                  "QCid;Input;Query;Output;OutFeat;Result;Cmp;Mother;Goal;Comment", "");
       // Load the list of database features
       ReadCrpList(lDbFeatList, "./descendant::DbFeatList/child::DbFeat", 
                   "DbFeatId;Name;Pre;QCid;FtNum", "");
