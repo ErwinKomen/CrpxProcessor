@@ -1753,17 +1753,19 @@ public class CorpusResearchProject {
       ndNew.setAttribute(sIdName, String.valueOf(iIdValue));
       // Also add it to the object -- but as an integer
       oNew.put(sIdName, iIdValue);
-      // Add the children
-      String[] arChild = sChildren.split("[;]");
-      for (int i=0;i<arChild.length; i++) {
-        // Create child
-        Node ndChild = this.docProject.createElement(arChild[i]);
-        ndChild.setNodeValue("");
-        // Add this child
-        ndNew.appendChild(ndChild);
-        // Add it in the JSON
-        oNew.put(arChild[i], "");
-      }      
+      if (!sChildren.isEmpty()) {
+        // Add the children
+        String[] arChild = sChildren.split("[;]");
+        for (int i=0;i<arChild.length; i++) {
+          // Create child
+          Node ndChild = this.docProject.createElement(arChild[i]);
+          ndChild.setNodeValue("");
+          // Add this child
+          ndNew.appendChild(ndChild);
+          // Add it in the JSON
+          oNew.put(arChild[i], "");
+        }      
+      }
       // Append the new node to this path
       ndParent.appendChild(ndNew);
       // Append the new JSON object to the list
