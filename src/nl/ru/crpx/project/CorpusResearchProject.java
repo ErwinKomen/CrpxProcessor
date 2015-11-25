@@ -539,7 +539,7 @@ public class CorpusResearchProject {
       File fStatus = new File(getResultFileName("status", "json"));
       if (!fStatus.exists()) {errHandle.debug("CACHE hasResults: no status.json"); return false;}
       // Get the contents of the status file (which is json)
-      JSONObject oStatus = new JSONObject(FileUtil.readFile(fStatus));
+      JSONObject oStatus = new JSONObject( (new FileUtil()).readFile(fStatus));
       // Check if the language and the dir coincide
       if (oStatus.getString("lng").equals(oQuery.getString("lng"))) {
         // Does the status contain a dir?
@@ -581,7 +581,7 @@ public class CorpusResearchProject {
       File fResultsFile = new File(getResultFileName(sType, "json"));
       if (!fResultsFile.exists()) return "";
       // Read the file
-      String sBack = FileUtil.readFile(fResultsFile, "utf-8");
+      String sBack = (new FileUtil()).readFile(fResultsFile, "utf-8");
       // Return the results
       return sBack;
     } catch (Exception ex) {

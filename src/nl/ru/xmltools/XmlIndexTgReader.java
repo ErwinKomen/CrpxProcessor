@@ -399,7 +399,7 @@ public class XmlIndexTgReader {
         return "";
       }
       // Load the header and return it
-      return FileUtil.readFile(loc_fHeader, "utf-8");
+      return (new FileUtil()).readFile(loc_fHeader, "utf-8");
     } catch (Exception ex) {
       errHandle.DoError("Could not read header " + loc_fThis.getAbsolutePath(), ex, XmlIndexTgReader.class);
       // Return failure
@@ -420,7 +420,7 @@ public class XmlIndexTgReader {
         return "";
       }
       iCurrentLine = 0;
-      return FileUtil.readFile(new File(arIndex.get(iCurrentLine).sFile), "utf-8");      
+      return (new FileUtil()).readFile(new File(arIndex.get(iCurrentLine).sFile), "utf-8");      
     } catch (Exception ex) {
       errHandle.DoError("Could not read first line of " + loc_fThis.getAbsolutePath(), ex, XmlIndexTgReader.class);
       // Return failure
@@ -447,7 +447,7 @@ public class XmlIndexTgReader {
         return "";
       }
       // Yes, we should be able to read it...
-      return FileUtil.readFile(new File(arIndex.get(iCurrentLine).sFile), "utf-8");      
+      return (new FileUtil()).readFile(new File(arIndex.get(iCurrentLine).sFile), "utf-8");      
     } catch (Exception ex) {
       errHandle.DoError("Could not read next line [" + iCurrentLine + "] of " + loc_fThis.getAbsolutePath(), ex, XmlIndexTgReader.class);
       // Return failure
@@ -482,7 +482,7 @@ public class XmlIndexTgReader {
       // Yes, we should be able to read it...
       IndexEl elThis = arIndex.get(iCurrentLine);
       sSentId.argValue = elThis.LineId;
-      return FileUtil.readFile(new File(elThis.sFile), "utf-8");    
+      return (new FileUtil()).readFile(new File(elThis.sFile), "utf-8");    
     } catch (Exception ex) {
       errHandle.DoError("Could not read 'relative' line [" + iNewLine + "] of " + loc_fThis.getAbsolutePath(), ex, XmlIndexTgReader.class);
       // Return failure
@@ -511,7 +511,7 @@ public class XmlIndexTgReader {
           // Make sure we note what the current line is
           iCurrentLine = i;
           // Get this line and return it
-          return FileUtil.readFile(new File(objThis.sFile), "utf-8");
+          return (new FileUtil()).readFile(new File(objThis.sFile), "utf-8");
         }
       }
       return "";      
@@ -544,7 +544,7 @@ public class XmlIndexTgReader {
         //   last constituent id of this line
         if (!objThis.LastId.equals("-") && sConstId.compareTo(objThis.LastId)<=0) {
           // Get this line and return it
-          return FileUtil.readFile(new File(objThis.sFile));
+          return (new FileUtil()).readFile(new File(objThis.sFile));
         }
       }
       return "";      

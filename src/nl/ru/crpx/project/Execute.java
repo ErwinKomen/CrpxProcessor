@@ -511,7 +511,7 @@ public class Execute extends CrpGlobal {
         FileUtil fThis = new FileUtil();
         JSONObject oDef = lDef.get(i);
         // Get the correct file name
-        strFile = fThis.nameNormalize(crpThis.getDstDir().getAbsolutePath()+ "/" + 
+        strFile = FileUtil.nameNormalize(crpThis.getDstDir().getAbsolutePath()+ "/" + 
                 strDpfx + oDef.getString("Name") + strDext);
         // Add the content to the text of the combined definitions
         strDtext += fThis.readFile(strFile) + "\n";

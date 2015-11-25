@@ -143,7 +143,8 @@ public class ExecuteXml extends Execute {
         qThis.CatNum = 0;
         // Load the executable into a query evaluate
         qThis.Qeval = qThis.Exe.load();
-        qThis.Qstring = FileUtil.readFile(qThis.QueryFile);
+        FileUtil oFU = new FileUtil();
+        qThis.Qstring = oFU.readFile(qThis.QueryFile);
         // make room for examples
         qThis.Examp = new ArrayList<>();
         // Determine HTML filename for this step

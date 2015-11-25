@@ -48,7 +48,7 @@ public class FileUtil {
    * The default encoding for opening files.
    */
   private static String defaultEncoding = "utf-8";
-  private static int iLineCount = 0;
+  private int iLineCount = 0;
 
   /**
    * Get the default encoding for opening files.
@@ -198,7 +198,7 @@ public class FileUtil {
    * @deprecated use File version instead
    */
   @Deprecated
-  public static List<String> readLines(String filePath) {
+  public List<String> readLines(String filePath) {
           return readLines(new File(filePath));
   }
 
@@ -213,7 +213,7 @@ public class FileUtil {
    * @deprecated use File version instead
    */
   @Deprecated
-  public static List<String> readLines(String filePath, String encoding) {
+  public List<String> readLines(String filePath, String encoding) {
           return readLines(new File(filePath), encoding);
   }
 
@@ -224,7 +224,7 @@ public class FileUtil {
    *            the file to read
    * @return list of lines
    */
-  public static List<String> readLines(File inputFile) {
+  public List<String> readLines(File inputFile) {
           return readLines(inputFile, defaultEncoding);
   }
 
@@ -239,7 +239,7 @@ public class FileUtil {
    * @history
    *    15/oct/2015 ERK removed "line.trim()", since this is undesired
    */
-  public static List<String> readLines(File inputFile, String encoding) {
+  public List<String> readLines(File inputFile, String encoding) {
     try {
       List<String> result = new ArrayList<String>();
       BufferedReader in = openForReading(inputFile, encoding);
@@ -459,25 +459,25 @@ public class FileUtil {
    * @param file the file to read
    * @return the file's contents
    */
-  public static String readFile(File file) {
+  public String readFile(File file) {
     return StringUtil.join(readLines(file), "\n");
   }
-  public static String readFile(File file, String encoding) {
+  public String readFile(File file, String encoding) {
     return StringUtil.join(readLines(file, encoding), "\n");
   }
   // ERK: added readFile with a filename string as input
-  public static String readFile(String sName) {
+  public String readFile(String sName) {
     File file = new File(sName);
     List<String> lCombi = readLines(file);
     return StringUtil.join(lCombi, "\n");
   }
   // ERK: added readFile with a filename string as input
-  public static String readFile(String sName, String encoding) {
+  public String readFile(String sName, String encoding) {
     File file = new File(sName);
     List<String> lCombi = readLines(file, encoding);
     return StringUtil.join(lCombi, "\n");
   }
-  public static int getLinesRead() { return iLineCount;}
+  public int getLinesRead() { return iLineCount;}
 
   /**
    * Write a String to a file.
