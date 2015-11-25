@@ -39,6 +39,7 @@ import nl.ru.crpx.search.SearchManager;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.crpx.tools.FileIO;
 import nl.ru.crpx.tools.General;
+import nl.ru.util.DateUtil;
 import nl.ru.util.FileUtil;
 import nl.ru.util.json.JSONObject;
 import nl.ru.xmltools.XmlForest.ForType;
@@ -242,8 +243,8 @@ public class CorpusResearchProject {
       this.Part = getSetting("Part");
       this.HasDbaseInput = getSetting("DbaseInput").equals("True");
       // Load the dates
-      this.dtChanged = stringToDate(getDateSetting("Changed"));
-      this.dtCreated = stringToDate(getDateSetting("Created"));
+      this.dtChanged = DateUtil.stringToDate(getDateSetting("Changed"));
+      this.dtCreated = DateUtil.stringToDate(getDateSetting("Created"));
       // Determine the names of nodes available globally
       switch (this.intProjType) {
         case ProjPsdx:
@@ -459,7 +460,7 @@ public class CorpusResearchProject {
       }
       // Get string for current date
       Date dNow = new Date();
-      String sDateNow = dateToString(dNow);
+      String sDateNow = DateUtil.dateToString(dNow);
       // Initialize general settings
       this.setName(Name);
       this.setAuthor(this.userId);
@@ -804,8 +805,8 @@ public class CorpusResearchProject {
   // ================ Date/Time values
   public Date getDateChanged() {return this.dtChanged;}
   public Date getDateCreated() {return this.dtCreated;}
-  public void setDateChanged(Date dValue) {if (setDateSetting("Changed", dateToString(dValue))) {this.dtChanged = dValue;}}
-  public void setDateCreated(Date dValue) {if (setDateSetting("Created", dateToString(dValue))) {this.dtCreated = dValue;}}
+  public void setDateChanged(Date dValue) {if (setDateSetting("Changed", DateUtil.dateToString(dValue))) {this.dtChanged = dValue;}}
+  public void setDateCreated(Date dValue) {if (setDateSetting("Created", DateUtil.dateToString(dValue))) {this.dtCreated = dValue;}}
   // ================ Query Constructor elements
   public int getListQcId(int iQCid) {
     for (int i=0;i<lQueryConstructor.size();i++) 
@@ -1310,6 +1311,7 @@ public class CorpusResearchProject {
     return true;
   }
 
+  /*
   public Date stringToDate(String s) throws ParseException {
     // Create the correct format of what we are expecting
     SimpleDateFormat simpleDateFormat = new SimpleDateFormat(sGregorianFormat);
@@ -1321,6 +1323,7 @@ public class CorpusResearchProject {
     SimpleDateFormat simpleDateFormat = new SimpleDateFormat(sGregorianFormat);
     return simpleDateFormat.format(dtThis);
   }
+  */
   
   /**
    * changeLocation
@@ -1393,9 +1396,9 @@ public class CorpusResearchProject {
             break;
           case "datechanged": 
             // Special treatment: don't signal change, otherwise date will get changed again
-            this.setDateChanged(stringToDate(sValue)); bChanged=false; 
+            this.setDateChanged(DateUtil.stringToDate(sValue)); bChanged=false; 
             break;
-          case "datecreated": if (!dateToString(this.getDateCreated()).equals(sValue)) {this.setDateCreated(stringToDate(sValue));  bChanged =true; } 
+          case "datecreated": if (!DateUtil.dateToString(this.getDateCreated()).equals(sValue)) {this.setDateCreated(DateUtil.stringToDate(sValue));  bChanged =true; } 
             break;
           case "follnum": if (this.getFollNum() != Integer.parseInt(sValue)) {this.setFollNum(Integer.parseInt(sValue));  bChanged =true; } 
             break;
@@ -1521,7 +1524,7 @@ public class CorpusResearchProject {
                   this.setListQueryItem(iIdx, oItemQry);
                   this.setItemValue("Query", iItemId, sItemKey, sValue);
                   // The change date of the definition needs to be adapted
-                  this.setItemValue("Query", iItemId, "Changed", dateToString(new Date()));
+                  this.setItemValue("Query", iItemId, "Changed", DateUtil.dateToString(new Date()));
                 }
                 break;
               case "definition":
@@ -1537,7 +1540,7 @@ public class CorpusResearchProject {
                   this.setListDefItem(iIdx, oItemDef);
                   this.setItemValue("Definition", iItemId, sItemKey, sValue);
                   // The change date of the definition needs to be adapted
-                  this.setItemValue("Definition", iItemId, "Changed", dateToString(new Date()));
+                  this.setItemValue("Definition", iItemId, "Changed", DateUtil.dateToString(new Date()));
                 }
                 break;
               case "constructor":

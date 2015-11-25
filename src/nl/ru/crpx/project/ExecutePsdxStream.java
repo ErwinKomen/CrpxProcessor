@@ -32,6 +32,7 @@ import nl.ru.crpx.xq.CrpFile;
 import nl.ru.crpx.xq.LexDict;
 import nl.ru.crpx.xq.RuBase;
 import nl.ru.util.ByRef;
+import nl.ru.util.DateUtil;
 import nl.ru.util.FileUtil;
 import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
@@ -323,7 +324,7 @@ public class ExecutePsdxStream extends ExecuteXml {
           // Keep track of the starting position of the <General> tag
           arPwPos[i] = sIntro.length();
           sIntro = "<General>\n <ProjectName>" + this.crpThis.getName() + "</ProjectName>\n" +
-                  " <Created>" + crpThis.dateToString(new Date()) + "</Created>\n" +
+                  " <Created>" + DateUtil.dateToString(new Date()) + "</Created>\n" +
                   " <DstDir></DstDir>\n" +
                   " <SrcDir>" + this.crpThis.getSrcDir() + "</SrcDir>\n" +
                   " <Language>" + this.crpThis.getLanguage() + "</Language>\n" +
