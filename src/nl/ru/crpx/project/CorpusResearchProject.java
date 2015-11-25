@@ -475,7 +475,15 @@ public class CorpusResearchProject {
       this.setSetting("InputDir", sSrcDir);
       this.setSetting("OutputDir", sDstDir);
 
-      this.setProjectType(ProjType.getName(intProjType));
+      String sProjType = ProjType.getName(intProjType);
+      this.setProjectType(sProjType);
+      
+      // What is the extension belonging to intProjType?
+      String sTextExt = getTextExt(ProjType.getType(sProjType));
+      
+      // Set the two settings needing this extension
+      this.setSetting("GenInpExt", sTextExt);
+      this.setSetting("Source", "*" + sTextExt);
       
       // Set the project file
       this.flProject = new File(this.Location);

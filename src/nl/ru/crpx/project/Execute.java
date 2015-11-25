@@ -143,7 +143,7 @@ public class Execute extends CrpGlobal {
 
       // Gather the source files and validate the result
       strInput = crpThis.getSource();   // Usually this is [*.psdx] or something like that
-      if (strInput.isEmpty()) {DoError("First choose input files"); errHandle.bInterrupt = true; bInterrupt = true; return;}
+      if (strInput.isEmpty()) {errHandle.DoError("First choose input files"); errHandle.bInterrupt = true; bInterrupt = true; return;}
       // Make an array of input files, as defined in [strInput]
       arInput = strInput.split(CrpGlobal.GetDelim(strInput));
 
