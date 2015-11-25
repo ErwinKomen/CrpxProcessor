@@ -69,6 +69,8 @@ public class ExecuteXml extends Execute {
   public ExecuteXml(CorpusResearchProject oProj) {
     // Do the initialisations for all Execute() classes
     super(oProj);
+    // Validate: check for errors
+    if (errHandle.hasErr()) return;
     // For work with Saxon Xquery see the 9.1.0.1 documentation:
     //  D:/DownLoad/XML/saxon-resources9-1-0-1/doc/using-xquery/api-query/s9api-query.html
     strDbType = new ByRef("");
