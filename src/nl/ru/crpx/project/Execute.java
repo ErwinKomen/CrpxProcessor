@@ -548,7 +548,7 @@ public class Execute extends CrpGlobal {
         // Make the pre-amble for the definition/query
         strQtext = strRuDef; AddQel(oThis.arQel, intJ, 1, "ru", "-");
         if (bAddFunctx) {strQtext += strFunctxDef; AddQel(oThis.arQel, intJ, 1, "functx", "-");}
-        if (bAddTbDef) {strQtext += strFunctxDef; AddQel(oThis.arQel, intJ, 1, "tb", "-");}
+        if (bAddTbDef) {strQtext += strTbDef; AddQel(oThis.arQel, intJ, 1, "tb", "-");}
         // Add the definitions
         strQtext += strDtext;
         for (Qel arDefThis : arDef) {
