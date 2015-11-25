@@ -75,10 +75,10 @@ public class FileIO {
     String separator = System.getProperty("file.separator");
 
     int indexOfLastSeparator = sFile.lastIndexOf(separator);
-    String filename = sFile.substring(indexOfLastSeparator + 1);
+    String filename = (indexOfLastSeparator<0) ? sFile : sFile.substring(indexOfLastSeparator + 1);
 
     int extensionIndex = filename.lastIndexOf(".");
-    String fileExtension = filename.substring(0, extensionIndex);
+    String fileExtension = (extensionIndex<0) ? filename : filename.substring(0, extensionIndex);
 
     return fileExtension;
   }
@@ -88,7 +88,7 @@ public class FileIO {
     String separator = System.getProperty("file.separator");
 
     int indexOfLastSeparator = sFile.lastIndexOf(separator);
-    String filename = sFile.substring(indexOfLastSeparator + 1);
+    String filename = (indexOfLastSeparator < 0) ? sFile : sFile.substring(indexOfLastSeparator + 1);
 
     return filename;
   }
