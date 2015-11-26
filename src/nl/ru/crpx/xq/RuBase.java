@@ -127,13 +127,13 @@ public class RuBase /* extends Job */ {
         // Create search expressions for NodeText
         ru_xpeNodeText_Psdx = xpComp.compile("./descendant-or-self::eLeaf[@Type = 'Vern' or @Type = 'Punct']").load();
         ru_xpeNodeText_Folia = xpComp.compile("./descendant-or-self::wref[count(ancestor::su[@class='CODE'])=0]").load();
-        ru_xpeNodeText_Folia2 = xpComp.compile("./ancestor::s/child::w[@class='Punct' or @class='Vern']").load();
+        ru_xpeNodeText_Folia2 = xpComp.compile("./ancestor::s/child::w[not(@class) or @class='Punct' or @class='Vern']").load();
         ru_xpeNodeText_Alp = xpComp.compile("./descendant-or-self::node[count(@word)>0]").load();
         ru_xpeNodeText_Negra = xpComp.compile("./descendant-or-self::t").load();
         // Create search expressions for RuWords()
         ru_xpeWords_Psdx = xpComp.compile("./descendant-or-self::eLeaf[@Type = 'Vern' and count(ancestor::eTree[@Label='CODE'])=0]").load();
         ru_xpeWords_Folia = xpComp.compile("./descendant-or-self::wref[count(ancestor::su[@class='CODE'])=0]").load();
-        ru_xpeWords_Folia2 = xpComp.compile("./ancestor::s/child::w[@class='Vern']").load();
+        ru_xpeWords_Folia2 = xpComp.compile("./ancestor::s/child::w[not(@class) or @class='Vern']").load();
         ru_xpeWords_Alp = xpComp.compile("./descendant-or-self::node[count(@word)>0]").load();
         ru_xpeWords_Negra = xpComp.compile("./descendant-or-self::t").load();
         // Create search expressions for RuRelates()
@@ -419,7 +419,6 @@ public class RuBase /* extends Job */ {
       if (ndStart == null) return "";
       // Determine which CRP this is
       CrpFile oCF = getCrpFile(objXp);
-      // return RuNodeText(oCF.crpThis, ndStart, strType);
       crpThis = oCF.crpThis;
       // Default value for array
       selectXp = null; sBuild = new StringBuilder();
@@ -537,17 +536,8 @@ public class RuBase /* extends Job */ {
           }
           break;
         case ProjFolia:
-          /*
-          // Retrieve the list of words from the dynamic context
-          List<String> lSuId = 
-          // Make a list of all <t> nodes that have a <w> parent
-          selectXp = ru_xpeNodeText_Folia2;
-          selectXp.setContextItem(ndStart);
-          // Go through all the items and add them to a new list
-          List<String> lSuId = new ArrayList<>();
-          for (XdmItem item : selectXp) {
-            lSuId.add(((XdmNode) item).getAttributeValue(ru_qnFoliaId));
-          }
+          // Retrieve the list of words from the current node
+          List<String> lSuId = getWordList(ndStart);
           // Make a list of all the <wref> nodes under me
           selectXp = ru_xpeNodeText_Folia;
           selectXp.setContextItem(ndStart);
@@ -557,9 +547,16 @@ public class RuBase /* extends Job */ {
             String sId =((XdmNode) item).getAttributeValue(ru_qnFoliaWrefId);
             if (lSuId.contains(sId)) {
               // Get the text value of the node
-              sBuild.append(((XdmNode) item).getStringValue()).append(" ");
+              String sTvalue = ((XdmNode) item).getAttributeValue(ru_qnFoliaWrefT);
+              // ===========================
+              // TEST: should not contain *
+              if (sTvalue.contains("*")) {
+                sTvalue = sTvalue;
+              }
+              // ===========================
+              sBuild.append(sTvalue).append(" ");
             }
-          } */
+          }
           break;
         case ProjAlp:
           // Make a list of all end nodes; Alpino only uses <node> tags
@@ -957,7 +954,36 @@ public class RuBase /* extends Job */ {
       return null;
     }
   }
+  static List<String> getWordList(XdmNode ndxThis) {
+    List<String> lSuId = new ArrayList<>();
 
+    try {
+      // Make a list of all <w> nodes under <s>
+      XPathSelector selectXp = ru_xpeWords_Folia2;
+      try {
+        selectXp.setContextItem(ndxThis);
+      } catch (SaxonApiException ex) {
+        errHandle.DoError("RuBase/getWordList problem: ", ex, RuBase.class);
+        return lSuId;
+      }
+      // Go through all the items and add them to a new list
+      for (XdmItem item : selectXp) {
+        String sValue = ((XdmNode) item).getAttributeValue(ru_qnFoliaId);
+        // =================================
+        // NOTE: this is an ad-hoc measurement because of wrongly made .folia.xml files
+        sValue = sValue.replace(".w.", ".");
+        // =================================
+        lSuId.add(sValue);
+      }
+      // Return the result
+      return lSuId;
+    } catch (Exception ex) {
+      errHandle.DoError("RuBase/getWordList error", ex, RuBase.class);
+      return null;
+    }
+  }
+  
+ 
   /**
    * xmlNodeToNode
    *    Convert 'XmlNode' to interface 'Node'

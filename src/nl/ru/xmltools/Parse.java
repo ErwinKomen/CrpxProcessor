@@ -361,6 +361,7 @@ public class Parse {
         List<String> lSuId = new ArrayList<>();
         for (XdmItem item : selectXp) {
           String sValue = ((XdmNode) item).getAttributeValue(ru_qnFoliaId);
+          // =================================
           // NOTE: this is an ad-hoc measurement because of wrongly made .folia.xml files
           sValue = sValue.replace(".w.", ".");
           // =================================
