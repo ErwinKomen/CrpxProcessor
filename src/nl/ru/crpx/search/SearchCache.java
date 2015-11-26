@@ -18,8 +18,8 @@ import org.apache.log4j.Logger;
 public class SearchCache {
   private static final Logger logger = Logger.getLogger(SearchCache.class);
 
-  /** Max time searches are allowed to run (20 minutes) [ERK: changed from 5 to 20 minutes] */
-  public final static int MAX_SEARCH_TIME_SEC = 20 * 60;
+  /** Max time searches are allowed to run (60 minutes) [ERK: changed from 5 to 60 minutes] */
+  public final static int MAX_SEARCH_TIME_SEC = 60 * 60;
 
   /** The cached search objects. */
   private Map<SearchParameters, Job> cachedSearches;
