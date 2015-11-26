@@ -1426,7 +1426,17 @@ public class CorpusResearchProject {
           case "projecttype": 
             // Get the correct representation of [sValue]
             String sNewProjectType = ProjType.getName(ProjType.getType(sValue));
-            if (!this.getProjectType().equals(sNewProjectType)) {this.setProjectType(sNewProjectType);  bChanged =true; } 
+            // Only make changes if it is really necessary
+            if (!this.getProjectType().equals(sNewProjectType)) {
+              this.setProjectType(sNewProjectType); 
+              // Change in project type also means: 
+              // (1) change in "GenInpExt"
+              String sTextExt = getTextExt(ProjType.getType(sNewProjectType));
+              this.setSetting("GenInpExt", sTextExt);              
+              // (2) change in "Source"
+              this.setSetting("Source", "*" + sTextExt);              
+              bChanged =true; 
+            } 
             break;
           case "language": if (!this.getLanguage().equals(sValue)) {errHandle.debug("CrpChgDD language"); this.setLanguage(sValue);  bChanged =true; } 
             break;
