@@ -174,7 +174,9 @@ public class Execute extends CrpGlobal {
   
   // ========= GETTERS ====================
   public String getDbaseDir() { 
-    String sDir = this.sProjectBase + "/" + crpThis.getUserId() + "/dbase"; 
+    String sDir = this.sProjectBase;
+    if (!sDir.endsWith("/")) sDir = sDir + "/";
+    sDir = sDir + crpThis.getUserId() + "/dbase"; 
     File fDir = new File(sDir);
     if (!fDir.exists()) fDir.mkdir();
     return sDir;

@@ -318,6 +318,8 @@ public class ExecutePsdxStream extends ExecuteXml {
           // Create a name for the combined database for this QC
           String sCombi = this.crpThis.getDbaseName(iQCid, this.getDbaseDir());
           File fCombi = new File(sCombi);
+          // Show what we are doing
+          errHandle.debug("Result database of ["+iQCid+"]: "+sCombi);
           // Delete any previous versions of the database
           if (fCombi.exists()) fCombi.delete();
           // Now open it for append
