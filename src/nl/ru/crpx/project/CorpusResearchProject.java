@@ -1283,6 +1283,45 @@ public class CorpusResearchProject {
   }
   
   /**
+   * setItemId -- set the id value of sItemType
+   * 
+   * @param sItemType
+   * @param iItemId
+   * @param sName
+   * @param iValue
+   * @return 
+   */
+  private boolean setItemId(String sItemType, int iItemId, String sValue) {
+    String sIdField = "";
+    try {
+      // Get the name of the @id field
+      sIdField = getIdField(sItemType);
+      // Get the correct node from this list
+      Node ndxThis = (Node) xpath.evaluate("./descendant::"+sItemType+"[@" + sIdField+"="+iItemId+"]", 
+                                           this.docProject, XPathConstants.NODE);
+      // Validate
+      if (ndxThis == null) {
+        // SOmething is really wrong
+        return false;
+      }
+      // Get attribute @sIdField
+      Node ndAttr = ndxThis.getAttributes().getNamedItem(sIdField);
+      if (ndAttr == null) {
+        errHandle.DoError("setItemId error: (" + sItemType + ","+iItemId+","+sIdField+","+sValue+")");
+        return false;
+      }
+      // Set attribute named @sName with value [sValue]
+      ndAttr.setNodeValue(sValue);
+      // Return positively (see further down...)
+    } catch (XPathExpressionException ex) {      
+      errHandle.DoError("Problem with setItemId ["+sItemType+"/"+iItemId+"/@" + sIdField + "]", ex);
+      // TODO: why not return 'false' here??
+    }
+    // Return positively
+    return true;
+  }
+  
+  /**
    * getDateSetting -- get the date setting of [sName]
    * 
    * @param sName
@@ -1526,6 +1565,10 @@ public class CorpusResearchProject {
                 if (removeCrpListItem(lDbFeatList, "./descendant::DbFeatList/child::DbFeat", "DbFeatId", iItemId)) bChanged = true;;
                 break;
             }            
+            break;
+          case "id":
+            // THere is a change in the id value
+            this.setItemId(sItemType, iItemId, sValue); bChanged = true;
             break;
           default:
             switch(sItemType) {
