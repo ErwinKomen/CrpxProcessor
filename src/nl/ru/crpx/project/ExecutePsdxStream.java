@@ -286,9 +286,18 @@ public class ExecutePsdxStream extends ExecuteXml {
     String[] arIdxFileName;         // Array of index file names
     File[] arIdxFile;               // Array of index FILE handles
     List<XmlIndexItem> arIdxList[]; // Array of index-item-lists
-    StringBuilder arIdxSb[];      // Array of index-item string builders
+    StringBuilder arIdxSb[];        // Array of index-item string builders
     
     try {
+      // Check if *any* query creates a database
+      boolean bHaveDb = false;
+      for (int i=0;i<arQuery.length;i++) {
+        if (arQuery[i].DbFeatSize>0) {
+          bHaveDb = true; break;
+        }
+      }
+      if (!bHaveDb) return;   // Leave if no dbase is created anyway
+      
       // Create a new list
       lstBack = new DataObjectList("dblist");
       // Other initialisations
@@ -1202,6 +1211,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       // Get the lexicon results for this XqF into a JSON object
       JSONObject oLexInfo = new JSONObject();
       oLexInfo.put("file", fName);
+      boolean bHaveLexInfo = false;
       // oLexInfo.put("subtype", oCrpFile.currentPeriod);   // Dit doen of niet?  
       JSONObject oLexCombi;
       JSONArray arLexCombi = new JSONArray();
@@ -1220,15 +1230,19 @@ public class ExecutePsdxStream extends ExecuteXml {
           arLexDict.put(oLexEl);
         }
         oLexCombi.put("dict", arLexDict);
+        if (arLexDict.length()>0) bHaveLexInfo = true;
         // Add this dictionary to the others
         arLexCombi.put(oLexCombi);
       }
       oLexInfo.put("lexdicts", arLexCombi);      
       
-      // Store the lexicon results for this XqF in a separate file
-      sLoc = this.crpThis.getLexName(fName);
-      File fLexDictXqF = new File(FileUtil.nameNormalize(sLoc));
-      FileUtil.writeFile(fLexDictXqF, oLexInfo.toString());
+      // Do we have lex info?
+      if (bHaveLexInfo) {
+        // Store the lexicon results for this XqF in a separate file
+        sLoc = this.crpThis.getLexName(fName);
+        File fLexDictXqF = new File(FileUtil.nameNormalize(sLoc));
+        FileUtil.writeFile(fLexDictXqF, oLexInfo.toString());
+      }
       
       // Pass on the number of hits for this XqF job
       JSONArray arHitsCount = new JSONArray();

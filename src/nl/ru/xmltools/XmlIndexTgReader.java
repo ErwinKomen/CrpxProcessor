@@ -15,6 +15,7 @@ import java.io.FileReader;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 import net.sf.saxon.s9api.Axis;
 import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.XdmNode;
@@ -52,6 +53,7 @@ public class XmlIndexTgReader {
   private List<String> lstParts;  // List of all Part elements
   // ======================== publicly accessible information
   public boolean EOF;             // Hit the end of file or not
+  private Pattern pXmlns = Pattern.compile("xmlns=\"([^\"]*)\"");
   // ----------------------------------------------------------------------------------------------------------
   // Class : XmlIndexTgReader
   // Goal :  Indexed reader for xml files. Each file is divided into chunks
@@ -62,6 +64,7 @@ public class XmlIndexTgReader {
   //         - the maximum word @id value within that chunk (if applicable)
   //         - the name of the file containing the chunk
   //         The index file is realized as a JSONArray for easy/fast access
+  //         The XML chunks of the file are deprived from any xmlns portions
   // History:
   // 10/jun/2015  ERK Created
   // ----------------------------------------------------------------------------------------------------------
@@ -203,6 +206,8 @@ public class XmlIndexTgReader {
             iPos = rdThis.getPos();
             // Read the line into a string
             String strNext = rdThis.ReadOuterXml();
+            // Remove the xmlns parts
+            strNext = pXmlns.matcher(strNext).replaceAll("");
             // Load the line as an XmlDocument, so we can look for attributes
             loc_pdxThis.LoadXml(strNext);
             XmlNode  ndxWork = loc_pdxThis.SelectSingleNode(sPathLine);

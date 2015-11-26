@@ -102,11 +102,6 @@ public class XmlChunkReader {
     while( ( line = readLine() ) != null ) {
       // Keep track of lines
       strLastLine = line;
-      /*
-      // Get approximate file position: number of bytes + 1 for \n (we are lower if \r\n is used)
-      lLastPos = lFilePos;
-      lFilePos += line.getBytes("utf-8").length + 1;
-      */
       // Check if this line contains the starting tag
       Matcher m = patStart.matcher(line);
       // Do we have a matching start tag?
@@ -136,6 +131,8 @@ public class XmlChunkReader {
     StringBuilder sb = new StringBuilder();
     int m;
     char n;
+    char prevN;
+    int iNumLT = 0;   // Number of < signs encountered so far
     
     try {
       // Check for EOF
@@ -146,12 +143,26 @@ public class XmlChunkReader {
       // check for EOF
       if (chNext<0) return null;
       // Loop until reaching any \r\n
-      n = (char) chNext;
-      while (chNext>0 && !(n == '\n' || n == '\r')) {
+      // Also look out for end-tag beginner </ and for one-tag finisher />
+      boolean bOneTagFinish = false;
+      boolean bEndTagStart = false;
+      boolean bEndTagFinish = false;
+      n = (char) chNext; prevN = n;
+      while (chNext>0 && !(n == '\n' || n == '\r' || bOneTagFinish || bEndTagFinish)) {
+        // End-tag and One-tag bookkeeping
+        if (prevN == '<' && n == '/') 
+          bEndTagStart = true;
+        else if (prevN == '/' && n == '>') 
+          bOneTagFinish = true;
+        else if (bEndTagStart && n == '>')
+          bEndTagFinish = true;
         // Add to string
         sb.append(n);
-        // Read next
+        // Note the number of < signs
+        if (n == '<') iNumLT += 1;
+        // Read next and keep track of previous
         chNext = reader.read();
+        prevN = n;
         n = (char) chNext;
       }
       // Read and eat all \r\n
@@ -204,7 +215,6 @@ public class XmlChunkReader {
     sChunk = new StringBuilder();
     if (!strLastLine.isEmpty())  { sChunk.append(strLastLine); /* sChunk.append(ls); */}
     // Loop through all the lines
-    // while( ( line = reader.readLine() ) != null ) {
     while( ( line = readLine() ) != null ) {
       // Keep track of lines
       strLastLine = line;

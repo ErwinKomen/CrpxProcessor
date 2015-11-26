@@ -368,53 +368,58 @@ public class Execute extends CrpGlobal {
      --------------------------------------------------------------------------- */
   public boolean VerifyQC() {
     List objTag = new ArrayList<>();  // Keep track of Result objects
-    // Validation
-    if (crpThis == null || crpThis.getListQCsize() == 0) return false;
-    // Sort the QC list on QCid
-    if (!crpThis.doSort("QClist", "QCid")) return false;
-    // Get the sorted QC list here
-    List<JSONObject> dtrQc = crpThis.getListQC();
-    // Walk all lines
-    for (int i=0;i<dtrQc.size();i++) {
-      JSONObject dtrQcItem = dtrQc.get(i);
-      // Get the result tag and output file names
-      String strOut = dtrQcItem.getString("Output");
-      String strRes = dtrQcItem.getString("Result");
-      // Check if there is [Output] but no [Result]
-      if (!strOut.isEmpty() &&  strRes.isEmpty()) {
-        // If the output has been encountered, we cannot make a suggestion
-        if (objTag.contains(strOut)) {
+    
+    try {
+      // Validation
+      if (crpThis == null || crpThis.getListQCsize() == 0) return false;
+      // Sort the QC list on QCid
+      if (!crpThis.doSort("QClist", "QCid")) return false;
+      // Get the sorted QC list here
+      List<JSONObject> dtrQc = crpThis.getListQC();
+      // Walk all lines
+      for (int i=0;i<dtrQc.size();i++) {
+        JSONObject dtrQcItem = dtrQc.get(i);
+        // Get the result tag and output file names
+        String strOut = dtrQcItem.getString("Output");
+        String strRes = dtrQcItem.getString("Result");
+        // Check if there is [Output] but no [Result]
+        if (!strOut.isEmpty() &&  strRes.isEmpty()) {
+          // If the output has been encountered, we cannot make a suggestion
+          if (objTag.contains(strOut)) {
+            // Warn the user
+            String strErrorMsg = "QC line [" + i + 1 + "] has an output [" + strOut + "], but no Result Tag is defined";
+            DoError(strErrorMsg);
+            return false;
+          } else {
+            // We can make a suggestion for Result
+            strRes = strOut + "_Res" + (i+1);
+            dtrQcItem.put("Result", strRes);
+            // Make sure changes ripple through to QC
+            dtrQc.set(i, dtrQcItem);
+          }
+        } else if (strOut.isEmpty() &&  !strRes.isEmpty()) {
           // Warn the user
-          String strErrorMsg = "QC line [" + i + 1 + "] has an output [" + strOut + "], but no Result Tag is defined";
+          String strErrorMsg = "QC line [" + i + 1 + "] has a result tag [" + strRes + "], but no Output was defined";
           DoError(strErrorMsg);
           return false;
-        } else {
-          // We can make a suggestion for Result
-          strRes = strOut + "_Res" + (i+1);
-          dtrQcItem.put("Result", strRes);
-          // Make sure changes ripple through to QC
-          dtrQc.set(i, dtrQcItem);
-        }
-      } else if (strOut.isEmpty() &&  !strRes.isEmpty()) {
-        // Warn the user
-        String strErrorMsg = "QC line [" + i + 1 + "] has a result tag [" + strRes + "], but no Output was defined";
-        DoError(strErrorMsg);
-        return false;
-      } else if (!strOut.isEmpty() &&  !strRes.isEmpty()) {
-        // Check if this result tag already occurs
-        if (objTag.contains(strOut)) {
-          // Warn the user
-          String strErrorMsg = "QC line [" + i + 1 + "] has a result tag [" + strRes + "], but this is already used in an earlier QC line";
-          DoError(strErrorMsg);
-          return false;
-        } else {
-          // Add it to the collection
-          objTag.add(strRes);
+        } else if (!strOut.isEmpty() &&  !strRes.isEmpty()) {
+          // Check if this result tag already occurs
+          if (objTag.contains(strOut)) {
+            // Warn the user
+            String strErrorMsg = "QC line [" + i + 1 + "] has a result tag [" + strRes + "], but this is already used in an earlier QC line";
+            DoError(strErrorMsg);
+            return false;
+          } else {
+            // Add it to the collection
+            objTag.add(strRes);
+          }
         }
       }
+      // Return positively
+      return true;
+    } catch (Exception ex) {
+      return errHandle.DoError("VerifyQC failed: ", ex, Execute.class);
     }
-    // Return positively
-    return true;
   }
 
   /* ---------------------------------------------------------------------------

@@ -81,7 +81,12 @@ public class Parse {
       dbuilder = dfactory.newDocumentBuilder();
       // Set up the compiler
       this.xpComp = this.crpThis.getSaxProc().newXPathCompiler();
-      ru_xpeNodeText_Folia = xpComp.compile("./descendant-or-self::s[1]/child::w[@class='Punct' or @class='Vern']").load();
+      // NOTE: this Xpath line should find all the <w> elements that contain text or vernacular
+      //       it should exclude classes Zero and Star
+      //       Checking w/@class works for anything transformed by Cesax from Psdx > FoLiA (e.g. CGN)
+      //       The 'native' FoLiA texts do *not* have the @class marker at the <w> level.
+      //       They do not have Star or Zero nodes on the <w> level, 
+      ru_xpeNodeText_Folia = xpComp.compile("./descendant-or-self::s[1]/child::w[not(@class) or @class='Punct' or @class='Vern']").load();
     } catch (Exception ex) {
       errHandle.DoError("Cannot initialize the [Parse] class: ", ex, Parse.class);
     }
@@ -355,7 +360,11 @@ public class Parse {
         // Go through all the items and add them to a new list
         List<String> lSuId = new ArrayList<>();
         for (XdmItem item : selectXp) {
-          lSuId.add(((XdmNode) item).getAttributeValue(ru_qnFoliaId));
+          String sValue = ((XdmNode) item).getAttributeValue(ru_qnFoliaId);
+          // NOTE: this is an ad-hoc measurement because of wrongly made .folia.xml files
+          sValue = sValue.replace(".w.", ".");
+          // =================================
+          lSuId.add(sValue);
         }
         // Add this 'valid words' context variable to this line
         dqc.setParameter("words", lSuId);

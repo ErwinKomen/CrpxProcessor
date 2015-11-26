@@ -448,16 +448,6 @@ public class RuBase /* extends Job */ {
         case ProjFolia:
           // Retrieve the list of words from the dynamic context
           List<String> lSuId = getWordList(objXp);
-          /*
-          // Make a list of all <t> nodes that have a <w> parent
-          selectXp = ru_xpeNodeText_Folia2;
-          selectXp.setContextItem(ndStart);
-          // Go through all the items and add them to a new list
-          List<String> lSuId = new ArrayList<>();
-          for (XdmItem item : selectXp) {
-            lSuId.add(((XdmNode) item).getAttributeValue(ru_qnFoliaId));
-          }
-          */
           // Make a list of all the <wref> nodes under me
           selectXp = ru_xpeNodeText_Folia;
           selectXp.setContextItem(ndStart);
@@ -467,7 +457,14 @@ public class RuBase /* extends Job */ {
             String sId =((XdmNode) item).getAttributeValue(ru_qnFoliaWrefId);
             if (lSuId.contains(sId)) {
               // Get the text value of the node
-              sBuild.append(((XdmNode) item).getAttributeValue(ru_qnFoliaWrefT)).append(" ");
+              String sTvalue = ((XdmNode) item).getAttributeValue(ru_qnFoliaWrefT);
+              // ===========================
+              // TEST: should not contain *
+              if (sTvalue.contains("*")) {
+                sTvalue = sTvalue;
+              }
+              // ===========================
+              sBuild.append(sTvalue).append(" ");
             }
           }
           break;

@@ -259,14 +259,15 @@ public class ExecuteXml extends Execute {
       bThis.append("  <Psd>").append(sSyntax).append("</Psd>\n" );
       bThis.append("  <Pde>").append(sEnglish).append("</Pde>\n" );
       // Start adding underlying <Feature> nodes
-      String[] arFs = sMsg.split(";");
+      String[] arFs = sMsg.split(";",-1);
       // Walk through the list of Feature Info JSON objects
       for (int q=0;q<lstFtInfo.size(); q++) {
         // Get the number of this feature
         int iFtNum = lstFtInfo.get(q).getInt("FtNum");
         // Get the feature value belonging to this feature
         String sValue = "";
-        if (iFtNum > 0) sValue = StringUtil.escapeXmlChars(arFs[iFtNum-1]);
+        if (iFtNum > 0) 
+          sValue = StringUtil.escapeXmlChars(arFs[iFtNum-1]);
         // Store the results
         bThis.append("  <Feature Name=\"" + 
           lstFtInfo.get(q).getString("Name") + "\" Value=\"" +
