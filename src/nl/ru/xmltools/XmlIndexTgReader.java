@@ -156,7 +156,11 @@ public class XmlIndexTgReader {
       // Check existence of index dir
       if (!loc_fIndexDir.exists() ) {
         // Create index directory
-        loc_fIndexDir.mkdir();
+        if (!loc_fIndexDir.mkdir()) {
+          // Probably wrong file permissions
+          errHandle.DoError("XmlIndexTgReader - cannot create directory ["+loc_sIndexDir+"]. No permission?");
+          return false;
+        }
       }
       
       // Check existence/ancienity of the index file w.r.t. the text file
