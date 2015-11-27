@@ -1228,6 +1228,22 @@ public class CorpusResearchProject {
     }
   }
   /**
+   * getItemTag
+   *    Translate the item type into the name of a table
+   * 
+   * @param sItemType
+   * @return 
+   */
+  private String getItemTag(String sItemType) {
+    switch(sItemType.toLowerCase()) {
+      case "query":       return "Query";
+      case "definition":  return "Definition";
+      case "constructor": return "QC";
+      case "dbfeat":      return "DbFeat";
+      default: return sItemType;
+    }
+  }
+  /**
    * setItemValue -- set 'Setting' named @sName at value @sValue
    * 
    * @param sItemType
@@ -1241,8 +1257,10 @@ public class CorpusResearchProject {
     try {
       // Get the name of the @id field
       String sIdField = getIdField(sItemType);
+      // Translate type into XML tag
+      String sItemTag = getItemTag(sItemType);
       // Get the correct node from this list
-      Node ndxThis = (Node) xpath.evaluate("./descendant::"+sItemType+"[@" + sIdField+"="+iItemId+"]", 
+      Node ndxThis = (Node) xpath.evaluate("./descendant::"+sItemTag+"[@" + sIdField+"="+iItemId+"]", 
                                            this.docProject, XPathConstants.NODE);
       // Validate
       if (ndxThis == null) {
@@ -1296,8 +1314,10 @@ public class CorpusResearchProject {
     try {
       // Get the name of the @id field
       sIdField = getIdField(sItemType);
+      // Translate type into XML tag
+      String sItemTag = getItemTag(sItemType);
       // Get the correct node from this list
-      Node ndxThis = (Node) xpath.evaluate("./descendant::"+sItemType+"[@" + sIdField+"="+iItemId+"]", 
+      Node ndxThis = (Node) xpath.evaluate("./descendant::"+sItemTag+"[@" + sIdField+"="+iItemId+"]", 
                                            this.docProject, XPathConstants.NODE);
       // Validate
       if (ndxThis == null) {
