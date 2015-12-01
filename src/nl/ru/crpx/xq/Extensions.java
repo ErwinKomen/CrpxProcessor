@@ -190,11 +190,6 @@ public class Extensions extends RuBase {
   // 10-01-2013  ERK Created for .NET 
   // 30/apr/2015 ERK Ported to Java
   // ----------------------------------------------------------------------------------------------------------
-  /*
-  public static String conv(XdmValue varText, String strType) {
-    // Calculate using the main ru:conv() function
-    return conv(getStringValue(varText), strType);
-  } */
   public static String conv(XPathContext objXp, Value strText, Value strType) {
     try {
       // Call the main ru:conv() handling function
@@ -206,13 +201,6 @@ public class Extensions extends RuBase {
       return "";
     }
   }
-  /*
-  public static String conv(XPathContext objXp, AtomicValue strText, String strType) {
-    // Try to get user-data
-    XdmNode nThis = (XdmNode) objXp.getController().getUserData("aap", "type");
-    // Continue...
-    return conv(strText.getStringValue(), strType);
-  } */
   private static String conv(XPathContext objXp, String strText, String strType) {
     try {
       // Validate
@@ -899,6 +887,44 @@ public class Extensions extends RuBase {
       errHandle.DoError("Extensions/relates", ex);
       // Return failure
       return false;
+    }
+  }
+// </editor-fold>
+  
+// <editor-fold defaultstate="collapsed" desc="ru:stringpart">
+  // ----------------------------------------------------------------------------------------------------------
+  // Name :  stringpart
+  // Goal :  Get the part of [strArg] before or after the delimiter in [strDelim]
+  //         This depends on the type specified in [strType]
+  // History:
+  // 01-12-2015  ERK Created for Java
+  // ----------------------------------------------------------------------------------------------------------
+  public static String stringpart(XPathContext objXp, Value strArg, Value strDelim, Value strType) {
+    String sBack = "";
+    
+    try {
+      // Get the string values
+      String sArg = strArg.getStringValue();
+      String sDelim = strDelim.getStringValue();
+      String sType = strType.getStringValue();
+      // Find delimiter
+      int iPos = sArg.indexOf(sDelim);
+      // Find the string we are looking for
+      switch (sType) {
+        case "before":
+          sBack = (iPos <0) ? sArg : sArg.substring(0, iPos-1);
+          break;
+        case "after":
+          sBack = (iPos <0) ? sArg : sArg.substring(iPos+1);
+          break;
+      }
+      // Return the result
+      return sBack;
+    } catch (Exception ex) {
+      // Show error
+      errHandle.DoError("Extensions/stringpart error", ex, Extensions.class );
+      // Return failure
+      return "";
     }
   }
 // </editor-fold>
