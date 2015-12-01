@@ -772,6 +772,10 @@ public class Extensions extends RuBase {
   }
   // This definition serves to identify a bad call to the function
   public static String refnum(XPathContext objXp, SequenceIterator sIt) {
+    // Call the actual function, but first check if there is only one node
+    return refnum(objXp, getOneNode(objXp, "refnum", sIt));
+    
+    /*
     ErrHandle errCaller = getCrpFile(objXp).crpThis.errHandle;
     int iCheck = 0;
     try {
@@ -800,6 +804,7 @@ public class Extensions extends RuBase {
     }
       
     return "";
+            */
   }
   private static String refnum(XPathContext objXp, XdmNode ndSax) {
     XdmSequenceIterator colEleaf = null;  // Iterate through the children of <eTree>
@@ -1063,6 +1068,38 @@ public class Extensions extends RuBase {
     if (valSax.getClass().getName().equals("XdmNode")) {
       return (XdmNode) valSax;
     } else return null;
+  }
+  private static NodeInfo getOneNode(XPathContext objXp, String sFname, SequenceIterator sIt) {
+    ErrHandle errCaller = getCrpFile(objXp).crpThis.errHandle;
+    int iCheck = 0;
+    NodeInfo node = null;
+    
+    try {
+      while (sIt.next() != null) {
+        iCheck++;
+      }
+      // Check the number of arguments
+      if (iCheck == 1) {
+        // This is actually okay! Proceed...
+        node = (NodeInfo) sIt.current();
+      } else {
+        logger.debug(sFname+" length = " + iCheck);
+        String sMsg = "The ru:"+sFname+"() function must be called with only 1 (one) node. It now receives a sequence of "+iCheck;
+
+        synchronized(errCaller) {
+          errCaller.DoError(sMsg, sFname, objXp);
+          errCaller.bInterrupt = true;
+        }
+        errHandle.DoError(sMsg , sFname,objXp);
+        errHandle.bInterrupt = true;
+      }
+      return node;
+    } catch (Exception ex) {
+      // Show error
+      errHandle.DoError("Extensions/getOneNode error: " , ex, Extensions.class);
+      // Return failure
+      return null;
+    }
   }
   // ------------------------------------------------------------------------------------
   // Name:   PrepareBack
