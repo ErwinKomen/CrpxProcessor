@@ -778,15 +778,22 @@ public class Extensions extends RuBase {
       while (sIt.next() != null) {
         iCheck++;
       }
-      logger.debug("refnum length = " + iCheck);
-      String sMsg = "The ru:refnum() function must be called with only 1 (one) node. It now receives a sequence of "+iCheck;
-      
-      synchronized(errCaller) {
-        errCaller.DoError(sMsg, "refnum", objXp);
-        errCaller.bInterrupt = true;
+      // Check the number of arguments
+      if (iCheck == 1) {
+        // This is actually okay! Proceed...
+        NodeInfo node = (NodeInfo) sIt.current();
+        return refnum(objXp, node);
+      } else {
+        logger.debug("refnum length = " + iCheck);
+        String sMsg = "The ru:refnum() function must be called with only 1 (one) node. It now receives a sequence of "+iCheck;
+
+        synchronized(errCaller) {
+          errCaller.DoError(sMsg, "refnum", objXp);
+          errCaller.bInterrupt = true;
+        }
+        errHandle.DoError(sMsg , "refnum",objXp);
+        errHandle.bInterrupt = true;
       }
-      errHandle.DoError(sMsg , "refnum",objXp);
-      errHandle.bInterrupt = true;
     } catch (XPathException ex) {
       errHandle.DoError("Extensions/refnum error: " , ex, Extensions.class);
       errHandle.bInterrupt = true;
