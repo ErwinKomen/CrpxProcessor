@@ -626,7 +626,7 @@ public class RuBase /* extends Job */ {
               // Get the group name to which the current period belongs
               List<JSONObject> lMem = crpThis.getListMember();
               for (JSONObject oOneMem : lMem) {
-                if (oOneMem.getInt("DivisionId") == intDivId && oOneDiv.getString("Period").equals(strCurrentPeriod)) {
+                if (oOneMem.getInt("DivisionId") == intDivId && oOneMem.getString("Period").equals(strCurrentPeriod)) {
                   // Pick out the group name from here
                   strGroup = oOneMem.getString("Group");
                   break;
