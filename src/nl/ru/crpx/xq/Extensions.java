@@ -826,6 +826,7 @@ public class Extensions extends RuBase {
         case ProjPsdx:
           // Get the label of this node
           sLabel = ndSax.getAttributeValue(loc_qnLabel);
+          break;
         case ProjFolia:
           sLabel = ndSax.getAttributeValue(loc_qnClass);
           break;
