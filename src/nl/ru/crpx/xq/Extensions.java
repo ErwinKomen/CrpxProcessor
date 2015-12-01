@@ -182,6 +182,43 @@ public class Extensions extends RuBase {
   }
 // </editor-fold>
   
+// <editor-fold defaultstate="collapsed" desc="ru:backgroup">
+  // ------------------------------------------------------------------------------------
+  // Name:  backgroup
+  // Goal:  Return a node <group> representing the information collected for this group
+  //        
+  //
+  // History:
+  // 01-12-2015  ERK Created for Java
+  // ------------------------------------------------------------------------------------
+  public static Node backgroup(XPathContext objXp, Value valGroupName) {
+    
+    try {
+      // Get the name of the group
+      String sGroupName = valGroupName.getStringValue();
+      // Get the name of the file
+      String sFileName = textname(objXp);
+      
+      // Alternative way: via the DOM model
+      Document doc = dbuilder.newDocument();
+      Element mainRootElement = doc.createElement("group");
+      doc.appendChild(mainRootElement);
+      // Create and set attributes
+      mainRootElement.setAttribute("fileName", sFileName);
+      mainRootElement.setAttribute("groupName", sGroupName);
+      
+      // Return the <group> element, which will be packed into <TEI></TEI>
+      return mainRootElement.cloneNode(true);
+      // return jsBack.toString();
+    } catch (Exception ex) {
+      // Warn user
+      errHandle.DoError("Extensions/backgroup() error", ex, Extensions.class);
+      // Return failure
+      return null;
+    }
+  }  
+// </editor-fold>
+  
 // <editor-fold defaultstate="collapsed" desc="ru:conv">
   // ----------------------------------------------------------------------------------------------------------
   // Name :  conv
@@ -928,6 +965,31 @@ public class Extensions extends RuBase {
     }
   }
 // </editor-fold>
+  
+// <editor-fold defaultstate="collapsed" desc="ru:textname">
+  // ----------------------------------------------------------------------------------------------------------
+  // Name :  textname
+  // Goal :  Get the name of this text
+  // History:
+  // 01-12-2015  ERK Created for Java
+  // ----------------------------------------------------------------------------------------------------------
+  public static String textname(XPathContext objXp) {
+    try {
+      // Get the CrpFile associated with me
+      CrpFile oCrpFile = getCrpFile(objXp);
+      // Return the name of this text
+      String sFileName = oCrpFile.flThis.getName();
+      String sBack = FileIO.getFileNameWithoutExtension(sFileName);
+      // Return the result
+      return sBack;
+    } catch (Exception ex) {
+      // Show error
+      errHandle.DoError("Extensions/textname error", ex, Extensions.class );
+      // Return failure
+      return "";
+    }
+  }
+// </editor-fold>  
   
 // <editor-fold defaultstate="collapsed" desc="ru:words">
   // ----------------------------------------------------------------------------------------------------------
