@@ -757,9 +757,9 @@ public class Extensions extends RuBase {
 
     try {
       // Validate
-      if (node == null) return null;
+      if (node == null) return "";
       nodeKind = node.getNodeKind();
-      if (nodeKind != Type.ELEMENT) return null;
+      if (nodeKind != Type.ELEMENT) return "";
       // Get the XdmNode representation of the node
       ndSax = objSaxDoc.wrap(node);      
       return refnum(objXp, ndSax);   
@@ -773,7 +773,9 @@ public class Extensions extends RuBase {
   // This definition serves to identify a bad call to the function
   public static String refnum(XPathContext objXp, SequenceIterator sIt) {
     // Call the actual function, but first check if there is only one node
-    return refnum(objXp, getOneNode(objXp, "refnum", sIt));
+    NodeInfo node = getOneNode(objXp, "refnum", sIt);
+    // What we return depends on the node we have (or not)
+    return refnum(objXp, node);
     
     /*
     ErrHandle errCaller = getCrpFile(objXp).crpThis.errHandle;
