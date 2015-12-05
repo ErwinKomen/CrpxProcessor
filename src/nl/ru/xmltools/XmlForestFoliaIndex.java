@@ -26,6 +26,7 @@ import nl.ru.util.ByRef;
 public class XmlForestFoliaIndex extends XmlForest {
   // ============ Local variables ==============================================
   private XmlIndexTgReader loc_xrdFile;   // Indexed reader for xml files
+  private XmlIndexRaReader loc_xrdRaFile; // Indexed reader -- RA variant
   // ============ Call the standard class initializer ==========================
   public XmlForestFoliaIndex(CorpusResearchProject oCrp, JobXq oJob, ErrHandle oErr) {
     super(oCrp,oJob,oErr);
@@ -66,10 +67,17 @@ public class XmlForestFoliaIndex extends XmlForest {
         loc_arFollCnt[intI] = new XmlForest.Context();
       }
       // Start up the streamer
-      loc_xrdFile = new XmlIndexTgReader(fThis, crpThis, loc_pdxThis, crpThis.intProjType);
-      String sTextId = loc_xrdFile.getTextId();
+      if (bUseRa) {
+        loc_xrdRaFile = new XmlIndexRaReader(fThis, crpThis, loc_pdxThis, crpThis.intProjType);
+      } else {
+        loc_xrdFile = new XmlIndexTgReader(fThis, crpThis, loc_pdxThis, crpThis.intProjType);
+      }
+      // Get the text id
+      String sTextId = "";
+      if (bUseRa) sTextId = loc_xrdRaFile.getTextId(); else sTextId = loc_xrdFile.getTextId();
       // Do we have a header?
-      String sHeader = loc_xrdFile.getHeader();
+      String sHeader = "";
+      sHeader = (bUseRa) ? loc_xrdRaFile.getHeader() : loc_xrdFile.getHeader();
       if (sHeader.isEmpty()) {
         // Indicate that it is empty
         ndxHeader.argValue = null;
@@ -83,9 +91,10 @@ public class XmlForestFoliaIndex extends XmlForest {
       // Read the first node + following context
       for (intI = 0; intI <= objJob.intFollNum; intI++) {
         // Store it
+        String sForest = "";
         if (intI == 0) {
           // Get the FIRST forest
-          String sForest = loc_xrdFile.getFirstLine();
+          sForest = (bUseRa) ? loc_xrdRaFile.getFirstLine() : loc_xrdFile.getFirstLine();
           // TODO: what if this is empty??
           loc_pdxThis.LoadXml(sForest);
           // Get the current context
@@ -103,7 +112,7 @@ public class XmlForestFoliaIndex extends XmlForest {
           }
         } else {
           // Fill the following context XmlDocument
-          String sForest = loc_xrdFile.getNextLine();
+          sForest = (bUseRa) ?  loc_xrdRaFile.getNextLine() : loc_xrdFile.getNextLine();
           if (sForest.isEmpty()) {
             // This is already empty...
             loc_arFoll[intI-1] = null;
@@ -164,10 +173,14 @@ public class XmlForestFoliaIndex extends XmlForest {
         ndxForest.argValue = null;
         return true;
       }
-      // More validateion
-      if (loc_xrdFile==null) return false;
+      // More validation
+      if (bUseRa) {
+        if (loc_xrdRaFile==null) return false;
+      } else {
+        if (loc_xrdFile==null) return false;
+      }
       // Read this <forest>
-      strNext = loc_xrdFile.getOneLine(sSentId);
+      strNext = (bUseRa) ? loc_xrdRaFile.getOneLine(sSentId) : loc_xrdFile.getOneLine(sSentId);
       // Double check what we got
       if (strNext == null || strNext.length() == 0) {
         ndxForest.argValue = null;
@@ -181,7 +194,7 @@ public class XmlForestFoliaIndex extends XmlForest {
       return true;
     } catch (Exception ex) {
       // Warn user
-      objErr.DoError("XmlForest/OneForest error: " + ex.getMessage() + "\r\n");
+      objErr.DoError("XmlForest/OneForest error: ", ex);
       // Return failure
       return false;
     }
@@ -228,7 +241,8 @@ public class XmlForestFoliaIndex extends XmlForest {
   @Override
   public boolean IsEnd() {
     try {
-      return (loc_xrdFile.EOF) && (objJob.intFollNum == 0 || (loc_arFoll[0] == null));
+      boolean bEof = (bUseRa) ? loc_xrdRaFile.EOF : loc_xrdFile.EOF;
+      return (bEof) && (objJob.intFollNum == 0 || (loc_arFoll[0] == null));
     } catch (RuntimeException ex) {
       // Warn user
       objErr.DoError("XmlForest/IsEnd error: " + ex.getMessage() + "\r\n");
@@ -256,18 +270,33 @@ public class XmlForestFoliaIndex extends XmlForest {
         ndxForest.argValue = null;
         return true;
       }
-      // More validateion
-      if (loc_xrdFile==null) return false;
-      // Try to read another piece of <forest> xml
-      if (! loc_xrdFile.EOF) strNext = loc_xrdFile.getNextLine();
-      // Check for end-of-file and file closing
-      if (loc_xrdFile.EOF)  loc_xrdFile = null;
-      // Double check what we got
-      if (strNext == null || strNext.length() == 0) {
-        ndxForest.argValue = null;
-        return true;
+      // More validation
+      String sTextId = "";
+      if (bUseRa) {
+        if (loc_xrdRaFile==null) return false;
+        // Try to read another piece of <forest> xml
+        if (! loc_xrdRaFile.EOF) strNext = loc_xrdRaFile.getNextLine();
+        // Check for end-of-file and file closing
+        if (loc_xrdRaFile.EOF) loc_xrdRaFile = null;
+        // Double check what we got
+        if (strNext == null || strNext.length() == 0) {
+          ndxForest.argValue = null;
+          return true;
+        }
+        sTextId = loc_xrdRaFile.getTextId();
+      } else {
+        if (loc_xrdFile==null) return false;
+        // Try to read another piece of <forest> xml
+        if (! loc_xrdFile.EOF) strNext = loc_xrdFile.getNextLine();
+        // Check for end-of-file and file closing
+        if (loc_xrdFile.EOF) loc_xrdFile = null;
+        // Double check what we got
+        if (strNext == null || strNext.length() == 0) {
+          ndxForest.argValue = null;
+          return true;
+        }
+        sTextId = loc_xrdFile.getTextId();
       }
-      String sTextId = loc_xrdFile.getTextId();
       // Do we have any preceding context to take care of?
       if (objJob.intPrecNum > 0) {
         // Copy preceding context
@@ -379,16 +408,17 @@ public class XmlForestFoliaIndex extends XmlForest {
   public boolean Percentage(ByRef<Integer> intPtc) {
     try {
       // Validate
-      if (loc_xrdFile == null) {
-        intPtc.argValue = 0;
-        return true;
+      if (bUseRa) {
+        if (loc_xrdRaFile == null) { intPtc.argValue = 0; return true; }
+        if (loc_xrdRaFile.EOF)     { intPtc.argValue = 100; return true; }
+        // Find out what my position is
+        intPtc.argValue = loc_xrdRaFile.getPtc();
+      } else {
+        if (loc_xrdFile == null) { intPtc.argValue = 0; return true; }
+        if (loc_xrdFile.EOF)     { intPtc.argValue = 100; return true; }
+        // Find out what my position is
+        intPtc.argValue = loc_xrdFile.getPtc();
       }
-      if (loc_xrdFile.EOF) {
-        intPtc.argValue = 100;
-        return true;
-      }
-      // Find out what my position is
-      intPtc.argValue = loc_xrdFile.getPtc();
       // Return success
       return true;
     } catch (RuntimeException ex) {

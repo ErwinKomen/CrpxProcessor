@@ -40,9 +40,9 @@ public abstract class XmlForest {
   protected final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(XmlForest.class);
 // <editor-fold defaultstate="collapsed" desc="Header">
   protected final  class Context {
-    public String Seg;    // Text of this line
-    public String TxtId;  // TextId of this line
-    public String Loc;    // Location for this line
+    public String Seg = "";    // Text of this line
+    public String TxtId = "";  // TextId of this line
+    public String Loc = "";    // Location for this line
   }
 // <editor-fold defaultstate="collapsed" desc="Enumeration ForType">
   public enum ForType {
@@ -134,7 +134,8 @@ public abstract class XmlForest {
   protected Parse objParse;                 // Object to use my own version of the "GetSeg()" function
   protected Processor objSaxon;             // Local access to the processor
   protected DocumentBuilder objSaxDoc;      // My own document-builder
-  // private XmlReaderSettings loc_xrdSet; // Special arrangements for the reader --> already done in XmlDocument()
+  protected boolean bUseRa = true;          // Use the Random-Access reader
+  // private XmlReaderSettings loc_xrdSet;  // Special arrangements for the reader --> already done in XmlDocument()
   // ==========================================================================================================
   // Class instantiation
   public XmlForest(CorpusResearchProject oCrp, JobXq oJob, ErrHandle oErr) {

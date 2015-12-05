@@ -348,7 +348,12 @@ public class XmlAccessPsdx extends XmlAccess {
       // Do we already have this one?
       if (!sSentId.equals(sCurrentSentId)) {
         // Get the String representation 
-        String sSentLine = objXmlRdr.getOneLine(sSentId);
+        String sSentLine  = "";
+        if (bUseRa) {
+          sSentLine = objXmlRaRdr.getOneLine(sSentId);
+        } else {
+          sSentLine = objXmlRdr.getOneLine(sSentId);
+        }
         // Convert this into an XmlNode
         pdxDoc.LoadXml(sSentLine);
         // Get the root node
@@ -378,7 +383,12 @@ public class XmlAccessPsdx extends XmlAccess {
       if (iOffset == 0) return true;
       if (sCurrentSentId.isEmpty() || ndxSent == null) return false;
       // Get the String representation 
-      String sSentLine = objXmlRdr.getRelativeLine(iOffset, oSentId);
+      String sSentLine;
+      if (bUseRa) {
+        sSentLine = objXmlRaRdr.getRelativeLine(iOffset, oSentId);
+      } else {
+        sSentLine = objXmlRdr.getRelativeLine(iOffset, oSentId);
+      }
       // Validate the result
       if (sSentLine.isEmpty()) {
         // Just return with failure, but do NOT adapt the currentSentId and the ndxSent

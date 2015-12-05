@@ -19,6 +19,7 @@ import net.sf.saxon.s9api.QName;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.project.CorpusResearchProject.ProjType;
 import nl.ru.crpx.tools.ErrHandle;
+import nl.ru.crpx.tools.FileIO;
 import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
 
@@ -39,6 +40,7 @@ public class XmlIndexRaReader {
   private File loc_fIndexFile;            // Index file (within the directory)
   private File loc_fThis;                 // Pointer to the associated file
   private File loc_fHeader;               // Pointer to the header file
+  private String loc_sTextId;             // Short file name serves as text identifier
   private RandomAccessFile loc_fRa;       // Random access to the file this index belongs to
   private CorpusResearchProject crpThis;  // Reference to the CRP that is calling me
   private XmlDocument loc_pdxThis;        // Possibility to read and interpret XML chunks
@@ -78,6 +80,8 @@ public class XmlIndexRaReader {
       if (!doCheckIndex(fThis, ptThis))  throw new FileNotFoundException("XmlIndexRaReader cannot create an index " + fThis.getAbsolutePath());
       // Read the index file into a data structure
       if (!readIndex()) throw new FileNotFoundException("XmlIndexRaReader could not read the index");
+      // Get text identifier
+      this.loc_sTextId = FileIO.getFileNameWithoutDirectory(fThis.getName().replace(prjThis.getTextExt(ptThis), ""));
       // Initialise numbers
       iLines = arIndex.size();  // Total number of lines in this file
       iCurrentLine = -1;        // No line has been read
@@ -89,6 +93,7 @@ public class XmlIndexRaReader {
   }
   // ======================== Make the filename available =======================
   public String getFileName() { return (this.loc_fThis == null) ? "" : this.loc_fThis.getName(); }
+  public String getTextId() { return this.loc_sTextId; }
   // ======================== Make the list of parts available ==================
   public List<String> getPartList() { return this.lstParts; }
   
@@ -418,6 +423,7 @@ public class XmlIndexRaReader {
       // Return the indicated line
       return sBack;      
     } catch (Exception ex) {
+      ex.printStackTrace();
       // Return failure
       return "";
     }

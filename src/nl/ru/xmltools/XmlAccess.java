@@ -38,8 +38,11 @@ public abstract class XmlAccess {
   protected Processor objSaxon;       // Local access to the processor
   protected XmlNode ndxSent;          // The root node
   protected XmlIndexTgReader objXmlRdr; // Index reader for current file
+  protected XmlIndexRaReader objXmlRaRdr;
   protected RuBase objBase;           // Access to RuBase functions
   protected CorpusResearchProject crpThis;
+  protected boolean bUseRa = true;  // Use Ra method or Tg?
+
   // ==========================================================================================================
   // Class instantiation
   public XmlAccess(CorpusResearchProject crpThis, XmlDocument pdxDoc, String sFileName) {
@@ -56,7 +59,11 @@ public abstract class XmlAccess {
       // Get access to the correct xml index reader
       if (objXmlRdr == null || !objXmlRdr.getFileName().equals(sFileName)) {
         File objCurrentFile = new File(sFileName);
-        this.objXmlRdr = new XmlIndexTgReader(objCurrentFile, crpThis, pdxDoc, crpThis.intProjType);
+        if (bUseRa) {
+          this.objXmlRaRdr = new XmlIndexRaReader(objCurrentFile, crpThis, pdxDoc, crpThis.intProjType);
+        } else {
+          this.objXmlRdr = new XmlIndexTgReader(objCurrentFile, crpThis, pdxDoc, crpThis.intProjType);
+        }
       }
       // Initialise some stuff
       ndxSent = null;
