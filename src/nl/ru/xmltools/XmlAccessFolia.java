@@ -73,21 +73,22 @@ public class XmlAccessFolia extends XmlAccess {
       // Walk the results
       int i=0;
       // Get the preceding context
-      while(i < arWords.size() && !hasAncestor(arWords.get(i), "id", sLocw))  {
+      ndxSent.SelectSingleNode("./descendant::wref[@id='"+arWords.get(i).getAttributeValue("id")+"']");
+      while(i < arWords.size() && !hasAncestor(arWords.get(i), "xml:id", sLocw))  {
         // Double check for CODE ancestor
         if (!hasAncestor(arWords.get(i), "pos", "CODE"))
           sPre += arWords.get(i).getAttributeValue(loc_xq_Text) + " ";
         i++;
       }
       // Get the hit context
-      while(i < arWords.size() && hasAncestor(arWords.get(i), "id", sLocw))  {
+      while(i < arWords.size() && hasAncestor(arWords.get(i), "xml:id", sLocw))  {
         // Double check for CODE ancestor
         if (!hasAncestor(arWords.get(i), "pos", "CODE"))
           sHit += arWords.get(i).getAttributeValue(loc_xq_Text) + " ";
         i++;
       }
       // Get the following context
-      while(i < arWords.size() && !hasAncestor(arWords.get(i), "id", sLocw))  {
+      while(i < arWords.size() && !hasAncestor(arWords.get(i), "xml:id", sLocw))  {
         // Double check for CODE ancestor
         if (!hasAncestor(arWords.get(i), "pos", "CODE"))
           sFol += arWords.get(i).getAttributeValue(loc_xq_Text) + " ";
@@ -303,6 +304,9 @@ public class XmlAccessFolia extends XmlAccess {
           break;
         case "pos":
           sPath = "./ancestor::su[@class = '" + sValue + "'] ";
+          break;
+        case "xml:id":
+          sPath = "./ancestor::su[@xml:id = '" + sValue + "'] ";
           break;
         default:
           return false;
