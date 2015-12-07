@@ -1818,7 +1818,25 @@ public class CorpusResearchProject {
       // Get a list of nodes along sPath
       ndParent = (Node) xpath.evaluate(sPath, this.docProject, XPathConstants.NODE);
       // Validate: any result?
-      if (ndParent == null) return false;
+      if (ndParent == null) {
+        // Getting here means there is no proper parent path
+        ndParent = (Node) xpath.evaluate("/CorpusResearchProject", this.docProject, XPathConstants.NODE);
+        if (ndParent == null) return false;
+        String sParent = "";
+        switch (sTagName) {
+          case "Query": sParent = "QueryList"; break;
+          case "Definition": sParent = "DefList"; break;
+          case "QC": sParent = "QueryConstructor"; break;
+          case "DbFeat": sParent = "DbFeatList"; break;
+          default: return false;
+        }
+          
+        Element ndNew = this.docProject.createElement(sParent);
+        ndParent.appendChild(ndNew);
+        // Try again
+        ndParent = (Node) xpath.evaluate(sPath, this.docProject, XPathConstants.NODE);
+        if (ndParent == null) return false;
+      }
       // Create a new Node element
       Element ndNew = this.docProject.createElement(sTagName);
       // Create a new object for the list
