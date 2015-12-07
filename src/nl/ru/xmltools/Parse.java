@@ -363,7 +363,7 @@ public class Parse {
           String sValue = ((XdmNode) item).getAttributeValue(ru_qnFoliaId);
           // =================================
           // NOTE: this is an ad-hoc measurement because of wrongly made .folia.xml files
-          sValue = sValue.replace(".w.", ".");
+          // sValue = sValue.replace(".w.", ".");
           // =================================
           lSuId.add(sValue);
         }
