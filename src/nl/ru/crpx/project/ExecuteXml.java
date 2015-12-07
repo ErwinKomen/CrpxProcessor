@@ -161,7 +161,7 @@ public class ExecuteXml extends Execute {
         return errHandle.DoError("ExecuteXmlSetup: Could not build sources");
       }
       // Check if we have ONE source file that is a <CrpOview> one
-      if (lSource.size()==1) {
+      if (lSource.size()==1 && lSource.get(0).endsWith(".xml") && !lSource.get(0).endsWith(".folia.xml")) {
         // Check existence of this one file
         File fThis = new File(lSource.get(0));
         if (fThis.exists()) {
