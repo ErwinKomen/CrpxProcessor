@@ -120,6 +120,8 @@ public class CorpusResearchProject {
   private String sHitsDir = "";     // Directory where hits are stored
   private String Language = "";     // The language this project focuses on
   private String Part = "";         // The particular part of the language it focuses on
+  private String Rules = "";        // The rules to be used for selecting only part of the input
+  private String xqInput = "";      // Xquery code that defines the input selection
   private File QueryDir = null;     // Location of temporal queries
   private File DstDir = null;       // Destination directory
   private File SrcDir = null;       // Directory where the psdx files are located
@@ -768,6 +770,8 @@ public class CorpusResearchProject {
   public String getSave() { return this.SaveDate; }
   public String getLanguage() { return this.Language;}
   public String getPart() { return this.Part;}
+  public String getRules() { return this.Rules;}
+  public String getXqInput() { return this.xqInput; }
   public String getDbaseInput() { String sResult = (this.HasDbaseInput) ? "True" : "False"; return sResult; }
   // Set string values
   public void setLocation(String sValue) { this.Location = sValue;}
@@ -783,6 +787,8 @@ public class CorpusResearchProject {
   public void setAuthor(String sValue) { if (setSetting("Author", sValue)) { this.Author = sValue;}}
   public void setLanguage(String sValue) { if (setSetting("Language", sValue)) { this.Language = sValue;} }
   public void setPart(String sValue) { if (setSetting("Part", sValue)) { this.Part = sValue;} }
+  public void setRules(String sValue) { if (setSetting("Rules", sValue)) {this.Rules = sValue;}}
+  public void setXqInput(String sValue) { if (setSetting("xqInput", sValue)) {this.xqInput = sValue;}}
   public void setDbaseInput(String sValue) { if (setSetting("DbaseInput", sValue)) { this.HasDbaseInput = (sValue.equals("True")); } }
   // ================ Directory and file names
   public File getQueryDir() { return this.QueryDir;}
@@ -1500,6 +1506,10 @@ public class CorpusResearchProject {
           case "language": if (!this.getLanguage().equals(sValue)) {errHandle.debug("CrpChgDD language"); this.setLanguage(sValue);  bChanged =true; } 
             break;
           case "part": if (!this.getPart().equals(sValue)) {errHandle.debug("CrpChgDD part");  this.setPart(sValue);  bChanged =true; } 
+            break;
+          case "rules": if (!this.getRules().equals(sValue)) {errHandle.debug("CrpChgDD rules");  this.setRules(sValue);  bChanged =true; } 
+            break;
+          case "xqinput": if (!this.getXqInput().equals(sValue)) {errHandle.debug("CrpChgDD xqInput");  this.setXqInput(sValue);  bChanged =true; } 
             break;
           case "corpus":
             String[] arCrp = sValue.split(":");
