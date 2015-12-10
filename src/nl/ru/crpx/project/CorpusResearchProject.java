@@ -1505,9 +1505,9 @@ public class CorpusResearchProject {
             break;
           case "language": if (!this.getLanguage().equals(sValue)) {errHandle.debug("CrpChgDD language"); this.setLanguage(sValue);  bChanged =true; } 
             break;
-          case "part": if (!this.getPart().equals(sValue)) {errHandle.debug("CrpChgDD part");  this.setPart(sValue);  bChanged =true; } 
+          case "part": if (!this.getPart().equals(sValue)) {errHandle.debug("CrpChgDD part"); this.setPart(sValue);  bChanged =true; } 
             break;
-          case "rules": if (!this.getRules().equals(sValue)) {errHandle.debug("CrpChgDD rules");  this.setRules(sValue);  bChanged =true; } 
+          case "rules": if (!this.getRules().equals(sValue)) {errHandle.debug("CrpChgDD rules"); this.setRules(sValue);  bChanged =true; } 
             break;
           case "xqinput": if (!this.getXqInput().equals(sValue)) {errHandle.debug("CrpChgDD xqInput");  this.setXqInput(sValue);  bChanged =true; } 
             break;
