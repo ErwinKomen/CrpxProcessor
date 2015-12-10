@@ -19,7 +19,9 @@ import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.XPathCompiler;
 import net.sf.saxon.s9api.XPathSelector;
+import net.sf.saxon.s9api.XQueryCompiler;
 import net.sf.saxon.s9api.XQueryEvaluator;
+import net.sf.saxon.s9api.XQueryExecutable;
 import net.sf.saxon.s9api.XdmDestination;
 import net.sf.saxon.s9api.XdmItem;
 import net.sf.saxon.s9api.XdmNode;
@@ -306,6 +308,84 @@ public class Parse {
       return true;
     } catch (Exception ex) {
       errHandle.DoError("Parse/TravTree xpath error", ex, Parse.class);
+      return false;
+    }
+  }
+  
+  
+  /**
+   * getEvaluator
+   *    Create and return an XQueryEvaluator object for the string
+   * 
+   * @param oCompiler
+   * @param sQueryText
+   * @return 
+   */
+  public XQueryEvaluator getEvaluator(XQueryCompiler oCompiler, String sQueryText) {
+    try {
+      // Transform the Xquery text into an Xquery executable
+      XQueryExecutable oExe = oCompiler.compile(sQueryText);
+      // Return an evaluator for this executable
+      return oExe.load();
+    } catch (Exception ex) {
+      errHandle.DoError("Parse/getEvaluator error", ex, Parse.class);
+      return null;
+    }
+  }
+  
+  /**
+   * DoParseInputXq
+   *    Parse an input-restriction query
+   * 
+   * @param qEval
+   * @param oCrpThis
+   * @param ndxThis
+   * @return 
+   */
+  public boolean DoParseInputXq(XQueryEvaluator qEval, CrpFile oCrpThis, XmlNode ndxThis) {
+    XQueryEvaluator objQuery;
+
+    try {
+      // Validate
+      if (ndxThis == null) return false;
+      // Take over the right values
+      objQuery = qEval;
+      // Create a new DOM destination for the results
+      Document pdxDoc = dbuilder.newDocument();
+      // Set the context for the query: the node in [ndxThis]
+      objQuery.setContextItem(ndxThis);
+      // Set the dynamic context: a pointer to the CrpFile
+      DynamicQueryContext dqc = objQuery.getUnderlyingQueryContext();
+      dqc.setParameter("crpfile", oCrpThis);
+      // Additional parameters to identify the query
+      dqc.setParameter("qfile", "" /*qThis.QueryFile */);
+      dqc.setParameter("sentid", ndxThis.getAttributeValue(crpThis.getAttrLineId() /*loc_xq_forestId */));
+      // Execute the query with the set context items
+      try {
+        objQuery.run(new DOMDestination(pdxDoc));
+      } catch (SaxonApiException ex) {
+        return errHandle.DoError("Runtime error while executing [InputQuery]: ", ex, Parse.class);        
+      }
+      // Get all the <forest> results from the [pdxDoc] answer
+      NodeList ndList = pdxDoc.getElementsByTagName("filter");
+      // There should be just ONE result
+      if (ndList.getLength() == 1) {
+        // Get the resulting node
+        Node ndDeep = ndList.item(0);
+        NamedNodeMap attrList = ndDeep.getAttributes();
+        // Check the presence of the named item
+        Node ndBack = attrList.getNamedItem("condition");
+        if (ndBack != null) {
+          // Get the value of the item
+          String sBack = ndBack.getNodeValue();
+          return (sBack.equals("true"));
+        }
+      }
+      
+      // This is bad: no result 
+      return false;
+    } catch (Exception ex) {
+      errHandle.DoError("Parse/DoParseInputXq error", ex, Parse.class);
       return false;
     }
   }

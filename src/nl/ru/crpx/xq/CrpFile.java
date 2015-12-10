@@ -38,6 +38,7 @@ public class CrpFile {
   public String currentSentId;          // ID of the currently treated sentence
   public String sTextId;                // The name of the text this is
   public XmlNode ndxHeader;             // The header object of this file
+  public XmlNode ndxMdi;                // Pointer to MDI node
   public XmlNode ndxRoot;               // The root element of the XmlDocument
   public DocumentBuilder oSaxDoc;       // The document-builder used for this CRP-File combination
   public DocumentBuilderFactory oDocFac;// The DOM document-builder used for this CRP-File combination

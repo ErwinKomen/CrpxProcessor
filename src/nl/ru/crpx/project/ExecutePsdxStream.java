@@ -133,6 +133,14 @@ public class ExecutePsdxStream extends ExecuteXml {
         return false;
       }
       
+      // Create and compile an Xquery evaluator
+      XQueryEvaluator qMetaFilter = null;
+      String sXqInput = crpThis.getXqInput();
+      if (!sXqInput.isEmpty()) {
+        sXqInput = this.getRuDef() + sXqInput;
+        qMetaFilter = objParseXq.getEvaluator(this.objCompiler, sXqInput);
+      }
+
       // Initialise the job array and the results array
       arJob.clear();  arRes.clear();
       // arHits.clear(); arMonitor.clear();
@@ -161,6 +169,10 @@ public class ExecutePsdxStream extends ExecuteXml {
         // Add the combination of File/CRP to the stack
         CrpFile oCrpFile = new CrpFile(this.crpThis, fInput, objSaxon, (JobXq) jobCaller);
         RuBase.setCrpCaller(oCrpFile);
+        
+        // Check if there is an input specification and if this file should be dealt with
+        if (hasInputRestr(qMetaFilter, oCrpFile)) continue;
+        
         // Get the @id of this combination
         iCrpFileId = RuBase.getCrpCaller(oCrpFile);
         // Add the id to the search parameters
@@ -757,6 +769,40 @@ public class ExecutePsdxStream extends ExecuteXml {
     }
   }
 // </editor-fold>
+  
+  /**
+   * hasInputRestr
+   *    Check if the file in oCrpFile has input restrictions
+   * 
+   * @param qEval
+   * @param oCrpFile
+   * @return 
+   */
+  private boolean hasInputRestr(XQueryEvaluator qEval, CrpFile oCrpFile) {
+    ByRef<XmlNode> ndxForest;   // Forest we are working on
+    ByRef<XmlNode> ndxHeader;   // Header of this file
+    XmlForest objProcType;      // Access to the XmlForest object allocated to me
+
+    try {
+      // Validation: if empty there is no restriction
+      if (qEval == null) return false;
+      // Initialisations
+      objProcType = oCrpFile.objProcType;
+      ndxForest = new ByRef(null); 
+      ndxHeader = new ByRef(null);
+      boolean bPass = false;
+      File fThis = oCrpFile.flThis;
+      // (a) Read the first sentence (psdx: <forest>) as well as the header (psdx: <teiHeader>)
+      if (!objProcType.FirstForest(ndxForest, ndxHeader, fThis.getAbsolutePath())) 
+        return errHandle.DoError("hasInputRestr could not process firest forest of " + fThis.getName());
+      bPass = this.objParseXq.DoParseInputXq(qEval, oCrpFile, ndxForest.argValue);
+      
+      return (!bPass);
+    } catch (Exception ex) {
+      // Return failure
+      return errHandle.DoError("hasInputRestr failure", ex, ExecutePsdxStream.class);      
+    }
+  }
   
 // <editor-fold desc="Part 2: XqF">
   /** 

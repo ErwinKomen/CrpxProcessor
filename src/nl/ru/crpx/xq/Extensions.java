@@ -219,6 +219,41 @@ public class Extensions extends RuBase {
   }  
 // </editor-fold>
   
+// <editor-fold defaultstate="collapsed" desc="ru:backfilter">
+  // ------------------------------------------------------------------------------------
+  // Name:  backfilter
+  // Goal:  Return a node <filter> representing the information provided
+  //          by a metadata input filter
+  //        
+  //
+  // History:
+  // 10-12-2015  ERK Created for Java
+  // ------------------------------------------------------------------------------------
+  public static Node backfilter(XPathContext objXp, Value valCondition) {
+    
+    try {
+      // Get the name of the group
+      String sCondition = valCondition.getStringValue();
+      
+      // Alternative way: via the DOM model
+      Document doc = dbuilder.newDocument();
+      Element mainRootElement = doc.createElement("filter");
+      doc.appendChild(mainRootElement);
+      // Create and set attributes
+      mainRootElement.setAttribute("condition", sCondition);
+      
+      // Return the <filter> element, which will be packed into ...?
+      return mainRootElement.cloneNode(true);
+      // return jsBack.toString();
+    } catch (Exception ex) {
+      // Warn user
+      errHandle.DoError("Extensions/backfilter() error", ex, Extensions.class);
+      // Return failure
+      return null;
+    }
+  }  
+// </editor-fold>
+
 // <editor-fold defaultstate="collapsed" desc="ru:conv">
   // ----------------------------------------------------------------------------------------------------------
   // Name :  conv
@@ -529,48 +564,6 @@ public class Extensions extends RuBase {
     }
 // </editor-fold>
     
-// <editor-fold defaultstate="collapsed" desc="ru:message">
-  // ------------------------------------------------------------------------------------
-  // Name:   message
-  // Goal:   show a message box or what is appropriate with the indicated message
-  //         Within a web service, the action only shows up in log files
-  // History:
-  // 03-10-2013  ERK Created
-  // 22/oct/2015 ERK Adapted for Java
-  // ------------------------------------------------------------------------------------
-  public static boolean message(XPathContext objXp, Value strText) {
-    try {
-      return Message(objXp, strText.getStringValue());
-    } catch (XPathException ex) {
-      // Show error
-      errHandle.DoError("Extensions/message saxon error", ex, Extensions.class );
-      // Return failure
-      return false;
-    }
-  }
-  public static boolean Message(XPathContext objXp, Value strText) {
-    try {
-      return Message(objXp, strText.getStringValue());
-    } catch (XPathException ex) {
-      // Show error
-      errHandle.DoError("Extensions/Message saxon error", ex, Extensions.class );
-      // Return failure
-      return false;
-    }
-  }
-  private static boolean Message(XPathContext objXp, String strText) {
-    // How can we 'show' a message from a web service? 
-    // Two ways: 
-    // (1) Show the message 'real-time' in the logging
-    errHandle.debug("Message: [" + strText + "]");
-    // (2) Gather all the messages and make them available for the caller
-    CrpFile oCF = getCrpFile(objXp);
-    oCF.lstMessage.add(strText);
-    // Always return positively
-    return true;
-  }
-// </editor-fold>
-    
 // <editor-fold defaultstate="collapsed" desc="ru:matches">
   // ------------------------------------------------------------------------------------
   // Name:   matches
@@ -668,6 +661,74 @@ public class Extensions extends RuBase {
   }
 // </editor-fold>
 
+// <editor-fold defaultstate="collapsed" desc="ru:header">
+  /**
+   * header
+   *    Return a pointer to a possible accompanying .cmdi or .imdi file
+   * 
+   * @param objXp - Context providing information
+   * @return      - Node pointing to the document's root
+   */
+  public static Node mdi(XPathContext objXp) {
+    try {
+      // Get the CrpFile associated with me
+      CrpFile oCrpFile = getCrpFile(objXp);
+      // Get the root node (if available)
+      XmlNode ndxMdi = oCrpFile.ndxMdi;
+      // Return the node that we found
+      return xmlNodeToNode(oCrpFile, ndxMdi);
+      // return jsBack.toString();
+    } catch (RuntimeException ex) {
+      // Warn user
+      errHandle.DoError("Extensions/mdi() error", ex, Extensions.class);
+      // Return failure
+      return null;
+    }
+  }  
+// </editor-fold>
+
+// <editor-fold defaultstate="collapsed" desc="ru:message">
+  // ------------------------------------------------------------------------------------
+  // Name:   message
+  // Goal:   show a message box or what is appropriate with the indicated message
+  //         Within a web service, the action only shows up in log files
+  // History:
+  // 03-10-2013  ERK Created
+  // 22/oct/2015 ERK Adapted for Java
+  // ------------------------------------------------------------------------------------
+  public static boolean message(XPathContext objXp, Value strText) {
+    try {
+      return Message(objXp, strText.getStringValue());
+    } catch (XPathException ex) {
+      // Show error
+      errHandle.DoError("Extensions/message saxon error", ex, Extensions.class );
+      // Return failure
+      return false;
+    }
+  }
+  public static boolean Message(XPathContext objXp, Value strText) {
+    try {
+      return Message(objXp, strText.getStringValue());
+    } catch (XPathException ex) {
+      // Show error
+      errHandle.DoError("Extensions/Message saxon error", ex, Extensions.class );
+      // Return failure
+      return false;
+    }
+  }
+  private static boolean Message(XPathContext objXp, String strText) {
+    // How can we 'show' a message from a web service? 
+    // Two ways: 
+    // (1) Show the message 'real-time' in the logging
+    errHandle.debug("Message: [" + strText + "]");
+    // (2) Gather all the messages and make them available for the caller
+    CrpFile oCF = getCrpFile(objXp);
+    oCF.lstMessage.add(strText);
+    // Always return positively
+    return true;
+  }
+// </editor-fold>
+    
 // <editor-fold desc="ru:periodgrp">
   // ------------------------------------------------------------------------------------
   // Name:   periodgrp

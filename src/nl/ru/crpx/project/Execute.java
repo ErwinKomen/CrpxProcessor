@@ -181,6 +181,7 @@ public class Execute extends CrpGlobal {
     if (!fDir.exists()) fDir.mkdir();
     return sDir;
   }
+  public String getRuDef() { return strRuDef; }
   // ======================================
   /**
    * ExecuteQueries -- Overridable...
