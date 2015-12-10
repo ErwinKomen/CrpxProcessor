@@ -244,6 +244,8 @@ public class CorpusResearchProject {
       this.Language = getSetting("Language");
       this.Part = getSetting("Part");
       this.HasDbaseInput = getSetting("DbaseInput").equals("True");
+      this.Rules = getSetting("Rules");
+      this.xqInput = getSetting("xqInput");
       // Load the dates
       this.dtChanged = DateUtil.stringToDate(getDateSetting("Changed"));
       this.dtCreated = DateUtil.stringToDate(getDateSetting("Created"));
