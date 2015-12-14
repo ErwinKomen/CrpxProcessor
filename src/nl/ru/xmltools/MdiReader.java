@@ -72,15 +72,19 @@ public class MdiReader {
     
     try {
       // Get the *start* of the name for the .imdi or .cmdi file
-      strFileMdi = FileIO.getDirectory(strFile) + "/" + FileIO.getFileNameWithoutExtension(strFile);
+      if (strFile.endsWith(".folia.xml")) {
+        strFileMdi = strFile.replace(".folia.xml", "");
+      } else {
+        strFileMdi = FileIO.getDirectory(strFile) + "/" + FileIO.getFileNameWithoutExtension(strFile);
+      }
       //  Check if .imdi or .cmdi exist
       File fMdi = new File(strFileMdi + ".imdi");
       if (fMdi.exists()) {
         strFileMdi += ".imdi";
       } else {
-        fMdi = new File(strFileMdi + ".cmdi");
+        fMdi = new File(strFileMdi + ".cmdi.xml");
         if (fMdi.exists()) 
-          strFileMdi += ".cmdi";
+          strFileMdi += ".cmdi.xml";
         else
           strFileMdi = "";
       }
