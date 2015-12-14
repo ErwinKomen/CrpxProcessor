@@ -171,7 +171,12 @@ public class ExecutePsdxStream extends ExecuteXml {
         RuBase.setCrpCaller(oCrpFile);
         
         // Check if there is an input specification and if this file should be dealt with
-        if (hasInputRestr(qMetaFilter, oCrpFile)) continue;
+        if (hasInputRestr(qMetaFilter, oCrpFile)) {
+          logger.debug("metafilter ["+sShort+"]=restricted");
+          continue;
+        } else {
+          logger.debug("metafilter ["+sShort+"]=none");
+        }
         
         // Get the @id of this combination
         iCrpFileId = RuBase.getCrpCaller(oCrpFile);
