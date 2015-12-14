@@ -804,6 +804,7 @@ public class ExecutePsdxStream extends ExecuteXml {
         return errHandle.DoError("hasInputRestr could not process firest forest of " + fThis.getName());
       // Pass on header information 
       oCrpFile.ndxHeader = ndxHeader.argValue;
+      oCrpFile.ndxMdi = ndxMdi.argValue;
       oCrpFile.ndxCurrentForest = ndxForest.argValue;
       bPass = this.objParseXq.DoParseInputXq(qEval, oCrpFile, ndxForest.argValue);
       
