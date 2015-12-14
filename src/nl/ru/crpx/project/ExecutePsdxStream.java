@@ -786,6 +786,7 @@ public class ExecutePsdxStream extends ExecuteXml {
   private boolean hasInputRestr(XQueryEvaluator qEval, CrpFile oCrpFile) {
     ByRef<XmlNode> ndxForest;   // Forest we are working on
     ByRef<XmlNode> ndxHeader;   // Header of this file
+    ByRef<XmlNode> ndxMdi;      // Access to corresponding .imdi or .cmdi file
     XmlForest objProcType;      // Access to the XmlForest object allocated to me
 
     try {
@@ -795,10 +796,11 @@ public class ExecutePsdxStream extends ExecuteXml {
       objProcType = oCrpFile.objProcType;
       ndxForest = new ByRef(null); 
       ndxHeader = new ByRef(null);
+      ndxMdi = new ByRef(null);
       boolean bPass = false;
       File fThis = oCrpFile.flThis;
       // (a) Read the first sentence (psdx: <forest>) as well as the header (psdx: <teiHeader>)
-      if (!objProcType.FirstForest(ndxForest, ndxHeader, fThis.getAbsolutePath())) 
+      if (!objProcType.FirstForest(ndxForest, ndxHeader, ndxMdi, fThis.getAbsolutePath())) 
         return errHandle.DoError("hasInputRestr could not process firest forest of " + fThis.getName());
       // Pass on header information 
       oCrpFile.ndxHeader = ndxHeader.argValue;
@@ -852,6 +854,7 @@ public class ExecutePsdxStream extends ExecuteXml {
     XmlNode ndxForestBack;      // Forest inside which the resulting [eTree] resides
     ByRef<XmlNode> ndxForest;   // Forest we are working on
     ByRef<XmlNode> ndxHeader;   // Header of this file
+    ByRef<XmlNode> ndxMdi;      // Access to corresponding .imdi or .cmdi file
     ByRef<XmlNode> ndxDbRes;    // Current result
     ByRef<Integer> intForestId; // ID (numerical) of the current <forest>
     ByRef<Integer> intPtc;      // Percentage of where we are
@@ -909,6 +912,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       objProcType = oCrpFile.objProcType;
       ndxForest = new ByRef(null); 
       ndxHeader = new ByRef(null);
+      ndxMdi = new ByRef(null);
       intForestId = new ByRef(-1);
       intPtc = new ByRef(0);
       ndxDbList = new ArrayList<>();
@@ -945,7 +949,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       
       // Start walking through the file...
       // (a) Read the first sentence (psdx: <forest>) as well as the header (psdx: <teiHeader>)
-      if (!objProcType.FirstForest(ndxForest, ndxHeader, strForestFile)) 
+      if (!objProcType.FirstForest(ndxForest, ndxHeader, ndxMdi, strForestFile)) 
         return errHandle.DoError("ExecuteQueriesFile could not process firest forest of " + fName);
       
       // This is when we can also read the textid

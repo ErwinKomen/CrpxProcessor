@@ -122,6 +122,7 @@ public abstract class XmlForest {
   protected List<String> loc_colStack;    // Stack for the context
   protected List<String> loc_colCombi;    // Where we combine the context
   protected XmlDocument loc_pdxThis;      // Current one
+  protected XmlDocument loc_pdxMdi;       // MDI document (if existing)
   protected XmlDocument[] loc_arPrec;     // Preceding lines as Xml document
   protected XmlDocument[] loc_arFoll;     // Following lines as Xml document
   protected Context[] loc_arPrecCnt;      // Preceding context
@@ -146,6 +147,8 @@ public abstract class XmlForest {
       this.objSaxDoc = this.objSaxon.newDocumentBuilder();
       // Set a new XML document
       loc_pdxThis = new XmlDocument(this.objSaxDoc, this.objSaxon);
+      // Set a new XML document for MDI
+      loc_pdxMdi = new XmlDocument(this.objSaxDoc, this.objSaxon);
       // Other initialisations
       loc_colStack = new ArrayList<>();
       loc_cntThis  = new Context();
@@ -171,7 +174,7 @@ public abstract class XmlForest {
   public final void setProcType(ForType value) {loc_Type = value;  }
 
   // Methods that are overridden by the classes that extend XmlForest:
-  public abstract boolean FirstForest(ByRef<XmlNode> ndxForest, ByRef<XmlNode> ndxHeader, String strFile);
+  public abstract boolean FirstForest(ByRef<XmlNode> ndxForest, ByRef<XmlNode> ndxHeader, ByRef<XmlNode> ndxMdi, String strFile);
   public abstract boolean GetForestId(ByRef<XmlNode> ndxForest, ByRef<Integer> intForestId);
   public abstract boolean NextForest(ByRef<XmlNode> ndxForest);
   public abstract boolean OneForest(ByRef<XmlNode> ndxForest, String sSentId);

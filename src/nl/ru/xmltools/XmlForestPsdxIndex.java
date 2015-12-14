@@ -39,7 +39,7 @@ public class XmlForestPsdxIndex extends XmlForest {
   // 10/jun/2015 ERK Adapated for "PsdxIndex" in Java
   // ----------------------------------------------------------------------------------------------------------
   @Override
-  public boolean FirstForest(ByRef<XmlNode> ndxForest, ByRef<XmlNode> ndxHeader, String strFile) {
+  public boolean FirstForest(ByRef<XmlNode> ndxForest, ByRef<XmlNode> ndxHeader, ByRef<XmlNode> ndxMdi, String strFile) {
     XmlNode ndxWork;  // Working node
     File fThis;       // File object of [strFile]
     int intI;         // Counter
@@ -52,6 +52,24 @@ public class XmlForestPsdxIndex extends XmlForest {
       // Initialisations
       ndxForest.argValue = null;
       ndxHeader.argValue = null;
+      ndxMdi.argValue = null;
+      // Try get mdi reader
+      MdiReader rdMdi = new MdiReader(this.objErr, this.loc_pdxMdi);
+      String sMdiFile = rdMdi.getMdi(strFile);
+      if (!sMdiFile.isEmpty()) {
+        // Read the MDI (.imdi/.cmdi) file as an XmlDocument
+        loc_pdxMdi = rdMdi.Read(sMdiFile);
+        // Check what has been returned
+        if (loc_pdxMdi != null) {
+          // Set the pointer in the mdi
+          ndxMdi.argValue = loc_pdxMdi.SelectSingleNode("./descendant-or-self::Session");
+          if (ndxMdi.argValue == null) {
+            // Set point to the root document
+            ndxMdi.argValue = loc_pdxMdi.SelectSingleNode("/");
+          }
+        }
+      }
+      
       // Fill the arrays
       loc_arPrec = new XmlDocument[objJob.intPrecNum];
       loc_arPrecCnt = new XmlForest.Context[objJob.intPrecNum];
