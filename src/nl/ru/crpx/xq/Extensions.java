@@ -392,7 +392,31 @@ public class Extensions extends RuBase {
           // We can get features for a <su> node and for a <w> node
           String sNodeName = ndSax.getNodeName().getLocalName();
           switch (sNodeName) {
-            case "su":
+            case "su":  // The <su> elements may have features directly under them
+            case "s":   // The <s> elements too may have features directly under them
+              // Visit all the <feat> children of [ndSax]
+              colF = ndSax.axisIterator(Axis.CHILD, loc_qnFeat);
+              while (colF.hasNext()) {
+                // Get this <feat> node
+                ndF = (XdmNode) colF.next();
+                // Get the @name attribute of the feature
+                String sSubset = ndF.getAttributeValue(loc_qnSubset);
+                if (sFeatName.equals(sSubset)) {
+                  // Return the @value of the feature
+                  return ndF.getAttributeValue(loc_qnClass);
+                }
+                if (!sFeatName.contains("/")) {
+                  // Try taking it from past a slash
+                  int iSlash = sSubset.indexOf("/");
+                  if (iSlash>0) {
+                    sSubset = sSubset.substring(iSlash+1);
+                    if (sFeatName.equals(sSubset)) {
+                      // Return the @value of the feature
+                      return ndF.getAttributeValue(loc_qnClass);
+                    }
+                  }
+                }
+              }
               break;
             case "w":
               // Visit all the <pos> children of [ndSax]
