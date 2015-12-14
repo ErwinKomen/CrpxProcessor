@@ -800,6 +800,9 @@ public class ExecutePsdxStream extends ExecuteXml {
       // (a) Read the first sentence (psdx: <forest>) as well as the header (psdx: <teiHeader>)
       if (!objProcType.FirstForest(ndxForest, ndxHeader, fThis.getAbsolutePath())) 
         return errHandle.DoError("hasInputRestr could not process firest forest of " + fThis.getName());
+      // Pass on header information 
+      oCrpFile.ndxHeader = ndxHeader.argValue;
+      oCrpFile.ndxCurrentForest = ndxForest.argValue;
       bPass = this.objParseXq.DoParseInputXq(qEval, oCrpFile, ndxForest.argValue);
       
       return (!bPass);
