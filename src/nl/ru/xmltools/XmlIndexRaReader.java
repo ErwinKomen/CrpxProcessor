@@ -249,37 +249,40 @@ public class XmlIndexRaReader {
       arIndex = new ArrayList<>();
       lstPartFirstIdx = new ArrayList<>();
       lstPartLastIdx = new ArrayList<>();
-      BufferedReader br = new BufferedReader(new FileReader( this.loc_fIndexFile));
-      sLastPart = "";
-      // Read all lines into the list
-      while ((line = br.readLine()) != null) {
-        String[] lineArray = line.split("\t");
-        // Double check
-        if (lineArray.length!=5) {
-          // Stop and review what is going on
-          int iStop = 0;
-        } else {
-          // Get start and size
-          iStart = Integer.parseInt(lineArray[3]);
-          iSize = Integer.parseInt(lineArray[4]);
-          sPart = lineArray[2];
-          // Add the line to the index
-          arIndex.add(new XmlIndexItem(lineArray[0], lineArray[1], sPart, iStart, iSize));
-          // Check if part needs to be adapted
-          if (!sPart.equals(sLastPart)) {
-            // Note where the last index of the previous part was
-            if (!sLastPart.isEmpty()) this.lstPartLastIdx.add(arIndex.size()-1);
-            // Add the *new* part to thelist
-            this.lstParts.add(sPart);
-            // Add the index of the new part to the list
-            this.lstPartFirstIdx.add(arIndex.size()-1);
-            sLastPart = sPart;
-            // ======== Debugging ====
-            // errHandle.debug("readIndex: " + sPart);
-            // =======================
+      // Use a try-with-resources to make sure the .index file is closed after reading
+      try (BufferedReader br = new BufferedReader(new FileReader( this.loc_fIndexFile))) {
+        sLastPart = "";
+        // Read all lines into the list
+        while ((line = br.readLine()) != null) {
+          String[] lineArray = line.split("\t");
+          // Double check
+          if (lineArray.length!=5) {
+            // Stop and review what is going on
+            int iStop = 0;
+          } else {
+            // Get start and size
+            iStart = Integer.parseInt(lineArray[3]);
+            iSize = Integer.parseInt(lineArray[4]);
+            sPart = lineArray[2];
+            // Add the line to the index
+            arIndex.add(new XmlIndexItem(lineArray[0], lineArray[1], sPart, iStart, iSize));
+            // Check if part needs to be adapted
+            if (!sPart.equals(sLastPart)) {
+              // Note where the last index of the previous part was
+              if (!sLastPart.isEmpty()) this.lstPartLastIdx.add(arIndex.size()-1);
+              // Add the *new* part to thelist
+              this.lstParts.add(sPart);
+              // Add the index of the new part to the list
+              this.lstPartFirstIdx.add(arIndex.size()-1);
+              sLastPart = sPart;
+              // ======== Debugging ====
+              // errHandle.debug("readIndex: " + sPart);
+              // =======================
+            }
           }
         }
       }
+      
       // Note the last index of the last part
       this.lstPartLastIdx.add(arIndex.size()-1);
       // Create a random-access reader entry (READ ONLY)
