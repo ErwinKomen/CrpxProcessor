@@ -11,7 +11,6 @@ import nl.ru.crpx.dataobject.DataObject;
 import nl.ru.crpx.dataobject.DataObjectMapElement;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.tools.ErrHandle;
-import nl.ru.crpx.xq.Extensions;
 import nl.ru.util.ExUtil;
 import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
@@ -70,6 +69,7 @@ public abstract class Job implements Comparable<Job> {
   protected Job parent = null;              // The 'parent' job I am under
 
 // </editor-fold>
+  
   // ============== Class initialisation ======================================
   public Job(SearchManager searchMan, String userId, SearchParameters par) {
     // Set my copy of the corpus research project we are dealing with
@@ -142,6 +142,7 @@ public abstract class Job implements Comparable<Job> {
     waitUntilFinished(-1);
   }
 // </editor-fold>
+  
 // <editor-fold defaultstate="collapsed" desc="Comparable">
   /**
    * Compare based on last access time.
@@ -167,6 +168,8 @@ public abstract class Job implements Comparable<Job> {
     lastAccessed = System.currentTimeMillis();
   }
 // </editor-fold>
+  
+// <editor-fold desc="Job creation">
   /**
    * Create a new Search (subclass) object to carry out the specified search,
    * and call the perform() method to start the search.
@@ -201,7 +204,8 @@ public abstract class Job implements Comparable<Job> {
 
     return search;
   }
-
+// </editor-fold>
+  
 // <editor-fold desc="Job performance">
   /** Perform the search.
    *
@@ -299,6 +303,7 @@ public abstract class Job implements Comparable<Job> {
   }
 
 // </editor-fold>
+  
 // <editor-fold desc="AboutThisJob">
   public SearchParameters getParameters() {return par;}
   public String getJobId() {return String.valueOf(id);}
@@ -356,6 +361,7 @@ public abstract class Job implements Comparable<Job> {
 
   
 // </editor-fold>
+  
 // <editor-fold desc="User-Job listing">
   /** A list of user-session ids that have requested this job */
   static List<JSONObject> lUserJob = new ArrayList<>();
@@ -590,6 +596,7 @@ public abstract class Job implements Comparable<Job> {
     return sQuery;
   }
 // </editor-fold>
+  
 // <editor-fold defaultstate="collapsed" desc="Exceptions">
   // =============== Exception handling ========================================
   /**
@@ -629,6 +636,7 @@ public abstract class Job implements Comparable<Job> {
     throw ExUtil.wrapRuntimeException(exception);
   }
 // </editor-fold>
+  
 // <editor-fold defaultstate="collapsed" desc="Age">
   /**
    * Return this search's age in seconds.
@@ -647,6 +655,7 @@ public abstract class Job implements Comparable<Job> {
   }
   
 // </editor-fold>
+  
 // <editor-fold defaultstate="collapsed" desc="Extra's">
   public static String getCurrentTimeStamp() {
     SimpleDateFormat sdfDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//dd/MM/yyyy
