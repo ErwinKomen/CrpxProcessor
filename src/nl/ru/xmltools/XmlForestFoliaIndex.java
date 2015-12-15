@@ -295,7 +295,11 @@ public class XmlForestFoliaIndex extends XmlForest {
         // Try to read another piece of <forest> xml
         if (! loc_xrdRaFile.EOF) strNext = loc_xrdRaFile.getNextLine();
         // Check for end-of-file and file closing
-        if (loc_xrdRaFile.EOF) loc_xrdRaFile = null;
+        if (loc_xrdRaFile.EOF) {
+          // Closing should be done by the caller -- We just return empty
+          ndxForest.argValue = null;
+          return true;
+        }
         // Double check what we got
         if (strNext == null || strNext.length() == 0) {
           ndxForest.argValue = null;
