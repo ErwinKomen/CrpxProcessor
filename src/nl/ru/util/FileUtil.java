@@ -27,6 +27,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -100,7 +101,7 @@ public class FileUtil {
       // Write content to it
       return new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(
                             file), encoding)));
-    } catch (Exception e) {
+    } catch (FileNotFoundException | UnsupportedEncodingException e) {
       throw new RuntimeException(e);
     }
   }
@@ -133,7 +134,7 @@ public class FileUtil {
     try {
       return new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(
                       file, true), encoding)));
-    } catch (Exception e) {
+    } catch (FileNotFoundException | UnsupportedEncodingException e) {
       throw new RuntimeException(e);
     }
   }
@@ -165,7 +166,7 @@ public class FileUtil {
   public static BufferedReader openForReading(File file, String encoding) {
     try {
       return new BufferedReader(new InputStreamReader(new FileInputStream(file), encoding));
-    } catch (Exception e) {
+    } catch (FileNotFoundException | UnsupportedEncodingException e) {
       throw new RuntimeException(e);
     }
   }
@@ -485,21 +486,15 @@ public class FileUtil {
    * @param data what to write to the file
    */
   public static void writeFile(File file, String data) {
-    PrintWriter out = openForWriting(file, "utf-8");
-    try {
+    try (PrintWriter out = openForWriting(file, "utf-8")) {
       out.print(data);
-    } finally {
-      out.close();
     }
   }
   // ERK: added writeFile with the encoding as option and a string filename as first argument
   public static void writeFile(String sName, String data, String encoding) {
     File file = new File(sName);
-    PrintWriter out = openForWriting(file, encoding);
-    try {
+    try (PrintWriter out = openForWriting(file, encoding)) {
       out.print(data);
-    } finally {
-      out.close();
     }
   }
   // ERK: added string-to-string file name normalization using .nio
