@@ -283,13 +283,28 @@ public class XmlIndexRaReader {
       // Note the last index of the last part
       this.lstPartLastIdx.add(arIndex.size()-1);
       // Create a random-access reader entry (READ ONLY)
-      this.loc_fRa = new RandomAccessFile(loc_fThis.getAbsolutePath(), "r");      
+      this.loc_fRa = new RandomAccessFile(loc_fThis.getAbsolutePath(), "r");   
       // Return positively
       return true;
     } catch (Exception ex) {
       errHandle.DoError("readIndex encountered a problem for " + loc_fThis.getAbsolutePath(), ex, XmlIndexRaReader.class);
       // Return failure
       return false;
+    }
+  }
+  
+  /**
+   * close -- close the Random-Access reader file
+   */
+  public void close() {
+    try {
+      if (this.loc_fRa != null) {
+        errHandle.debug("Ra reader closing: " + loc_fThis.getName());
+        this.loc_fRa.close();
+        this.loc_fRa = null;
+      }
+    } catch (Exception ex) {
+      errHandle.DoError("close() RA reader problem " + loc_fThis.getAbsolutePath(), ex, XmlIndexRaReader.class);
     }
   }
   

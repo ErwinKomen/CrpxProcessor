@@ -312,6 +312,14 @@ public class XmlAccessPsdx extends XmlAccess {
       return false;
     }
   }
+  
+  @Override
+  public void close() {
+    if (bUseRa) {
+      this.objXmlRaRdr.close();
+    }     
+  }
+  
   /**
    * getOneSent
    *    Given a node, get the sentence associated with that node

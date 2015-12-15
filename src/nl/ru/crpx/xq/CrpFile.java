@@ -118,6 +118,15 @@ public class CrpFile {
   public long getId() { return this.id; }
   
   /**
+   * close -- Nicely close XmlForest handle if it is still open
+   */
+  public void close() {
+    if (this.objProcType != null) {
+      this.objProcType.close();
+    }
+  }
+  
+  /**
    * getLexDictQC
    *    Return the LexDict for the indicated QC
    * 

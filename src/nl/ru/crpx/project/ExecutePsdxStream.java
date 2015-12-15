@@ -742,15 +742,17 @@ public class ExecutePsdxStream extends ExecuteXml {
               if (jThis.intCrpFileId <0)
                 logger.debug("monitorXqF job " + jThis.getJobId() + " fileid=" + jThis.intCrpFileId);
               CrpFile oCrpFile = RuBase.getCrpFile(jThis.intCrpFileId);
-              if (oCrpFile==null)
+              if (oCrpFile==null) {
                 logger.debug("monitorXqF job " + jThis.getJobId() + " CrpFile=null");
+              } 
               if (oCrpFile.flThis == null)
                 logger.debug("monitorXqF job " + jThis.getJobId() + " CrpFile.flThis=null");
             }
             // =========================================
             
             // Note that it has finished for others too
-            setProgress(jobCaller, "", RuBase.getCrpFile(jThis.intCrpFileId).flThis.getName(), 
+            CrpFile oCrpFile = RuBase.getCrpFile(jThis.intCrpFileId);
+            setProgress(jobCaller, "", oCrpFile.flThis.getName(), 
                     -1, arCount.length(), -1);
             /*
             synchronized(oProgress) {
@@ -763,6 +765,8 @@ public class ExecutePsdxStream extends ExecuteXml {
             arJob.remove(jThis);
             // The job must also be removed to clear room
             jThis.changeClientsWaiting(-1);
+            // Nicely close the Ra Reader attached to this
+            oCrpFile.close();
           }
         }
       }

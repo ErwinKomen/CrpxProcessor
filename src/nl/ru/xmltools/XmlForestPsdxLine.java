@@ -473,4 +473,11 @@ public class XmlForestPsdxLine extends XmlForest {
   public String GetPde(ByRef<XmlNode> ndxForest) {
     return "";
   }
+  
+  @Override
+  public void close() {
+    // Close the underlying index reader
+    // if (bUseRa && loc_xrdRaFile != null) loc_xrdRaFile.close();
+  }
+    
 }
