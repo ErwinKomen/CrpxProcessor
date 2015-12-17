@@ -71,37 +71,55 @@ public class ExecuteXml extends Execute {
     super(oProj);
     // Validate: check for errors
     if (errHandle.hasErr()) return;
-    // For work with Saxon Xquery see the 9.1.0.1 documentation:
-    //  D:/DownLoad/XML/saxon-resources9-1-0-1/doc/using-xquery/api-query/s9api-query.html
-    strDbType = new ByRef("");
-    // Set the saxon processor correctly
-    objSaxon = oProj.getSaxProc();
-    xconfig = new Configuration();
-    xconfig.setAllowExternalFunctions(true);
-    sqc = new StaticQueryContext(xconfig);
-    // Trace binding of external functions (see definition in CrpGlobal)
-    if (bTraceXq) {
-      // objSaxon.setConfigurationProperty(FeatureKeys.TRACE_EXTERNAL_FUNCTIONS, true);
-      objSaxon.setConfigurationProperty(FeatureKeys.COMPILE_WITH_TRACING, true);
-      objSaxon.setConfigurationProperty(FeatureKeys.LINE_NUMBERING, true);
-      objSaxon.setConfigurationProperty(FeatureKeys.VALIDATION_WARNINGS, true);
-      objSaxon.setConfigurationProperty(FeatureKeys.VERSION_WARNING, true);
-    }
-    // Set the class-internal access to FileUtil
-    fHandle = new FileUtil();
-    // Create an object for XqErr processing
-    oXq = new XqErr();
-    // Other initialisations for this class
-    bIsDbase = false;
-    oDbase = new Dbase(oProj);
-    // Create a compiler and a document builder
-    objCompiler = objSaxon.newXQueryCompiler();
-    objCompiler.setCompileWithTracing(true);
-    
-    objSaxDoc = objSaxon.newDocumentBuilder();
-    // objExt = new Extensions();
-    objParseXq = new Parse(oProj, errHandle);
+    // Perform saxon-specific initialisations
+    initSaxon(oProj);
   }
+  
+// <editor-fold desc="Initialisation of working with Saxon Xquery:>
+  /**
+   * initSaxon
+   *  Initialise a Saxon machine
+   * 
+   * @param oProj 
+   */
+  private void initSaxon(CorpusResearchProject oProj) {
+    try {
+      // For work with Saxon Xquery see the 9.1.0.1 documentation:
+      //  D:/DownLoad/XML/saxon-resources9-1-0-1/doc/using-xquery/api-query/s9api-query.html
+      strDbType = new ByRef("");
+      // Set the saxon processor correctly
+      objSaxon = oProj.getSaxProc();
+      xconfig = new Configuration();
+      xconfig.setAllowExternalFunctions(true);
+      sqc = new StaticQueryContext(xconfig);
+      // Trace binding of external functions (see definition in CrpGlobal)
+      if (bTraceXq) {
+        // objSaxon.setConfigurationProperty(FeatureKeys.TRACE_EXTERNAL_FUNCTIONS, true);
+        objSaxon.setConfigurationProperty(FeatureKeys.COMPILE_WITH_TRACING, true);
+        objSaxon.setConfigurationProperty(FeatureKeys.LINE_NUMBERING, true);
+        objSaxon.setConfigurationProperty(FeatureKeys.VALIDATION_WARNINGS, true);
+        objSaxon.setConfigurationProperty(FeatureKeys.VERSION_WARNING, true);
+      }
+      // Set the class-internal access to FileUtil
+      fHandle = new FileUtil();
+      // Create an object for XqErr processing
+      oXq = new XqErr();
+      // Other initialisations for this class
+      bIsDbase = false;
+      oDbase = new Dbase(oProj);
+      // Create a compiler and a document builder
+      objCompiler = objSaxon.newXQueryCompiler();
+      objCompiler.setCompileWithTracing(true);
+
+      objSaxDoc = objSaxon.newDocumentBuilder();
+      // objExt = new Extensions();
+      objParseXq = new Parse(oProj, errHandle);    
+    } catch (Exception ex) {      
+      // Show error
+      errHandle.DoError("ExecuteXml/initSaxon error: ", ex);
+    }
+  }
+// </editor-fold>
   
 // <editor-fold desc="Preparation of Xml execution">
   // ----------------------------------------------------------------------------------------------------------
@@ -344,7 +362,29 @@ public class ExecuteXml extends Execute {
       // Transform the Query into an executable
       // (1) Create error listener
       listener = new MyErrorListener();
-      // (2) Attach the error listener to the compiler
+      // (2) Check if the compiler still 'exists'
+      if (objCompiler == null) {
+        // Double check
+        if (objSaxon == null) {
+          // Check project
+          if (this.crpThis == null) {
+            // Now we have a problem!
+            errHandle.DoError("ExecuteXml/GetExec: there is no CRP anymore...");
+            return false;
+          } else {
+            // Something really weird is going on...
+            errHandle.debug("ExecuteXml/GetExec: re-initialising Saxon");
+            // Re-initialise all completely
+            initSaxon(this.crpThis);
+          }
+        } else {
+          // Show what is happening
+          errHandle.debug("ExecuteXml/GetExec: get fresh copy of XQueryCompiler");
+          // Get a fresh copy of the compiler
+          objCompiler = objSaxon.newXQueryCompiler();
+        }
+      }
+      // (3) Attach the error listener to the compiler
       objCompiler.setErrorListener(listener);
       
       // Store the query file as string into [objQuery.exe]
