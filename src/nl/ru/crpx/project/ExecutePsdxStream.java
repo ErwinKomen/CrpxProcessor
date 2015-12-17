@@ -196,15 +196,23 @@ public class ExecutePsdxStream extends ExecuteXml {
         }
         // Create a job for this Crp/File treatment
         JobXqF search = null;
-        try {
-          // Initiate the XqF job
-          search = searchMan.searchXqF(crpThis, userId, searchXqFpar, jobCaller);
-        } catch (QueryException ex) {
-          // Return error and failure
-          return errHandle.DoError("Failed to execute file ", ex, ExecutePsdxStream.class);
-        } catch (InterruptedException ex) {
-          // Interruption as such should not be such a problem, I think
-          return errHandle.DoError("Interrupted during sleep: " + ex.getMessage());
+        boolean bStarted = false;
+        while (!bStarted) {
+          try {
+            // Initiate the XqF job
+            search = searchMan.searchXqF(crpThis, userId, searchXqFpar, jobCaller);
+            bStarted = true;
+          } catch (QueryException ex) {
+            // Return error and failure
+            return errHandle.DoError("Failed to execute file ", ex, ExecutePsdxStream.class);
+          } catch (InterruptedException ex) {
+            // Interruption as such should not be such a problem, I think
+            errHandle.DoError("Interrupted during sleep: " + ex.getMessage());
+            // Check for our own interrupt
+            if (errHandle.bInterrupt) return false;
+            // Put started back to false, so that a new attempt can be made
+            bStarted = false;
+          }
         }
         
         synchronized(search) {
