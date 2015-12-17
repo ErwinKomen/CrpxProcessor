@@ -313,7 +313,11 @@ public class XmlForestPsdxIndex extends XmlForest {
         // Try to read another piece of <forest> xml
         if (! loc_xrdRaFile.EOF) strNext = loc_xrdRaFile.getNextLine();
         // Check for end-of-file and file closing
-        if (loc_xrdRaFile.EOF) loc_xrdRaFile = null;
+        if (loc_xrdRaFile.EOF) {
+          // CLosing should be done by the caller -- we just return empty || loc_xrdRaFile = null;
+          ndxForest.argValue = null;
+          return true;
+        }
       } else {
         if (loc_xrdFile==null) return false;
         // Try to read another piece of <forest> xml
