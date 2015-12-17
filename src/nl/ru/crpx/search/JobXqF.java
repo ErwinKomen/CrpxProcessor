@@ -10,6 +10,7 @@ package nl.ru.crpx.search;
 
 import java.io.File;
 import nl.ru.crpx.project.ExecutePsdxStream;
+import nl.ru.crpx.xq.CrpFile;
 import nl.ru.crpx.xq.RuBase;
 import org.w3c.dom.Node;
 
@@ -37,18 +38,29 @@ public class JobXqF extends Job {
   public JobXqF(SearchManager searchMan, String userId, SearchParameters par) {
     // Make sure the class I extend is initialized
     super(searchMan, userId, par);
-    // Other initializations for this Xq search job
-    intFollNum = crpThis.getFollNum();
-    intPrecNum = crpThis.getPrecNum();
-    // Get the execution object
-    this.objEx = (ExecutePsdxStream) crpThis.getExe();
-    // Get the parameter
-    intCrpFileId = par.getInteger("crpfileid");
-    // My own copy of the CrpFile object
-    // oCrpFile = RuBase.getCrpFile(par.getInteger("crpfileid"));
-    // Get a handle to the input file
-    fInput = RuBase.getCrpFile(par.getInteger("crpfileid")).flThis;
-    //
+    try {
+      // Other initializations for this Xq search job
+      intFollNum = crpThis.getFollNum();
+      intPrecNum = crpThis.getPrecNum();
+      // Get the execution object
+      this.objEx = (ExecutePsdxStream) crpThis.getExe();
+      // Get the parameter
+      intCrpFileId = par.getInteger("crpfileid");
+      // My own copy of the CrpFile object
+      CrpFile oCrpFile = RuBase.getCrpFile(intCrpFileId);
+      // Validation
+      if (oCrpFile == null) {
+        // Don't know how this is possible: the CrpFile has been closed perhaps??
+        errHandle.DoError("JobXqF initialisation: cannot get copy of CrpFile id="+intCrpFileId);
+        return;
+      }
+      // Get a handle to the input file
+      // fInput = RuBase.getCrpFile(par.getInteger("crpfileid")).flThis;
+      fInput = oCrpFile.flThis;
+      //
+    } catch (Exception ex) {
+      errHandle.DoError("JobXqF - Initialisation of class fails: ", ex);
+    }
   }
   
   // ======================= Perform the search ================================

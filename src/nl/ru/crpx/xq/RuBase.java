@@ -173,7 +173,9 @@ public class RuBase /* extends Job */ {
       if (!hasCrpCaller(oCrp)) {
         // The object is not yet on the stack
         //    So: we add it there
-        lCrpCaller.add(oCrp);
+        synchronized(lCrpCaller) {
+          lCrpCaller.add(oCrp);
+        }
       }
       // Return positively
       return true;
@@ -192,10 +194,12 @@ public class RuBase /* extends Job */ {
   // ------------------------------------------------------------------------------------
   public static int getCrpCaller(CrpFile oCrp) {
     try {
-      // Check if it is not yet there
-      for (CrpFile oThis: lCrpCaller) {
-        if (oThis.equals(oCrp)) {
-          return lCrpCaller.indexOf(oThis);
+      synchronized(lCrpCaller) {
+        // Check if it is not yet there
+        for (CrpFile oThis: lCrpCaller) {
+          if (oThis.equals(oCrp)) {
+            return lCrpCaller.indexOf(oThis);
+          }
         }
       }
       // Return failure: negative index
@@ -214,9 +218,18 @@ public class RuBase /* extends Job */ {
   // 11/may/2015  ERK Created for Java
   // ------------------------------------------------------------------------------------
   public static CrpFile getCrpFile(int idx) {
+    CrpFile oBack = null;
+    
     try {
-      if (idx < 0 || lCrpCaller.size() <= idx) return null;
-      return lCrpCaller.get(idx);
+      synchronized(lCrpCaller) {
+        if (idx < 0 || lCrpCaller.size() <= idx) {
+          // Cannot get the caller what he/she wants
+          errHandle.debug("RuBase/getCrpFile: request for idx="+idx+", but size="+lCrpCaller.size());
+          return null;
+        }
+        oBack = lCrpCaller.get(idx);
+      }
+      return oBack;
     } catch (RuntimeException ex) {
       // Warn user
       errHandle.DoError("RuBase/getCrpFile error", ex, RuBase.class);
@@ -232,13 +245,15 @@ public class RuBase /* extends Job */ {
   // ------------------------------------------------------------------------------------
   public static boolean removeCrpCaller(CrpFile oCrp) {
     try {
-      // Check if it is not yet there
-      for (CrpFile oThis: lCrpCaller) {
-        if (oThis.equals(oCrp)) {
-          // Remove it from the list
-          lCrpCaller.remove(oCrp);
-          // Return positively
-          return true;
+      synchronized(lCrpCaller) {
+        // Check if it is not yet there
+        for (CrpFile oThis: lCrpCaller) {
+          if (oThis.equals(oCrp)) {
+            // Remove it from the list
+            lCrpCaller.remove(oCrp);
+            // Return positively
+            return true;
+          }
         }
       }
       // Return positively
@@ -258,9 +273,11 @@ public class RuBase /* extends Job */ {
   // ------------------------------------------------------------------------------------
   public static boolean hasCrpCaller(CrpFile oCrp) {
     try {
-      // Check if it is not yet there
-      for (CrpFile oThis: lCrpCaller) {
-        if (oThis.equals(oCrp)) return true;
+      synchronized(lCrpCaller) {
+        // Check if it is not yet there
+        for (CrpFile oThis: lCrpCaller) {
+          if (oThis.equals(oCrp)) return true;
+        }
       }
       // We don't have it
       return false;
