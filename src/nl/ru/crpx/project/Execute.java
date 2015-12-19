@@ -20,6 +20,7 @@ import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
 import nl.ru.util.StringUtil;
 import nl.ru.util.json.JSONObject;
+import nl.ru.xmltools.Parse;
 import org.apache.log4j.Logger;
 
 /**
@@ -73,9 +74,9 @@ public class Execute extends CrpGlobal {
   protected Job objSearchJob;
   // =============== local constants ===========================================
   // in .NET: String strRuDef = "declare namespace ru = 'clitype:CorpusStudio.RuXqExt.RU?asm=CorpusStudio';\r\n";
-  private final String strRuDef = "declare namespace ru = 'java:nl.ru.crpx.xq.Extensions';\r\n";
-  private final String strTbDef = "declare namespace tb = 'http://erwinkomen.ruhosting.nl/software/tb';\r\n";
-  private final String strFunctxDef = "declare namespace functx = 'http://www.functx.com';\r\n";
+  // private final String strRuDef = "declare namespace ru = 'java:nl.ru.crpx.xq.Extensions';\r\n";
+  // private final String strTbDef = "declare namespace tb = 'http://erwinkomen.ruhosting.nl/software/tb';\r\n";
+  // private final String strFunctxDef = "declare namespace functx = 'http://www.functx.com';\r\n";
   // ===================== Local stuff =========================================
   private String TEMP_FILE = "CrpTemp";
   
@@ -181,7 +182,7 @@ public class Execute extends CrpGlobal {
     if (!fDir.exists()) fDir.mkdir();
     return sDir;
   }
-  public String getRuDef() { return strRuDef; }
+//  public String getRuDef() { return strRuDef; }
   // ======================================
   /**
    * ExecuteQueries -- Overridable...
@@ -554,9 +555,9 @@ public class Execute extends CrpGlobal {
         strQtext = "";
         oThis.Name = oQuery.getString("Name");
         // Make the pre-amble for the definition/query
-        strQtext = strRuDef; AddQel(oThis.arQel, intJ, 1, "ru", "-");
-        if (bAddFunctx) {strQtext += strFunctxDef; AddQel(oThis.arQel, intJ, 1, "functx", "-");}
-        if (bAddTbDef) {strQtext += strTbDef; AddQel(oThis.arQel, intJ, 1, "tb", "-");}
+        strQtext = Parse.getDeclNmsp("ru"); AddQel(oThis.arQel, intJ, 1, "ru", "-");
+        if (bAddFunctx) {strQtext += Parse.getDeclNmsp("functx"); AddQel(oThis.arQel, intJ, 1, "functx", "-");}
+        if (bAddTbDef) {strQtext += Parse.getDeclNmsp("tb"); AddQel(oThis.arQel, intJ, 1, "tb", "-");}
         // Add the definitions
         strQtext += strDtext;
         for (Qel arDefThis : arDef) {

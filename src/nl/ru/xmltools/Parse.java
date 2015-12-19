@@ -6,6 +6,9 @@
 
 package nl.ru.xmltools;
 
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -34,6 +37,7 @@ import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.crpx.xq.CrpFile;
 import static nl.ru.crpx.xq.RuBase.ru_qnFoliaId;
 import nl.ru.util.ByRef;
+import nl.ru.util.FileUtil;
 import nl.ru.util.StringUtil;
 import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
@@ -68,6 +72,11 @@ public class Parse {
   private static final QName loc_xq_FoliaClass = new QName("", "", "class");
   private static XPathSelector ru_xpeNodeText_Folia; // Path to all <w> elements in a FoLiA <s> element
   private XPathCompiler xpComp;             // My own xpath compiler (Xdm, saxon)
+  // =============== local constants ===========================================
+  // in .NET: String strRuDef = "declare namespace ru = 'clitype:CorpusStudio.RuXqExt.RU?asm=CorpusStudio';\r\n";
+  private static final String strRuDef = "declare namespace ru = 'java:nl.ru.crpx.xq.Extensions';\r\n";
+  private static final String strTbDef = "declare namespace tb = 'http://erwinkomen.ruhosting.nl/software/tb';\r\n";
+  private static final String strFunctxDef = "declare namespace functx = 'http://www.functx.com';\r\n";
   // ========== Variables for this class =======================================
   CorpusResearchProject crpThis;    // Which CRP are we working with?
   DocumentBuilderFactory dfactory;  // Dom document factory
@@ -93,6 +102,15 @@ public class Parse {
       errHandle.DoError("Cannot initialize the [Parse] class: ", ex, Parse.class);
     }
   }
+  public static String getDeclNmsp(String sType) { 
+    switch (sType) {
+      case "ru": return strRuDef;
+      case "tb": return strTbDef;
+      case "functx": return strFunctxDef;
+    }
+    return ""; 
+  }
+  
   // ----------------------------------------------------------------------------------------------------------
   // Name :  GetSeg
   // Goal :  Get the "original" text of the current sentence node
@@ -334,6 +352,25 @@ public class Parse {
   }
   
   /**
+   * DoParseGroupXq
+   *    Parse a group-determination query
+   * 
+   * @param qEval
+   * @param oCrpThis
+   * @param ndxThis
+   * @return 
+   */
+  public String DoParseGroupXq(XQueryEvaluator qEval, CrpFile oCrpThis, XmlNode ndxThis) {
+    try {
+      String sBack = DoParseAnyXq(qEval, oCrpThis, ndxThis, "group", "groupName");
+      return sBack;
+    } catch (Exception ex) {
+      errHandle.DoError("Parse/DoParseInputXq error", ex, Parse.class);
+      return "";
+    }
+  }
+  
+  /**
    * DoParseInputXq
    *    Parse an input-restriction query
    * 
@@ -343,11 +380,23 @@ public class Parse {
    * @return 
    */
   public boolean DoParseInputXq(XQueryEvaluator qEval, CrpFile oCrpThis, XmlNode ndxThis) {
+    try {
+      String sBack = DoParseAnyXq(qEval, oCrpThis, ndxThis, "filter", "condition");
+      boolean bBack = (sBack.isEmpty()) ? false : (sBack.equals("true"));
+      return bBack;
+    } catch (Exception ex) {
+      errHandle.DoError("Parse/DoParseInputXq error", ex, Parse.class);
+      return false;
+    }
+  }
+  
+  public String DoParseAnyXq(XQueryEvaluator qEval, CrpFile oCrpThis, XmlNode ndxThis, 
+          String sElName, String sAttrName) {
     XQueryEvaluator objQuery;
 
     try {
       // Validate
-      if (ndxThis == null) return false;
+      if (ndxThis == null) return "";
       // Take over the right values
       objQuery = qEval;
       // Create a new DOM destination for the results
@@ -364,29 +413,30 @@ public class Parse {
       try {
         objQuery.run(new DOMDestination(pdxDoc));
       } catch (SaxonApiException ex) {
-        return errHandle.DoError("Runtime error while executing [InputQuery]: ", ex, Parse.class);        
+        errHandle.DoError("Runtime error while executing [DoParseAnyXq]: ", ex, Parse.class);        
+        return "";
       }
       // Get all the <forest> results from the [pdxDoc] answer
-      NodeList ndList = pdxDoc.getElementsByTagName("filter");
+      NodeList ndList = pdxDoc.getElementsByTagName(sElName);
       // There should be just ONE result
       if (ndList.getLength() == 1) {
         // Get the resulting node
         Node ndDeep = ndList.item(0);
         NamedNodeMap attrList = ndDeep.getAttributes();
         // Check the presence of the named item
-        Node ndBack = attrList.getNamedItem("condition");
+        Node ndBack = attrList.getNamedItem(sAttrName);
         if (ndBack != null) {
           // Get the value of the item
           String sBack = ndBack.getNodeValue();
-          return (sBack.equals("true"));
+          return sBack;
         }
       }
       
       // This is bad: no result 
-      return false;
+      return "";
     } catch (Exception ex) {
-      errHandle.DoError("Parse/DoParseInputXq error", ex, Parse.class);
-      return false;
+      errHandle.DoError("Parse/DoParseAnyXq error", ex, Parse.class);
+      return "";
     }
   }
   // ----------------------------------------------------------------------------------------------------------
@@ -485,6 +535,70 @@ public class Parse {
       // TODO: provide a visualization of the node this happens to
     } 
   }
+  
+  /**
+   * getGroupName
+   *    Given an Xquery evaluator, calculate the name of the group the @sFileName
+   *      belongs to.
+   * 
+   * @param qEval
+   * @param oProj
+   * @param sFileName
+   * @return 
+   */
+  public String getGroupName(XQueryEvaluator qEval, CorpusResearchProject oProj, String sFileName) {
+    ByRef<XmlNode> ndxForest;   // Forest we are working on
+    ByRef<XmlNode> ndxHeader;   // Header of this file
+    ByRef<XmlNode> ndxMdi;      // Access to corresponding .imdi or .cmdi file
+    XmlForest objProcType;      // Access to the XmlForest object allocated to me
+    CrpFile oCrpFile;
+    String sGroup = "default";
+    
+    try {
+      // Validate
+      if (qEval == null || oProj == null || sFileName.isEmpty()) return "error";
+      // Locate the file
+      sFileName = FileUtil.findFileInDirectory(oProj.getSrcDir().getAbsolutePath(), sFileName);
+      /*
+      Path pStart = Paths.get(oProj.getSrcDir().getAbsolutePath());
+      List<String> lInputFiles = new ArrayList<>();
+      FileUtil.getFileNames(lInputFiles, pStart, sFileName);
+      if (lInputFiles.isEmpty()) {
+        return "error";
+      }
+      sFileName = lInputFiles.get(0); */
+      
+      // Create a CrpFile for this project/file combination
+      File fThis = new File(sFileName);
+      oCrpFile = new CrpFile(oProj, fThis, oProj.getSaxProc(), null);
+      // Initialisations
+      objProcType = oCrpFile.objProcType;
+      ndxForest = new ByRef(null); 
+      ndxHeader = new ByRef(null);
+      ndxMdi = new ByRef(null);
+      // (a) Read the first sentence (psdx: <forest>) as well as the header (psdx: <teiHeader>)
+      if (!objProcType.FirstForest(ndxForest, ndxHeader, ndxMdi, fThis.getAbsolutePath())) {
+        errHandle.DoError("hasInputRestr could not process firest forest of " + fThis.getName());
+        return "error";
+      }
+      // Pass on header information 
+      oCrpFile.ndxHeader = ndxHeader.argValue;
+      oCrpFile.ndxMdi = ndxMdi.argValue;
+      oCrpFile.ndxCurrentForest = ndxForest.argValue;
+      // Get the group information
+      sGroup = DoParseGroupXq(qEval, oCrpFile, ndxForest.argValue);
+      // Check
+      if (sGroup.isEmpty()) sGroup = "default";
+      
+      // Return the group we found
+      return sGroup;
+    } catch (Exception ex) {
+      errHandle.DoError("Parse/getGroupName problem with [" + sFileName + "]: ", ex, Parse.class);
+      return "error";
+    }
+  }
+  
+  
 
 }
 

@@ -128,6 +128,8 @@ public abstract class XmlForest {
   protected Context[] loc_arPrecCnt;      // Preceding context
   protected Context[] loc_arFollCnt;      // Following context
   protected Context loc_cntThis;          // Current context
+  protected int iPrecNum = 2; // Default
+  protected int iFollNum = 1; // Default
   protected ForType loc_Type;             // The type of treatment expected
   protected ErrHandle objErr;               // Local access to the general object with global variables
   protected JobXq objJob;                   // Access to the job that is being executed

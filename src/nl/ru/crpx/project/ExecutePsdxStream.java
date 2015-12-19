@@ -36,6 +36,7 @@ import nl.ru.util.DateUtil;
 import nl.ru.util.FileUtil;
 import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
+import nl.ru.xmltools.Parse;
 import nl.ru.xmltools.XmlAccess;
 import nl.ru.xmltools.XmlForest;
 import nl.ru.xmltools.XmlIndexItem;
@@ -137,7 +138,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       XQueryEvaluator qMetaFilter = null;
       String sXqInput = crpThis.getXqInput();
       if (!sXqInput.isEmpty()) {
-        sXqInput = this.getRuDef() + sXqInput;
+        sXqInput = Parse.getDeclNmsp("ru") + sXqInput;
         qMetaFilter = objParseXq.getEvaluator(this.objCompiler, sXqInput);
       }
 

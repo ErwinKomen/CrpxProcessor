@@ -69,12 +69,17 @@ public class XmlForestPsdxIndex extends XmlForest {
           }
         }
       }
+      // Check defaults
+      if (objJob != null) {
+        iPrecNum = iPrecNum;
+        iFollNum = iFollNum;
+      }
       
       // Fill the arrays
-      loc_arPrec = new XmlDocument[objJob.intPrecNum];
-      loc_arPrecCnt = new XmlForest.Context[objJob.intPrecNum];
-      loc_arFoll = new XmlDocument[objJob.intFollNum];
-      loc_arFollCnt = new XmlForest.Context[objJob.intFollNum];
+      loc_arPrec = new XmlDocument[iPrecNum];
+      loc_arPrecCnt = new XmlForest.Context[iPrecNum];
+      loc_arFoll = new XmlDocument[iFollNum];
+      loc_arFollCnt = new XmlForest.Context[iFollNum];
       for (intI = 0; intI < loc_arPrec.length; intI++) {
         loc_arPrec[intI] = new XmlDocument(this.objSaxDoc, this.objSaxon);
         loc_arPrecCnt[intI] = new XmlForest.Context();
@@ -108,7 +113,7 @@ public class XmlForestPsdxIndex extends XmlForest {
         ndxHeader.argValue =ndxWork;
       }
       // Read the first node + following context
-      for (intI = 0; intI <= objJob.intFollNum; intI++) {
+      for (intI = 0; intI <= iFollNum; intI++) {
         // Store it
         String sForest = "";
         if (intI == 0) {
@@ -279,7 +284,7 @@ public class XmlForestPsdxIndex extends XmlForest {
   public boolean IsEnd() {
     try {
       boolean bEof = (bUseRa) ? loc_xrdRaFile.EOF : loc_xrdFile.EOF;
-      return (bEof) && (objJob.intFollNum == 0 || (loc_arFoll[0] == null));
+      return (bEof) && (iFollNum == 0 || (loc_arFoll[0] == null));
     } catch (RuntimeException ex) {
       // Warn user
       objErr.DoError("XmlForest/IsEnd error: " + ex.getMessage() + "\r\n");
@@ -331,9 +336,9 @@ public class XmlForestPsdxIndex extends XmlForest {
         return true;
       }
       // Do we have any preceding context to take care of?
-      if (objJob.intPrecNum > 0) {
+      if (iPrecNum > 0) {
         // Copy preceding context
-        for (intI = 1; intI < objJob.intPrecNum; intI++) {
+        for (intI = 1; intI < iPrecNum; intI++) {
           // Copy context, so that loc_arPrec(0) contains the furthest-away-being context
           loc_arPrec[intI - 1] = loc_arPrec[intI];
           // loc_arPrecCnt(intI - 1) = loc_arPrecCnt(intI)
@@ -342,14 +347,14 @@ public class XmlForestPsdxIndex extends XmlForest {
           loc_arPrecCnt[intI - 1].TxtId = loc_arPrecCnt[intI].TxtId;
         }
         // Copy current into preceding context
-        loc_arPrec[objJob.intPrecNum - 1] = loc_pdxThis;
-        // loc_arPrecCnt(objJob.intPrecNum - 1) = loc_cntThis
-        loc_arPrecCnt[objJob.intPrecNum - 1].Loc = loc_cntThis.Loc;
-        loc_arPrecCnt[objJob.intPrecNum - 1].Seg = loc_cntThis.Seg;
-        loc_arPrecCnt[objJob.intPrecNum - 1].TxtId = loc_cntThis.TxtId;
+        loc_arPrec[iPrecNum - 1] = loc_pdxThis;
+        // loc_arPrecCnt(iPrecNum - 1) = loc_cntThis
+        loc_arPrecCnt[iPrecNum - 1].Loc = loc_cntThis.Loc;
+        loc_arPrecCnt[iPrecNum - 1].Seg = loc_cntThis.Seg;
+        loc_arPrecCnt[iPrecNum - 1].TxtId = loc_cntThis.TxtId;
       }
       // Do we have any following context to take care of?
-      if (objJob.intFollNum > 0) {
+      if (iFollNum > 0) {
         // Copy the first-following into the current
         loc_pdxThis = loc_arFoll[0];
         loc_cntThis.Loc = loc_arFollCnt[0].Loc;
@@ -362,7 +367,7 @@ public class XmlForestPsdxIndex extends XmlForest {
         //If (loc_pdxThis.SelectSingleNode(loc_path_PsdxSent).Attributes("forestId").Value = 2) Then Stop
         //' ====================================
         // Shift all the other elements
-        for (intI = 1; intI < objJob.intFollNum; intI++) {
+        for (intI = 1; intI < iFollNum; intI++) {
           // Shift XmlDocument
           loc_arFoll[intI - 1] = loc_arFoll[intI];
           // Shift Context element
@@ -371,23 +376,23 @@ public class XmlForestPsdxIndex extends XmlForest {
           loc_arFollCnt[intI - 1].TxtId = loc_arFollCnt[intI].TxtId;
         }
         // The last element becomes what we have physically read
-        loc_arFoll[objJob.intFollNum - 1] = new XmlDocument(this.objSaxDoc, this.objSaxon);
-        loc_arFoll[objJob.intFollNum - 1].LoadXml(strNext);
+        loc_arFoll[iFollNum - 1] = new XmlDocument(this.objSaxDoc, this.objSaxon);
+        loc_arFoll[iFollNum - 1].LoadXml(strNext);
         // Get working node <forest>
-        ndxWork = loc_arFoll[objJob.intFollNum - 1].SelectSingleNode(loc_path_PsdxSent);
+        ndxWork = loc_arFoll[iFollNum - 1].SelectSingleNode(loc_path_PsdxSent);
         // Validate
         if (ndxWork == null) {
           // This should not happen. Check what is the matter
-          String sWork = loc_arFoll[objJob.intFollNum - 1].getDoc();
+          String sWork = loc_arFoll[iFollNum - 1].getDoc();
           logger.debug("XmlForest empty work: " + sWork);
         } else {
           // Calculate the correct context
-          loc_arFollCnt[objJob.intFollNum - 1].Seg = objParse.GetSeg(ndxWork);
-          loc_arFollCnt[objJob.intFollNum - 1].Loc = ndxWork.getAttributeValue(loc_xq_Location);
-          loc_arFollCnt[objJob.intFollNum - 1].TxtId = ndxWork.getAttributeValue(loc_xq_TextId);
+          loc_arFollCnt[iFollNum - 1].Seg = objParse.GetSeg(ndxWork);
+          loc_arFollCnt[iFollNum - 1].Loc = ndxWork.getAttributeValue(loc_xq_Location);
+          loc_arFollCnt[iFollNum - 1].TxtId = ndxWork.getAttributeValue(loc_xq_TextId);
           // ======== DEBUG =========
           /*
-          if (loc_arFollCnt[objJob.intFollNum - 1].Loc == null) {
+          if (loc_arFollCnt[iFollNum - 1].Loc == null) {
             boolean bStop = true;
           } */
         }
@@ -491,9 +496,9 @@ public class XmlForestPsdxIndex extends XmlForest {
       // Prepend the textid (name of the text)
       strPrec = "[<b>" + loc_cntThis.TxtId + "</b>]";
       // Add the preceding context
-      if (objJob.intPrecNum > 0) {
+      if (iPrecNum > 0) {
         // Attempt to get the preceding context
-        for (int intI = 0; intI < objJob.intPrecNum; intI++) {
+        for (int intI = 0; intI < iPrecNum; intI++) {
           // DEBUG
           /*
           if (loc_arPrecCnt[intI] == null) {
@@ -508,9 +513,9 @@ public class XmlForestPsdxIndex extends XmlForest {
         }
       }
       // Add the following context
-      if (objJob.intFollNum > 0) {
+      if (iFollNum > 0) {
         // Attempt to get the preceding context
-        for (int intI = 0; intI < objJob.intFollNum; intI++) {
+        for (int intI = 0; intI < iFollNum; intI++) {
           // DEBUG
           /*
           if (loc_arPrecCnt[intI] == null) {
