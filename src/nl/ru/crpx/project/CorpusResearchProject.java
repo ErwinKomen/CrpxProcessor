@@ -519,6 +519,9 @@ public class CorpusResearchProject {
       // Write as XML to the correct location
       boolean bFlag = WriteXml(this.docProject, this.Location);
       
+      // Debugging:
+      errHandle.debug("CRP save [" + this.Location + "] = " + bFlag);
+      
       // Adapt the [SaveDate] property of myself
       this.SaveDate = General.getSaveDate(this.flProject);
       // Return the result of writing
