@@ -478,6 +478,8 @@ public class Parse {
       // Additional parameters to identify the query
       dqc.setParameter("qfile", qThis.QueryFile);
       dqc.setParameter("sentid", ndxThis.getAttributeValue(crpThis.getAttrLineId() /*loc_xq_forestId */));
+      // Pass on the error handler too
+      dqc.setParameter("errhandle", errHandle);
       // If this is FoLiA, then we need to add some more to the dynamic context
       if (oCrpThis.crpThis.intProjType == ProjType.ProjFolia) {
         // Make a list of all <t> nodes that have a <w> parent
@@ -505,6 +507,10 @@ public class Parse {
         objQuery.run(new DOMDestination(pdxDoc));
       } catch (SaxonApiException ex) {
         return errHandle.DoError("Runtime error while executing [" + strQname + "]: ", ex, Parse.class);        
+      }
+      // Check for interrupt
+      if (errHandle.bInterrupt) {
+        return false;
       }
       /* } */
       // Get all the <forest> results from the [pdxDoc] answer

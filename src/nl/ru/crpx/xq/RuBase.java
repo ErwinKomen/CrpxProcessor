@@ -955,6 +955,14 @@ public class RuBase /* extends Job */ {
       return null;
     }
   }
+  static ErrHandle getErrHandle(XPathContext objXp) {
+    try {
+      return (ErrHandle) objXp.getController().getParameter("errhandle");
+    } catch (Exception ex) {
+      errHandle.DoError("RuBase/getErrHandle error", ex, RuBase.class);
+      return null;
+    }
+  }
   /**
    * getWordList - retrieve the list of words for this sentence from the context
    * 

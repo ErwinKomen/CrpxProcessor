@@ -233,6 +233,11 @@ public class ExecutePsdxStream extends ExecuteXml {
       // Monitor the end of the jobs
       if (!monitorXqF(1, jobCaller)) return false;
       
+      // Check for interrupt
+      if (errHandle.bInterrupt) {
+        return false;
+      }
+      
       // Give the final progress indication
       setProgress(jobCaller, "", lSource.get(lSource.size()-1), -1, lSource.size(), -1);
       
@@ -1091,6 +1096,12 @@ public class ExecutePsdxStream extends ExecuteXml {
                 bParsed = this.objParseXq.DoParseXq(arQuery[k], arQeval[k], this.objSaxDoc, this.xconfig, oCrpFile, 
                         ndxForest.argValue, colParseJson, true);
               }
+              // Check for interrupt
+              if (errHandle.bInterrupt) {
+                return false;
+              }
+                
+              
               // Now is the time to execute stack movement for colRuStack
               // TODO: RuStackExecute()
               

@@ -168,8 +168,8 @@ public class Extensions extends RuBase {
           errCaller.DoError(sErrMsg, sFunction, objXp);
           errCaller.bInterrupt = true;
         }
+        // This is the local error handler
         errHandle.DoError(sErrMsg , sFunction,objXp);
-        errHandle.bInterrupt = true;
         ndFirst = null;
       } 
       return ndFirst;
@@ -798,6 +798,21 @@ public class Extensions extends RuBase {
   // 12-02-2014  ERK Added variant with[strType]
   // 29/apr/2015 ERK Ported to Java
   // ----------------------------------------------------------------------------------------------------------
+  public static String NodeText(XPathContext objXp, SequenceIterator sIt) {
+    return NodeText(objXp, sIt, "");
+  }
+  public static String NodeText(XPathContext objXp, SequenceIterator sIt, String strType) {
+    try {
+      // Call the actual function, but first check if there is only one node
+      NodeInfo node = getOneNode(objXp, "nodetext", sIt);
+      return NodeText(objXp, node, strType);
+    } catch (Exception ex) {
+      // Show error
+      logger.error("Extensions/NodeText[a] error: ",ex);
+      // Return failure
+      return "";
+    }
+  }
   public static String NodeText(XPathContext objXp, NodeInfo node) {
     return NodeText(objXp, node, "");
   }
@@ -820,7 +835,7 @@ public class Extensions extends RuBase {
       return sResult;
     } catch (Exception ex) {
       // Show error
-      logger.error("Extensions/NodeText error: " + ex.getMessage() + "\r\n");
+      logger.error("Extensions/NodeText[b] error: ",ex);
       // Return failure
       return "";
     }
@@ -1159,6 +1174,7 @@ public class Extensions extends RuBase {
   }
   private static NodeInfo getOneNode(XPathContext objXp, String sFname, SequenceIterator sIt) {
     ErrHandle errCaller = getCrpFile(objXp).crpThis.errHandle;
+    ErrHandle errParse = getErrHandle(objXp);
     int iCheck = 0;
     NodeInfo node = null;
     
@@ -1174,12 +1190,17 @@ public class Extensions extends RuBase {
         logger.debug(sFname+" length = " + iCheck);
         String sMsg = "The ru:"+sFname+"() function must be called with only 1 (one) node. It now receives a sequence of "+iCheck;
 
+        // This doesn't seem to ripple through fast enough...
         synchronized(errCaller) {
           errCaller.DoError(sMsg, sFname, objXp);
           errCaller.bInterrupt = true;
         }
+        // Local error
         errHandle.DoError(sMsg , sFname,objXp);
-        errHandle.bInterrupt = true;
+        // DO NOT interrupt this static handler: errHandle.bInterrupt = true;
+        // Pass on message upwards to the PARSE error handler
+        errParse.bInterrupt = true;
+        errParse.DoError(sMsg , sFname,objXp);
       }
       return node;
     } catch (Exception ex) {
