@@ -102,6 +102,16 @@ public class Extensions extends RuBase {
   // 29/apr/2015 ERK Adapted for Java
   // 21/may/2015 ERK Final method creating a DOM node 
   // ------------------------------------------------------------------------------------
+  public static Node back(XPathContext objXp, SequenceIterator sIt) {
+    return back(objXp, sIt, null, null);
+  }
+  public static Node back(XPathContext objXp, SequenceIterator sIt, String strMsg) {
+    return back(objXp, sIt, strMsg, null);
+  }
+  public static Node back(XPathContext objXp, SequenceIterator sIt, String strMsg, String strCat) {
+    NodeInfo node = getOneNode(objXp, "back", sIt);
+    return back(objXp, node, strMsg, strCat);
+  }
   public static Node back(XPathContext objXp, NodeInfo node) {
     return back(objXp, node, null, null);
   }
@@ -150,6 +160,7 @@ public class Extensions extends RuBase {
       return null;
     }
   }
+  /*
   static NodeInfo getOneNode(XPathContext objXp, XdmSequenceIterator sIt, String sFunction) {
     ErrHandle errCaller = getCrpFile(objXp).crpThis.errHandle;
     int iCheck = 0;
@@ -179,7 +190,7 @@ public class Extensions extends RuBase {
     }
       
     return null;
-  }
+  } */
 // </editor-fold>
   
 // <editor-fold defaultstate="collapsed" desc="ru:backgroup">
@@ -328,6 +339,10 @@ public class Extensions extends RuBase {
   // 19-04-2012  ERK Created for .NET
   // 30/apr/2015 ERK Adapted for Java
   // ----------------------------------------------------------------------------------------------------------
+  public static String feature(XPathContext objXp, SequenceIterator sIt, Value strFeatName, Value strType) {
+    NodeInfo node = getOneNode(objXp, "feature", sIt);
+    return feature(objXp, node, strFeatName, strType);
+  }
   public static String feature(XPathContext objXp, NodeInfo node, Value strFeatName, Value strType) {
     String strFval = "";
 
@@ -344,6 +359,10 @@ public class Extensions extends RuBase {
       // Return failure
       return "";
     }
+  }
+  public static String feature(XPathContext objXp, SequenceIterator sIt, Value strFeatName) {
+    NodeInfo node = getOneNode(objXp, "feature", sIt);
+    return feature(objXp, node, strFeatName);
   }
   public static String feature(XPathContext objXp, NodeInfo node, Value strFeatName) {
     XdmNode ndSax;             // Myself, if I am a proper node
@@ -850,6 +869,12 @@ public class Extensions extends RuBase {
   // 18-01-2013  ERK Created for .NET
   // 01/sep/2015 ERK Transformed to Java
   // ------------------------------------------------------------------------------------
+  public static String refnum(XPathContext objXp, SequenceIterator sIt) {
+    // Call the actual function, but first check if there is only one node
+    NodeInfo node = getOneNode(objXp, "refnum", sIt);
+    // What we return depends on the node we have (or not)
+    return refnum(objXp, node);
+  }
   public static String refnum(XPathContext objXp, NodeInfo node) {
     // NodeInfo node;
     XdmNode ndSax;    // Myself, if I am a proper node
@@ -869,44 +894,6 @@ public class Extensions extends RuBase {
       // Return failure
       return "";
     }
-  }
-  // This definition serves to identify a bad call to the function
-  public static String refnum(XPathContext objXp, SequenceIterator sIt) {
-    // Call the actual function, but first check if there is only one node
-    NodeInfo node = getOneNode(objXp, "refnum", sIt);
-    // What we return depends on the node we have (or not)
-    return refnum(objXp, node);
-    
-    /*
-    ErrHandle errCaller = getCrpFile(objXp).crpThis.errHandle;
-    int iCheck = 0;
-    try {
-      while (sIt.next() != null) {
-        iCheck++;
-      }
-      // Check the number of arguments
-      if (iCheck == 1) {
-        // This is actually okay! Proceed...
-        NodeInfo node = (NodeInfo) sIt.current();
-        return refnum(objXp, node);
-      } else {
-        logger.debug("refnum length = " + iCheck);
-        String sMsg = "The ru:refnum() function must be called with only 1 (one) node. It now receives a sequence of "+iCheck;
-
-        synchronized(errCaller) {
-          errCaller.DoError(sMsg, "refnum", objXp);
-          errCaller.bInterrupt = true;
-        }
-        errHandle.DoError(sMsg , "refnum",objXp);
-        errHandle.bInterrupt = true;
-      }
-    } catch (XPathException ex) {
-      errHandle.DoError("Extensions/refnum error: " , ex, Extensions.class);
-      errHandle.bInterrupt = true;
-    }
-      
-    return "";
-            */
   }
   private static String refnum(XPathContext objXp, XdmNode ndSax) {
     XdmSequenceIterator colEleaf = null;  // Iterate through the children of <eTree>
@@ -1006,6 +993,12 @@ public class Extensions extends RuBase {
   // 12-07-2011  ERK Created for .NET 
   // 29/oct/2015 ERK Ported to Java
   // ----------------------------------------------------------------------------------------------------------
+  public static boolean relates(XPathContext objXp, SequenceIterator sIt1, SequenceIterator sIt2, Value varType) {
+    // Call the actual function, but first check if there is only one node
+    NodeInfo node1 = getOneNode(objXp, "refnum", sIt1);
+    NodeInfo node2 = getOneNode(objXp, "refnum", sIt2);
+    return relates(objXp, node1, node2, varType);
+  }
   public static boolean relates(XPathContext objXp, NodeInfo node1, NodeInfo node2, Value varType) {
     try {
       String sType = varType.getStringValue();
@@ -1114,6 +1107,12 @@ public class Extensions extends RuBase {
   // 23-01-2013  ERK Created for .NET 
   // 29/oct/2015 ERK Ported to Java
   // ----------------------------------------------------------------------------------------------------------
+  
+  public static int words(XPathContext objXp, SequenceIterator sIt) {
+    // Call the actual function, but first check if there is only one node
+    NodeInfo node = getOneNode(objXp, "refnum", sIt);
+    return words(objXp, node);
+  }  
   public static int words(XPathContext objXp, NodeInfo node) {
     XdmNode ndSax;    // Myself, if I am a proper node
     int iResult;      // Resulting value
@@ -1172,6 +1171,18 @@ public class Extensions extends RuBase {
       return (XdmNode) valSax;
     } else return null;
   }
+  /**
+   * getOneNode
+   *    Make sure only one (1) node is returned from the potential sequence
+   *    passed on in @sIt.
+   *    If the sequence @sIt contains more than one node, give a runtime error
+   *    and set the interrupt to 'true'.
+   * 
+   * @param objXp
+   * @param sFname
+   * @param sIt
+   * @return 
+   */
   private static NodeInfo getOneNode(XPathContext objXp, String sFname, SequenceIterator sIt) {
     ErrHandle errCaller = getCrpFile(objXp).crpThis.errHandle;
     ErrHandle errParse = getErrHandle(objXp);
