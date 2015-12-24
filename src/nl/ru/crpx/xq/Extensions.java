@@ -155,7 +155,9 @@ public class Extensions extends RuBase {
       // return jsBack.toString();
     } catch (RuntimeException ex) {
       // Warn user
-      errHandle.DoError("Extensions/back() error", ex, Extensions.class);
+      String sErrMsg = "Extensions/back() error";
+      errHandle.DoError(sErrMsg, ex, Extensions.class);
+      setRtError(objXp, "back", ex.getMessage());
       // Return failure
       return null;
     }
@@ -224,6 +226,7 @@ public class Extensions extends RuBase {
     } catch (Exception ex) {
       // Warn user
       errHandle.DoError("Extensions/backgroup() error", ex, Extensions.class);
+      setRtError(objXp, "backgroup", ex.getMessage());
       // Return failure
       return null;
     }
@@ -259,6 +262,7 @@ public class Extensions extends RuBase {
     } catch (Exception ex) {
       // Warn user
       errHandle.DoError("Extensions/backfilter() error", ex, Extensions.class);
+      setRtError(objXp, "backfilter", ex.getMessage());
       // Return failure
       return null;
     }
@@ -280,6 +284,7 @@ public class Extensions extends RuBase {
     } catch (XPathException ex) {
       // Show error
       errHandle.DoError("Extensions/conv error", ex, Extensions.class);
+      setRtError(objXp, "conv", ex.getMessage());
       // Return failure
       return "";
     }
@@ -295,6 +300,7 @@ public class Extensions extends RuBase {
     } catch (RuntimeException ex) {
       // Show error
       errHandle.DoError("Extensions/conv error", ex, Extensions.class);
+      setRtError(objXp, "conv", ex.getMessage());
       // Return failure
       return "";
     }
@@ -325,6 +331,7 @@ public class Extensions extends RuBase {
     } catch (RuntimeException ex) {
       // Warn user
       errHandle.DoError("Extensions/docroot() error", ex, Extensions.class);
+      setRtError(objXp, "docroot", ex.getMessage());
       // Return failure
       return null;
     }
@@ -356,6 +363,7 @@ public class Extensions extends RuBase {
     } catch (RuntimeException | XPathException ex) {
       // Show error
       errHandle.DoError("Extensions/feature error", ex, Extensions.class );
+      setRtError(objXp, "feature", ex.getMessage());
       // Return failure
       return "";
     }
@@ -482,11 +490,13 @@ public class Extensions extends RuBase {
     } catch (SaxonApiUncheckedException | XPathException ex) {
       // Show error
       errHandle.DoError("Extensions/feature saxon error", ex, Extensions.class );
+      setRtError(objXp, "feature", ex.getMessage());
       // Return failure
       return "";
     } catch (RuntimeException ex) {
       // Show error
       errHandle.DoError("Extensions/feature runtime error", ex, Extensions.class );
+      setRtError(objXp, "feature", ex.getMessage());
       // Return failure
       return "";
     }
@@ -514,6 +524,7 @@ public class Extensions extends RuBase {
     } catch (RuntimeException ex) {
       // Warn user
       errHandle.DoError("Extensions/header() error", ex, Extensions.class);
+      setRtError(objXp, "header", ex.getMessage());
       // Return failure
       return null;
     }
@@ -533,6 +544,7 @@ public class Extensions extends RuBase {
     } catch (XPathException ex) {
       // Show error
       errHandle.DoError("Extensions/lex saxon error", ex, Extensions.class );
+      setRtError(objXp, "lex", ex.getMessage());
       // Return failure
       return false;
     }
@@ -600,7 +612,8 @@ public class Extensions extends RuBase {
         return ndxBack;
       } catch (Exception ex) {
         // Show error
-        errHandle.DoError("Extensions/line: " + ex.getMessage());
+        errHandle.DoError("Extensions/line", ex);
+        setRtError(objXp, "line", ex.getMessage());
         // Return failure
         return null;
       }
@@ -619,16 +632,17 @@ public class Extensions extends RuBase {
   //                 Xquery function with approximately the same functionality
   // 29/apr/2015 ERK Transformed to Java
   // ------------------------------------------------------------------------------------
-  public static boolean matches(Value varText, Value strPattern) {
+  public static boolean matches(XPathContext objXp, Value varText, Value strPattern) {
     try {
-      return matches(varText.getStringValue(), strPattern.getStringValue());
+      return matches(objXp, varText.getStringValue(), strPattern.getStringValue());
     } catch (Exception ex) {
       // Show error
       errHandle.DoError("Extensions/matches error: ", ex, Extensions.class);
+      setRtError(objXp, "matches", ex.getMessage());
       return false;
     }
   } 
-  private static boolean matches(String strText, String strPattern) {
+  private static boolean matches(XPathContext objXp, String strText, String strPattern) {
     Pattern[] arPatt; // Array of patterns to be matched
     
     try {
@@ -651,20 +665,22 @@ public class Extensions extends RuBase {
     } catch (Exception ex) {
       // Show error
       errHandle.DoError("Extensions/matches error: " , ex, Extensions.class);
+      setRtError(objXp, "matches", ex.getMessage());
       return false;
     }
   }
-  public static boolean matches(Value varText, Value strPattern, Value strPatternNo) {
+  public static boolean matches(XPathContext objXp, Value varText, Value strPattern, Value strPatternNo) {
     try {
       // Execute the main function
-      return matches(varText.getStringValue(), strPattern.getStringValue(), strPatternNo.getStringValue());
+      return matches(objXp, varText.getStringValue(), strPattern.getStringValue(), strPatternNo.getStringValue());
     } catch (Exception ex) {
       // Show error
       errHandle.DoError("Extensions/matches error: " , ex, Extensions.class);
+      setRtError(objXp, "matches", ex.getMessage());
       return false;
     }
   }
-  private static boolean matches(String strText, String strPattern, String strPatternNo) {
+  private static boolean matches(XPathContext objXp, String strText, String strPattern, String strPatternNo) {
     Pattern[] arPattYes;  // Array of patterns to be matched
     Pattern[] arPattNo;   // Array of patterns that must *not* be matched
     
@@ -699,12 +715,13 @@ public class Extensions extends RuBase {
     } catch (Exception ex) {
       // Show error
       errHandle.DoError("Extensions/matches error: " , ex, Extensions.class);
+      setRtError(objXp, "matches", ex.getMessage());
       return false;
     }
   }
 // </editor-fold>
 
-// <editor-fold defaultstate="collapsed" desc="ru:header">
+// <editor-fold defaultstate="collapsed" desc="ru:mdi">
   /**
    * header
    *    Return a pointer to a possible accompanying .cmdi or .imdi file
@@ -724,6 +741,7 @@ public class Extensions extends RuBase {
     } catch (RuntimeException ex) {
       // Warn user
       errHandle.DoError("Extensions/mdi() error", ex, Extensions.class);
+      setRtError(objXp, "mdi", ex.getMessage());
       // Return failure
       return null;
     }
@@ -745,6 +763,7 @@ public class Extensions extends RuBase {
     } catch (XPathException ex) {
       // Show error
       errHandle.DoError("Extensions/message saxon error", ex, Extensions.class );
+      setRtError(objXp, "message", ex.getMessage());
       // Return failure
       return false;
     }
@@ -755,6 +774,7 @@ public class Extensions extends RuBase {
     } catch (XPathException ex) {
       // Show error
       errHandle.DoError("Extensions/Message saxon error", ex, Extensions.class );
+      setRtError(objXp, "message", ex.getMessage());
       // Return failure
       return false;
     }
@@ -786,6 +806,7 @@ public class Extensions extends RuBase {
     } catch (Exception ex) {
       // Show error
       errHandle.DoError("Extensions/periodgrp error: " , ex, Extensions.class);
+      setRtError(objXp, "periodgrp", ex.getMessage());
       // Return failure
       return "";
     }
@@ -802,6 +823,7 @@ public class Extensions extends RuBase {
     } catch (Exception ex) {
       // Show error
       errHandle.DoError("Extensions/periodgrp error: " , ex, Extensions.class);
+      setRtError(objXp, "periodgrp", ex.getMessage());
       // Return failure
       return "";
     }
@@ -828,6 +850,7 @@ public class Extensions extends RuBase {
     } catch (Exception ex) {
       // Show error
       logger.error("Extensions/NodeText[a] error: ",ex);
+      setRtError(objXp, "NodeText", ex.getMessage());
       // Return failure
       return "";
     }
@@ -855,6 +878,7 @@ public class Extensions extends RuBase {
     } catch (Exception ex) {
       // Show error
       logger.error("Extensions/NodeText[b] error: ",ex);
+      setRtError(objXp, "NodeText", ex.getMessage());
       // Return failure
       return "";
     }
@@ -891,6 +915,7 @@ public class Extensions extends RuBase {
     } catch (Exception ex) {
       // Show error
       errHandle.DoError("Extensions/refnum error: " , ex, Extensions.class);
+      setRtError(objXp, "refnum", ex.getMessage());
       // Return failure
       return "";
     }
@@ -979,6 +1004,7 @@ public class Extensions extends RuBase {
     } catch (Exception ex) {
       // Show error
       errHandle.DoError("Extensions/refnum error: " , ex, Extensions.class);
+      setRtError(objXp, "refnum", ex.getMessage());
       // Return failure
       return "";
     }
@@ -1006,6 +1032,7 @@ public class Extensions extends RuBase {
     } catch (Exception ex) {
       // Show error
       errHandle.DoError("Extensions/relates", ex);
+      setRtError(objXp, "relates", ex.getMessage());
       // Return failure
       return false;
     }
@@ -1030,6 +1057,7 @@ public class Extensions extends RuBase {
     } catch (Exception ex) {
       // Show error
       errHandle.DoError("Extensions/relates", ex);
+      setRtError(objXp, "relates", ex.getMessage());
       // Return failure
       return false;
     }
@@ -1068,6 +1096,7 @@ public class Extensions extends RuBase {
     } catch (Exception ex) {
       // Show error
       errHandle.DoError("Extensions/stringpart error", ex, Extensions.class );
+      setRtError(objXp, "stringpart", ex.getMessage());
       // Return failure
       return "";
     }
@@ -1093,6 +1122,7 @@ public class Extensions extends RuBase {
     } catch (Exception ex) {
       // Show error
       errHandle.DoError("Extensions/textname error", ex, Extensions.class );
+      setRtError(objXp, "textname", ex.getMessage());
       // Return failure
       return "";
     }
@@ -1131,7 +1161,8 @@ public class Extensions extends RuBase {
       return iResult;
     } catch (Exception ex) {
       // Show error
-      logger.error("Extensions/words error: " + ex.getMessage() + "\r\n");
+      logger.error("Extensions/words error: ", ex);
+      setRtError(objXp, "words", ex.getMessage());
       // Return failure
       return -1;
     }
@@ -1220,6 +1251,20 @@ public class Extensions extends RuBase {
       // Return failure
       return null;
     }
+  }
+  /**
+   * setRtError -- Set a runtimer error in the function calling me
+   * 
+   * @param objXp
+   * @param sFname
+   * @param sMsg 
+   */
+  private static void setRtError(XPathContext objXp, String sFname, String sMsg) {
+    // Get the correct error handler of the caller
+    ErrHandle errParse = getErrHandle(objXp);
+    // Set that handler to interrupt and pass on a message
+    errParse.bInterrupt = true;
+    errParse.DoError(sMsg , sFname,objXp);
   }
   // ------------------------------------------------------------------------------------
   // Name:   PrepareBack
