@@ -1222,13 +1222,16 @@ public class Extensions extends RuBase {
     
     try {
       while (sIt.next() != null) {
+        // Always try to take the first node
+        if (node == null)
+          node = (NodeInfo) sIt.current();
         iCheck++;
       }
       // Check the number of arguments
-      if (iCheck == 1) {
+      if (iCheck > 1) {
         // This is actually okay! Proceed...
-        node = (NodeInfo) sIt.current();
-      } else {
+//        node = (NodeInfo) sIt.current();
+//      } else {
         logger.debug(sFname+" length = " + iCheck);
         String sMsg = "The ru:"+sFname+"() function must be called with only 1 (one) node. It now receives a sequence of "+iCheck;
 
