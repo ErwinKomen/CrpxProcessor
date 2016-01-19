@@ -1064,6 +1064,34 @@ public class Extensions extends RuBase {
   }
 // </editor-fold>
   
+// <editor-fold defaultstate="collapsed" desc="ru:strchoose">
+  // ----------------------------------------------------------------------------------------------------------
+  // Name :  strchoose
+  // Goal :  Get the first non-empty string from [strArg1] and [strArg2]
+  //         If both are empty, return empty
+  // History:
+  // 19-01-2016  ERK Created for Java
+  // ----------------------------------------------------------------------------------------------------------
+  public static String strchoose(XPathContext objXp, Value strArg1, Value strArg2) {
+    String sBack = "";
+    
+    try {
+      // Get the string values
+      String sArg1 = strArg1.getStringValue();
+      String sArg2 = strArg2.getStringValue();
+      // Return the first non-empty one
+      sBack = (sArg1.isEmpty()) ? sArg2 : sArg1;
+      return sBack;
+    } catch (Exception ex) {
+      // Show error
+      errHandle.DoError("Extensions/strchoose error", ex, Extensions.class );
+      setRtError(objXp, "strchoose", ex.getMessage());
+      // Return failure
+      return "";
+    }
+  }
+// </editor-fold>
+  
 // <editor-fold defaultstate="collapsed" desc="ru:stringpart">
   // ----------------------------------------------------------------------------------------------------------
   // Name :  stringpart
