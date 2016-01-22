@@ -404,7 +404,12 @@ public class ExecutePsdxStream extends ExecuteXml {
         // Get information from this object
         String sFileName = oListOneFile.getString("file");
         String sTextId = oListOneFile.getString("textid");
-        String sSubType = oListOneFile.getString("subtype");
+        String sSubType = "no-subtype";
+        if (oListOneFile.has("subtype")) {
+          sSubType = oListOneFile.getString("subtype");
+        } else {
+          int m = 0;
+        }
         JSONArray arHits = oListOneFile.getJSONArray("hits");
         // Show where we are
         String sShort = FileIO.getFileNameWithoutExtension(sFileName);
@@ -446,6 +451,7 @@ public class ExecutePsdxStream extends ExecuteXml {
         if (arQuery[i].DbFeatSize>0) {
           // Finish this file
           arPwCombi[i].append("</CrpOview>\n");
+          arPwCombi[i].flush();
           arPwCombi[i].close();
           // Save the index file
           FileUtil.writeFile(arIdxFile[i], arIdxSb[i].toString());
