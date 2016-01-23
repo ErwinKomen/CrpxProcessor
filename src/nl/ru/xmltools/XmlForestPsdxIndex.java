@@ -71,8 +71,8 @@ public class XmlForestPsdxIndex extends XmlForest {
       }
       // Check defaults
       if (objJob != null) {
-        iPrecNum = iPrecNum;
-        iFollNum = iFollNum;
+        iPrecNum = objJob.intPrecNum;
+        iFollNum = objJob.intFollNum;
       }
       
       // Fill the arrays
