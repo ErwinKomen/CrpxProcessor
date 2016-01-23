@@ -714,6 +714,7 @@ public class FileUtil {
    */
   public static String findFileInDirectory(String sDir, String sFile) {
     List<String> lRes = new ArrayList<>();
+    String sBack = "";
     
     try {
       // Check for item [sFile] inside "sDir"
@@ -722,11 +723,13 @@ public class FileUtil {
         // Do we have a hit?        
         for (Path path : stream) {
           // Return the FIRST file we get
-          return path.toAbsolutePath().toString();
+          sBack= path.toAbsolutePath().toString();
+          break;
         }
       } catch(IOException e) {
         e.printStackTrace();
       }
+      if (!sBack.isEmpty()) return sBack;
       // Process all directories inside [sDir]
       try(DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
         for (Path path : stream) {
@@ -734,14 +737,17 @@ public class FileUtil {
           if (path.toFile().isDirectory()) {
             // Look for items inside this directory
             String sTry = findFileInDirectory(path.toString(), sFile);
-            if (!sTry.isEmpty()) return sTry;
+            if (!sTry.isEmpty()) {
+              sBack = sTry;
+              break;
+            }
           }
         }
       } catch(IOException e) {
         e.printStackTrace();
       }
       // Getting here means we have no success
-      return "";
+      return sBack;
     } catch(Exception e) {
       e.printStackTrace();
       return "";

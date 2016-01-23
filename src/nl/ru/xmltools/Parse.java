@@ -584,7 +584,7 @@ public class Parse {
       ndxMdi = new ByRef(null);
       // (a) Read the first sentence (psdx: <forest>) as well as the header (psdx: <teiHeader>)
       if (!objProcType.FirstForest(ndxForest, ndxHeader, ndxMdi, fThis.getAbsolutePath())) {
-        errHandle.DoError("hasInputRestr could not process firest forest of " + fThis.getName());
+        errHandle.DoError("hasInputRestr could not process first forest of " + fThis.getName());
         return "error";
       }
       // Pass on header information 
