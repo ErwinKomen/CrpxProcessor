@@ -595,7 +595,8 @@ public class Parse {
       sGroup = DoParseGroupXq(qEval, oCrpFile, ndxForest.argValue);
       // Check
       if (sGroup.isEmpty()) sGroup = "default";
-      
+      // Make sure to close the Random-Access-Reader for this file
+      oCrpFile.close();
       // Return the group we found
       return sGroup;
     } catch (Exception ex) {
