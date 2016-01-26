@@ -1262,7 +1262,7 @@ public class Extensions extends RuBase {
 //      } else {
         logger.debug(sFname+" length = " + iCheck);
         String sMsg = "The ru:"+sFname+"() function must be called with only 1 (one) node. It now receives a sequence of "+iCheck;
-
+        logger.debug("Id="+ ((XdmNode) objSaxDoc.wrap(node)).getAttributeValue(new QName("", "", "Id")));
         // This doesn't seem to ripple through fast enough...
         synchronized(errCaller) {
           errCaller.DoError(sMsg, sFname, objXp);
