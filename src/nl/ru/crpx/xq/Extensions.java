@@ -1258,11 +1258,21 @@ public class Extensions extends RuBase {
       // Check the number of arguments
       if (iCheck > 1) {
         // This is actually okay! Proceed...
-//        node = (NodeInfo) sIt.current();
-//      } else {
+        //        node = (NodeInfo) sIt.current();
+        //      } else {
         logger.debug(sFname+" length = " + iCheck);
         String sMsg = "The ru:"+sFname+"() function must be called with only 1 (one) node. It now receives a sequence of "+iCheck;
-        logger.debug("Id="+ ((XdmNode) objSaxDoc.wrap(node)).getAttributeValue(new QName("", "", "Id")));
+        if (node != null) {
+          XdmNode ndThis = (XdmNode) objSaxDoc.wrap(node);
+          if (ndThis != null) {
+            QName qnAttrConstId = getCrpFile(objXp).crpThis.getAttrConstId();
+            String sId = ndThis.getAttributeValue( qnAttrConstId);
+            if (!sId.isEmpty()) {
+              sMsg += ". Constituent=["+sId+"]";
+            }
+          }
+        }
+        // logger.debug("Id="+ ((XdmNode) objSaxDoc.wrap(node)).getAttributeValue(new QName("", "", "Id")));
         // This doesn't seem to ripple through fast enough...
         synchronized(errCaller) {
           errCaller.DoError(sMsg, sFname, objXp);
