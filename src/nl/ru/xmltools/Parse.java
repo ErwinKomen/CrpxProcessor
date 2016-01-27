@@ -507,6 +507,8 @@ public class Parse {
         objQuery.run(new DOMDestination(pdxDoc));
       } catch (SaxonApiException ex) {
         return errHandle.DoError("Runtime error while executing [" + strQname + "]: ", ex, Parse.class);        
+      } catch (ClassCastException ex) {
+        return errHandle.DoError("ClassCast error while executing [" + strQname + "]: ", ex, Parse.class);        
       }
       // Check for interrupt
       if (errHandle.bInterrupt) {
