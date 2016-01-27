@@ -1020,13 +1020,23 @@ public class Extensions extends RuBase {
   // 29/oct/2015 ERK Ported to Java
   // ----------------------------------------------------------------------------------------------------------
   public static boolean relates(XPathContext objXp, SequenceIterator sIt1, SequenceIterator sIt2, Value varType) {
-    // Call the actual function, but first check if there is only one node
-    NodeInfo node1 = getOneNode(objXp, "refnum", sIt1);
-    NodeInfo node2 = getOneNode(objXp, "refnum", sIt2);
-    return relates(objXp, node1, node2, varType);
+    try {
+      // Call the actual function, but first check if there is only one node
+      NodeInfo node1 = getOneNode(objXp, "refnum", sIt1);
+      NodeInfo node2 = getOneNode(objXp, "refnum", sIt2);
+    /*
+      return relates(objXp, node1, node2, varType);
+    } catch (Exception ex) {
+      // Show error
+      errHandle.DoError("Extensions/relates", ex);
+      setRtError(objXp, "relates", ex.getMessage());
+      // Return failure
+      return false;
+    }
   }
   public static boolean relates(XPathContext objXp, NodeInfo node1, NodeInfo node2, Value varType) {
     try {
+    */
       String sType = varType.getStringValue();
       return relates(objXp, node1, node2, sType);
     } catch (Exception ex) {
