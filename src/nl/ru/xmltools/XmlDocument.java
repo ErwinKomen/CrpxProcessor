@@ -61,15 +61,25 @@ public class XmlDocument {
   // History:
   // 18/may/2015  ERK Created for Java
   // ----------------------------------------------------------------------------------------------------------
-  public void LoadXml(String sXmlText) throws SaxonApiException {
+  public boolean LoadXml(String sXmlText) throws SaxonApiException {
     try {
+      // Do minimal validation for this text to see if it could be regarded as XML or not
+      sXmlText = sXmlText.trim();
+      if (!sXmlText.startsWith("<") || !sXmlText.endsWith(">")) {
+        // It seems this is no XML, so don't load it
+        logger.error("LoadXml: attempt to load non-xml");
+        return false;
+      }
       // Load the string as an XdmNode
       this.docxdm = this.builder.build(new StreamSource(new StringReader(sXmlText)));
       this.sText = sXmlText;
+      return true;
     }  catch (SaxonApiException ex) {
       logger.error("Problem attempting LoadXml", ex);
+      return false;
     } catch (Exception ex) {
       logger.error("Problem attempting LoadXml", ex);
+      return false;
     }
   }
 

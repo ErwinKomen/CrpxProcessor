@@ -182,7 +182,7 @@ public class XmlIndexRaReader {
             // Read the line into a string
             String strNext = rdThis.ReadOuterXml();
             // Load the line as an XmlDocument, so we can look for attributes
-            loc_pdxThis.LoadXml(strNext);
+            if (!loc_pdxThis.LoadXml(strNext)) return false;
             XmlNode  ndxWork = loc_pdxThis.SelectSingleNode(sPathLine);
             // Get the @id (or @forestId) attribute as string
             String sLineId = (ndxWork == null) ? "-" : ndxWork.getAttributeValue(qAttrLineId);
