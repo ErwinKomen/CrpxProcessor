@@ -76,11 +76,17 @@ public class JobXqF extends Job {
         // Check for interrupt
         if (errHandle.bInterrupt) {
           errHandle.DoError("JobXqF: The program has been interrupted [" + sName + "]");
+          this.setJobStatus("error");
         } else {
           errHandle.debug("JobXqF: performSearch: ready handling job [" + sName + "]");
         }
       } else {
+        errHandle.debug("ERWIN test");
+        errHandle.DoError(this.getJobErrors());
         errHandle.DoError("JobXqF: The queries could not be executed [" + sName + "]");
+        errHandle.debug("ERWIN JobXqF passes on: "+this.getJobErrors());
+        errHandle.debug("ERWIN JobXqF errlist has: "+this.jobErrList);
+        this.setJobStatus("error");
       }
 
       // Get the current file we are searching

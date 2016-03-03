@@ -12,6 +12,9 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.ErrorListener;
+import javax.xml.transform.SourceLocator;
+import javax.xml.transform.TransformerException;
 import javax.xml.xpath.XPathExpressionException;
 import net.sf.saxon.Configuration;
 import net.sf.saxon.query.DynamicQueryContext;
@@ -32,10 +35,13 @@ import net.sf.saxon.s9api.XdmNodeKind;
 import net.sf.saxon.s9api.XdmSequenceIterator;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.project.CorpusResearchProject.ProjType;
+import nl.ru.crpx.project.Qinfo;
 import nl.ru.crpx.project.Query;
+import nl.ru.crpx.search.Job;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.crpx.xq.CrpFile;
 import static nl.ru.crpx.xq.RuBase.ru_qnFoliaId;
+import nl.ru.crpx.xq.XqErrorListener;
 import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
 import nl.ru.util.StringUtil;
@@ -447,11 +453,14 @@ public class Parse {
   // 14-09-2010  ERK Added return of [intId]
   // 13/may/2015 ERK Re-written for JAVA
   // ----------------------------------------------------------------------------------------------------------
-  public boolean DoParseXq(Query qThis, XQueryEvaluator qEval, DocumentBuilder objSaxDoc, Configuration xconfig, 
-          CrpFile oCrpThis, XmlNode ndxThis, JSONArray colBackJson, boolean bReset) {
+  public boolean DoParseXq(Job oJob, Qinfo[] arQinfo, Query qThis, XQueryEvaluator qEval, DocumentBuilder objSaxDoc, 
+          Configuration xconfig, CrpFile oCrpThis, XmlNode ndxThis, JSONArray colBackJson, boolean bReset) {
     String strQname = "(empty)";    // Initialize the query name
     XQueryEvaluator objQuery;
     XdmDestination oDest;           // Query output object
+    XqErrorListener listener = null;  // Keep track of errors
+    XqErr oXq = new XqErr();
+    List<Exception> errorList;        // List of errors
     
     try {
       // Validate
@@ -466,6 +475,8 @@ public class Parse {
       
       // Create a new DOM destination for the results
       Document pdxDoc = dbuilder.newDocument();
+      // (1) Create error listener
+      listener = new XqErrorListener();
       
       // There is no need for *isolated* execution, since every Query / File
       //   combination has its own XQueryEvaluator, and therefore its own context
@@ -474,6 +485,7 @@ public class Parse {
       objQuery.setContextItem(ndxThis);
       // Set the dynamic context: a pointer to the CrpFile
       DynamicQueryContext dqc = objQuery.getUnderlyingQueryContext();
+      dqc.setErrorListener(listener);
       dqc.setParameter("crpfile", oCrpThis);
       // Additional parameters to identify the query
       dqc.setParameter("qfile", qThis.QueryFile);
@@ -505,15 +517,34 @@ public class Parse {
       // Execute the query with the set context items
       try {
         objQuery.run(new DOMDestination(pdxDoc));
+        /*
       } catch (SaxonApiException ex) {
         errHandle.bInterrupt = true;
+        oJob.setJobErrors(errHandle.getErrList());
         return errHandle.DoError("Runtime error while executing [" + strQname + "]: ", ex, Parse.class);        
       } catch (ClassCastException ex) {
+        // Do we have an errorlist?
+        if (listener == null) return false;
+        errorList = listener.getErrList();
+        errHandle.debug("DoParseXq classcast error: ["+ex.getMessage()+"]");
         errHandle.bInterrupt = true;
-        return errHandle.DoError("ClassCast error while executing [" + strQname + "]: ", ex, Parse.class);        
+        oJob.setJobErrors(errHandle.getErrList());
+        return errHandle.DoError("ClassCast error while executing [" + strQname + "]: ", ex, Parse.class);   
+        */
+      } catch (Exception ex) {
+        // Try to get runtime error
+        if (listener != null && listener.processError(qThis.QueryFile, ex.getMessage(), arQinfo, oXq)) {
+          oXq.XqErrShow();
+          // Add the error to the error object
+          errHandle.DoError(oXq.lQerr);
+        }
+        errHandle.bInterrupt = true;
+        oJob.setJobErrors(errHandle.getErrList());
+        return errHandle.DoError("Runtime error while executing [" + strQname + "]: ", ex, Parse.class);        
       }
       // Check for interrupt
       if (errHandle.bInterrupt) {
+        errHandle.debug("DoParseXq is interrupted");
         return false;
       }
       /* } */
@@ -609,7 +640,63 @@ public class Parse {
     }
   }
   
-  
+// <editor-fold defaultstate="collapsed" desc="ErrorListener class">
+  public class MyErrorListener implements ErrorListener {
+    // private ExecuteXml parent;
+    List<Exception> errorList;  // List of all errors
+    List<Integer> lineList;     // List of line numbers
+    List<Integer> colList;      // List of column  numbers
+    List<Boolean> fatalList;    // Fatal error lists
+
+    private MyErrorListener() {
+      // this.parent = parent;
+      errorList = new ArrayList<>();
+      lineList = new ArrayList<>();
+      colList = new ArrayList<>();
+      fatalList = new ArrayList<>();
+    }
+    @Override
+    public void error(TransformerException exception) {
+      errorList.add(exception);
+      SourceLocator sl = exception.getLocator();
+      if (sl == null) {
+        lineList.add(-1);
+        colList.add(-1);
+      } else {
+        lineList.add(sl.getLineNumber());
+        colList.add(sl.getColumnNumber());
+      }
+      fatalList.add(false);
+    }
+    @Override
+    public void fatalError(TransformerException exception)  {
+      errorList.add(exception);
+      SourceLocator sl = exception.getLocator();
+      if (sl == null) {
+        lineList.add(-1);
+        colList.add(-1);
+      } else {
+        lineList.add(sl.getLineNumber());
+        colList.add(sl.getColumnNumber());
+      }
+      
+      // throw exception;
+      fatalList.add(true);
+    }
+    @Override
+    public void warning(TransformerException exception) {
+      // no action
+      lineList.add(-1);
+      colList.add(-1);
+      fatalList.add(false);
+    }
+    public int lineNum(int i) {return lineList.get(i);}
+    public int colNum(int i) {return colList.get(i);}
+    public boolean getFatal(int i) {return fatalList.get(i);}
+    public String getMsg(int i) {return errorList.get(i).getMessage();}
+    public List<Exception> getErrList() {return errorList;}
+  }
+// </editor-fold>  
 
 }
 

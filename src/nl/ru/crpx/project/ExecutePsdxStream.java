@@ -222,6 +222,14 @@ public class ExecutePsdxStream extends ExecuteXml {
         }
         
         synchronized(search) {
+          // Check for error status
+          String sStat = search.getJobStatus();
+          if (sStat.equals("error")) {
+            // Add the error-stack from the job
+            errHandle.DoError(search.getJobErrors());
+            errHandle.bInterrupt = true;
+            return errHandle.DoError("ExecuteQueries detected 'error' jobStatus");
+          }
           // Get the @id of the job that has been created
           String sThisJobId = search.getJobId();
           String sNow = Job.getCurrentTimeStamp();
@@ -240,7 +248,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       
       // Check for interrupt
       if (errHandle.bInterrupt) {
-        return false;
+        return errHandle.DoError("ExecuteQueries detected interrupt");
       }
       
       // Give the final progress indication
@@ -786,6 +794,18 @@ public class ExecutePsdxStream extends ExecuteXml {
               jobCaller.setJobProgress(oProgress);
             }
             */
+            
+            // Double check status
+            String sStat = jThis.getJobStatus();
+            if (sStat.equals("error")) {
+              arJob.remove(jThis);
+              // The job must also be removed to clear room
+              jThis.changeClientsWaiting(-1);
+              // Nicely close the Ra Reader attached to this
+              oCrpFile.close();
+              return errHandle.DoError("MonitorXqF detected error");
+            }
+            
             // We have its results, so take it away from our job list
             arJob.remove(jThis);
             // The job must also be removed to clear room
@@ -1099,12 +1119,12 @@ public class ExecutePsdxStream extends ExecuteXml {
                   */
                   
                   // Perform a parse that only resets the collection when m==0
-                  if (this.objParseXq.DoParseXq(arQuery[k],arQeval[k],this.objSaxDoc, this.xconfig, oCrpFile,
+                  if (this.objParseXq.DoParseXq(jobCaller, arQinfo, arQuery[k],arQeval[k],this.objSaxDoc, this.xconfig, oCrpFile,
                         ndxDbList.get(m), colParseJson, (m==0))) bParsed = true;
                 }
               } else {
                 // Parse this forest
-                bParsed = this.objParseXq.DoParseXq(arQuery[k], arQeval[k], this.objSaxDoc, this.xconfig, oCrpFile, 
+                bParsed = this.objParseXq.DoParseXq(jobCaller, arQinfo,arQuery[k], arQeval[k], this.objSaxDoc, this.xconfig, oCrpFile, 
                         ndxForest.argValue, colParseJson, true);
               }
               // Check for interrupt
