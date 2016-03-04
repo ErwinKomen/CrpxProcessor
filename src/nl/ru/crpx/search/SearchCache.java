@@ -136,7 +136,7 @@ public class SearchCache {
     }
 
     // Put search in cache
-    //logger.debug("Put in cache: " + searchParameters);
+    logger.debug("Put in cache: " + searchParameters);
     cachedSearches.put(searchParameters, search);
   }
 
