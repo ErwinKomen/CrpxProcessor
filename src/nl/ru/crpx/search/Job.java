@@ -320,9 +320,10 @@ public abstract class Job implements Comparable<Job> {
   public DataObject getJobDbList() { return jobDbList; }
   public void setJobDbList(DataObject oList) { jobDbList = oList;}
   public List<JSONObject> getJobErrors() { return jobErrList;}
-  public void setJobErrors(List<JSONObject> arErr) {jobErrList = arErr;}
+  public synchronized void setJobErrors(List<JSONObject> arErr) {if (arErr==null) return; jobErrList = arErr;}
   public List<String> getJobMessage() {return jobMsgList;}
   public void setJobMessage(List<String> lstMsg) {jobMsgList = lstMsg;}
+  public Job getParent() { return this.parent;}
   // public DataObject getJobHits() { return jobHits;}
   // public void setJobHits(DataObject oHits) {jobHits = oHits;}
   public String getJobStatus() {return jobStatus;}

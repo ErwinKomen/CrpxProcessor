@@ -83,6 +83,7 @@ public class JobXqF extends Job {
       } else {
         errHandle.DoError(this.getJobErrors());
         errHandle.DoError("JobXqF: The queries could not be executed [" + sName + "]");
+        errHandle.debug("JobXqF errors=" + this.getJobErrors());
         this.setJobStatus("error");
       }
 

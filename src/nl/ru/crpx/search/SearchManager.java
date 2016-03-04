@@ -237,7 +237,10 @@ public class SearchManager {
   public JobXq searchGetJobXq(String sJobId) {
     Job search = cache.getJob(Integer.parseInt(sJobId));
     // Validate what we get back
-    if (search==null) return null;
+    if (search==null) { 
+      logger.debug("searchGetJobXq: job "+sJobId+" does not exist at all");
+      return null;
+    }
     // Check if it has parameters
     if (search.par.isEmpty()) {
       logger.debug("searchGetJobXq: job "+sJobId+" does not have [par] defined");
@@ -250,8 +253,10 @@ public class SearchManager {
     }
     if (sJobCl.toLowerCase().equals("jobxq"))
       return (JobXq) search;
-    else
+    else {
+      logger.debug("searchGetJobXq: job "+sJobId+" is of class "+sJobCl);
       return null;
+    }
   }
 
   /**

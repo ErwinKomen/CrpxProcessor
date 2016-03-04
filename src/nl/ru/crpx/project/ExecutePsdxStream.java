@@ -190,10 +190,20 @@ public class ExecutePsdxStream extends ExecuteXml {
                 ", \"file\": \"" + fInput.getName() + "\"" + "}");
         // Keep track of the old jobs and make sure not too many are running now
         if (!monitorXqF(this.iMaxParJobs, jobCaller)) {
-          // Getting here means that we are UNABLE to wait for the number of jobs
-          //  of this user to decrease below @iMaxParJobs
-          return errHandle.DoError("ExecuteQueries: unable to get below max #jobs " + 
-                  this.iMaxParJobs, ExecutePsdxStream.class);
+          // Check if an error has been passed on
+          int iErrSize = 0;
+          if (jobCaller.getJobErrors() != null ) iErrSize = jobCaller.getJobErrors().size();
+          if (jobCaller.getJobStatus().equals("error") && iErrSize>0) {
+            errHandle.debug("ExecuteQueries checkpoint #1 (react on existing error)");
+            // An error has already been produced, so just leave
+            return false;
+          } else {
+            errHandle.debug("ExecuteQueries checkpoint #2 (create JobError)");
+            // Getting here means that we are UNABLE to wait for the number of jobs
+            //  of this user to decrease below @iMaxParJobs
+            return errHandle.DoError("ExecuteQueries: unable to get below max #jobs " + 
+                    this.iMaxParJobs, ExecutePsdxStream.class);
+          }
         }
         // Create a job for this Crp/File treatment
         JobXqF search = null;
@@ -244,7 +254,9 @@ public class ExecutePsdxStream extends ExecuteXml {
         }
       }
       // Monitor the end of the jobs
-      if (!monitorXqF(1, jobCaller)) return false;
+      if (!monitorXqF(1, jobCaller)) {
+        return false;
+      }
       
       // Check for interrupt
       if (errHandle.bInterrupt) {
@@ -797,13 +809,20 @@ public class ExecutePsdxStream extends ExecuteXml {
             
             // Double check status
             String sStat = jThis.getJobStatus();
-            if (sStat.equals("error")) {
+            if (sStat.equals("error") || sStat.equals("interrupt") || jobCaller.getJobStatus().equals("interrupt")) {
+              // Pass on the error upwards to the job caller
+              jobCaller.setJobErrors(jThis.getJobErrors());
+              jobCaller.setJobStatus("error");
+              // Get job id
+              String sJobId = jThis.getJobId();
+              String sJobQ = jThis.getJobQuery();
+              // Remove this job
               arJob.remove(jThis);
               // The job must also be removed to clear room
               jThis.changeClientsWaiting(-1);
               // Nicely close the Ra Reader attached to this
               oCrpFile.close();
-              return errHandle.DoError("MonitorXqF detected error");
+              return errHandle.DoError("MonitorXqF detected error in job: "+sJobId);
             }
             
             // We have its results, so take it away from our job list

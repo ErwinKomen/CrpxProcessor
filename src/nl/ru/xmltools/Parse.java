@@ -517,20 +517,6 @@ public class Parse {
       // Execute the query with the set context items
       try {
         objQuery.run(new DOMDestination(pdxDoc));
-        /*
-      } catch (SaxonApiException ex) {
-        errHandle.bInterrupt = true;
-        oJob.setJobErrors(errHandle.getErrList());
-        return errHandle.DoError("Runtime error while executing [" + strQname + "]: ", ex, Parse.class);        
-      } catch (ClassCastException ex) {
-        // Do we have an errorlist?
-        if (listener == null) return false;
-        errorList = listener.getErrList();
-        errHandle.debug("DoParseXq classcast error: ["+ex.getMessage()+"]");
-        errHandle.bInterrupt = true;
-        oJob.setJobErrors(errHandle.getErrList());
-        return errHandle.DoError("ClassCast error while executing [" + strQname + "]: ", ex, Parse.class);   
-        */
       } catch (Exception ex) {
         // Try to get runtime error
         if (listener != null && listener.processError(qThis.QueryFile, ex.getMessage(), arQinfo, oXq)) {
@@ -541,6 +527,8 @@ public class Parse {
         errHandle.bInterrupt = true;
         oJob.setJobErrors(errHandle.getErrList());
         oJob.setJobStatus("error");
+        // And pass it on tto the Xq Job
+        oJob.getParent().setJobErrors(errHandle.getErrList());
         return errHandle.DoError("Runtime error while executing [" + strQname + "]: ", ex, Parse.class);        
       }
       // Check for interrupt
