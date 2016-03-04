@@ -81,11 +81,8 @@ public class JobXqF extends Job {
           errHandle.debug("JobXqF: performSearch: ready handling job [" + sName + "]");
         }
       } else {
-        errHandle.debug("ERWIN test");
         errHandle.DoError(this.getJobErrors());
         errHandle.DoError("JobXqF: The queries could not be executed [" + sName + "]");
-        errHandle.debug("ERWIN JobXqF passes on: "+this.getJobErrors());
-        errHandle.debug("ERWIN JobXqF errlist has: "+this.jobErrList);
         this.setJobStatus("error");
       }
 

@@ -540,6 +540,7 @@ public class Parse {
         }
         errHandle.bInterrupt = true;
         oJob.setJobErrors(errHandle.getErrList());
+        oJob.setJobStatus("error");
         return errHandle.DoError("Runtime error while executing [" + strQname + "]: ", ex, Parse.class);        
       }
       // Check for interrupt
