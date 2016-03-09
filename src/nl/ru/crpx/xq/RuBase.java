@@ -398,7 +398,8 @@ public class RuBase /* extends Job */ {
           default:
             // Complain about this
             logger.error("ru:conv error - type unknown: " + sTypeThis);
-            errHandle.bInterrupt = true;
+            // NEVER do this on the static errHandle:
+            // errHandle.bInterrupt = true;
             return "";
         }
       }

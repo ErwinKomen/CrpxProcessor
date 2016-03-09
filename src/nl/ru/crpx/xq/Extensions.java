@@ -1314,10 +1314,11 @@ public class Extensions extends RuBase {
         }
         // logger.debug("Id="+ ((XdmNode) objSaxDoc.wrap(node)).getAttributeValue(new QName("", "", "Id")));
         // This doesn't seem to ripple through fast enough...
+        /*
         synchronized(errCaller) {
           errCaller.DoError(sMsg, sFname, objXp);
           errCaller.bInterrupt = true;
-        }
+        } */
         // Local error
         errHandle.DoError(sMsg , sFname,objXp);
         // DO NOT interrupt this static handler: errHandle.bInterrupt = true;
