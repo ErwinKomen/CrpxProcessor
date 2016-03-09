@@ -297,7 +297,7 @@ public class ExecuteXml extends Execute {
       return bThis.toString();
     } catch (Exception ex) {
       // Show error
-      errHandle.DoError("ExecuteXml/getResultXml error: ", ex);
+      errHandle.DoError("ExecuteXml/getResultXml #1 error: ", ex);
       // Return failure
       return "";
     }
@@ -333,7 +333,7 @@ public class ExecuteXml extends Execute {
       return bThis.toString();
     } catch (Exception ex) {
       // Show error
-      DoError("ExecuteXml/getResultXml error: " + ex.getMessage() + "\r\n");
+      errHandle.DoError("ExecuteXml/getResultXml #2 error: ", ex);
       // Return failure
       return "";
     }

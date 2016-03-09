@@ -1112,7 +1112,7 @@ public class ExecutePsdxStream extends ExecuteXml {
             oCrpFile.QCcurrentLine = k+1;
             // Make sure there is no interrupt
             if (errHandle.bInterrupt) 
-              return false;
+              return errHandle.DoError("ExecuteQueriesFile interrupt #1");
             // Get the input node for the current query
             int iInputLine = arQuery[k].InputLine;
             bHasInput = (arQuery[k].InputCmp) ? arCmpExists[iInputLine] : arOutExists[iInputLine];
@@ -1148,7 +1148,7 @@ public class ExecutePsdxStream extends ExecuteXml {
               }
               // Check for interrupt
               if (errHandle.bInterrupt) {
-                return false;
+                return errHandle.DoError("ExecuteQueriesFile interrupt #2");
               }
                 
               

@@ -35,7 +35,8 @@ import org.apache.log4j.Logger;
    --------------------------------------------------------------------------- */
 public class Execute extends CrpGlobal {
   protected static final Logger logger = Logger.getLogger(Execute.class);
-  protected static final ErrHandle errHandle = new ErrHandle(Execute.class);
+  // protected static final ErrHandle errHandle = new ErrHandle(Execute.class);
+  protected ErrHandle errHandle = new ErrHandle(Execute.class);
   // ========================= Constants =======================================
   protected String sProjectBase = "/etc/project/"; // Base directory where user-spaces are stored
   protected String sCorpusBase = "/etc/corpora/";  // Base directory where corpora are stored
@@ -181,6 +182,9 @@ public class Execute extends CrpGlobal {
     File fDir = new File(sDir);
     if (!fDir.exists()) fDir.mkdir();
     return sDir;
+  }
+  public void setInterrupt() {
+    // this.objSearchJob.s
   }
 //  public String getRuDef() { return strRuDef; }
   // ======================================
