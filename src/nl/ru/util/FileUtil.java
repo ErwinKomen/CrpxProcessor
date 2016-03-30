@@ -557,6 +557,11 @@ public class FileUtil {
     }
 
     try {
+      // check if it starts with one backslash
+      if (fs.equals("\\") && sName.startsWith("\\")) {
+        // Insert the D-drive before it
+        sName = "D:" + sName;
+      }
       // Perform normalization using the NIO interface
       pThis = Paths.get(sName).normalize();
       // Determine file-separator
@@ -578,39 +583,44 @@ public class FileUtil {
         if (arDir[0].endsWith(":")) sTmpPath += arDir[0];
         // Walk the whole directory structure part-for-part
         for (int i=1; i< arDir.length; i++) {
-          // Check if this exists
-          File fNew = new File(sTmpPath + fs + arDir[i]);
-          // Adapt
-          fNew = Paths.get(fNew.toString()).normalize().toFile();
-          if (!fNew.exists()) {
-            // Look for a variant 
-            File fOld = new File(sTmpPath);
-            if (!fOld.isDirectory()) {
-              // This is a problem: we can only look inside directories
-            }
-            String[] arHere = fOld.list();
-            if (arHere == null) {
-              Logger.getLogger(FileUtil.class.getName()).log(Level.SEVERE, 
-                      "arHere is null. Source=["+sName+"]. Attempt breaks at dir=["+fNew.toString()+"]");
-              return "";
-            }
-            // Find the variant
-            boolean bFound = false;
-            for (int j=0;j<arHere.length; j++) {
-              if (arHere[j].equalsIgnoreCase(arDir[i])) {
-                // We found the culprit
-                arDir[i] = arHere[j];
-                bFound = true;
-                break;
+          // Skip empty subdirectories
+          if (!arDir[i].isEmpty()) {
+            // Check if this exists
+            File fNew = new File(sTmpPath + fs + arDir[i]);
+            // Adapt
+            fNew = Paths.get(fNew.toString()).normalize().toFile();
+            if (!fNew.exists()) {
+              // Look for a variant 
+              File fOld = new File(sTmpPath);
+              if (!fOld.isDirectory()) {
+                // This is a problem: we can only look inside directories
               }
-            }
-            // Check if we found it
-            if (!bFound && !arDir[i].contains(".")) {
-              // It has not been found, so create the directory
-              File fMake = new File(sTmpPath + "/" + arDir[i]);
-              fMake.mkdir();
-            }
+              String[] arHere = fOld.list();
+              if (arHere == null) {
+                Logger.getLogger(FileUtil.class.getName()).log(Level.SEVERE, 
+                        "arHere is null. Source=[{0}]. Attempt breaks at dir=[{1}]", 
+                        new Object[]{sName, fNew.toString()});
+                return "";
+              }
+              // Find the variant
+              boolean bFound = false;
+              for (int j=0;j<arHere.length; j++) {
+                if (arHere[j].equalsIgnoreCase(arDir[i])) {
+                  // We found the culprit
+                  arDir[i] = arHere[j];
+                  bFound = true;
+                  break;
+                }
+              }
+              // Check if we found it
+              if (!bFound && !arDir[i].contains(".")) {
+                // It has not been found, so create the directory
+                File fMake = new File(sTmpPath + "/" + arDir[i]);
+                fMake.mkdir();
+              }
+            }          
           }
+
           // Build path
           sTmpPath += "/" + arDir[i];
         }
