@@ -558,7 +558,7 @@ public class FileUtil {
 
     try {
       // check if it starts with one backslash
-      if (fs.equals("\\") && sName.startsWith("\\")) {
+      if (fs.equals("\\") && (sName.startsWith("\\") || sName.startsWith("/"))) {
         // Insert the D-drive before it
         sName = "D:" + sName;
       }
