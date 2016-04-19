@@ -41,6 +41,7 @@ import nl.ru.crpx.tools.FileIO;
 import nl.ru.crpx.tools.General;
 import nl.ru.util.DateUtil;
 import nl.ru.util.FileUtil;
+import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
 import nl.ru.xmltools.XmlForest.ForType;
 import static nl.ru.xmltools.XmlIO.WriteXml;
@@ -48,6 +49,7 @@ import org.apache.log4j.Logger;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
@@ -151,6 +153,7 @@ public class CorpusResearchProject {
   // Each project contains a number of lists
   List<JSONObject> lDefList = new ArrayList<>();
   List<JSONObject> lQueryList = new ArrayList<>();
+  List<JSONObject> lQueryWiz = new ArrayList<>();         // ADDED: intermediate level of the query wizard (apr/2016)
   List<JSONObject> lQueryConstructor = new ArrayList<>();
   List<JSONObject> lDbFeatList = new ArrayList<>();
   List<JSONObject> lPeriodInfo = new ArrayList<>();
@@ -326,22 +329,25 @@ public class CorpusResearchProject {
       }
       // Load the list of definitions
       ReadCrpList(lDefList, "./descendant::DefList/child::Definition", 
-                  "DefId;Name;File;Goal;Comment;Created;Changed", "Text");
+                  "DefId;Name;File;Goal;Comment;Created;Changed", "Text", false);
       // Load the list of queries
       ReadCrpList(lQueryList, "./descendant::QueryList/child::Query", 
-                  "QueryId;Name;File;Goal;Comment;Created;Changed", "Text");
+                  "QueryId;Name;File;Goal;Comment;Created;Changed", "Text", false);
+      // Load the list of 'qwiz' elements
+      ReadCrpList(lQueryWiz, "./descendant::QwizList/child::Qwiz", 
+                  "QwizId;Name;Goal;Comment;Search;Created;Changed", "cns;cnd", true);
       // Load the list of QC items (query constructor)
       ReadCrpList(lQueryConstructor, "./descendant::QueryConstructor/child::QC", 
-                  "QCid;Input;Query;Output;OutFeat;Result;Cmp;Mother;Goal;Comment", "");
+                  "QCid;Input;Query;Output;OutFeat;Result;Cmp;Mother;Goal;Comment", "", false);
       // Load the list of database features
       ReadCrpList(lDbFeatList, "./descendant::DbFeatList/child::DbFeat", 
-                  "DbFeatId;Name;Pre;QCid;FtNum", "");
+                  "DbFeatId;Name;Pre;QCid;FtNum", "", false);
       // Load the list of divisions
       ReadCrpList(lDivisionList, "./descendant::PeriodInfo/child::Division", 
-                  "DivisionId;Name;Descr", "");
+                  "DivisionId;Name;Descr", "", false);
       // Load the list of members
       ReadCrpList(lMemberList, "./descendant::Division/child::Member", 
-                  "MemberId;DivisionId;PeriodId;Period;Group;Order", "Text");
+                  "MemberId;DivisionId;PeriodId;Period;Group;Order", "Text", false);
       // Check directories: this is no longer needed
       //   since we WILL NOT be using these directories anyway...
       /*
@@ -1956,8 +1962,11 @@ public class CorpusResearchProject {
    Goal:    Read a list of objects into a JSON list
    History:
    17/apr/2015   ERK Created
+   18/apr/2016   ERK Make sure that *all* the attributes of each of the 'sChildren'
+                     is copied
    --------------------------------------------------------------------------- */
-  private boolean ReadCrpList(List<JSONObject> lThis, String sPath, String sAttribs, String sChildren) {
+  private boolean ReadCrpList(List<JSONObject> lThis, String sPath, String sAttribs, 
+          String sChildren, boolean bChildLists) {
     NodeList ndxList = null;  // List of all the nodes on the specified path
     Node ndAttr;              // The attribute we are accessing
     String sVal;
@@ -1996,19 +2005,51 @@ public class CorpusResearchProject {
         logger.error("ReadCrpList problem: " + ex.getMessage());
         return false;
       }
-      // Copy the children
+      // Copy the children -- possibly as lists!
       for (int j=0; j< arChildren.length; j++) { 
         String sName = arChildren[j];
         if (!sName.isEmpty()) {
-          Node ndxChild;
-          try {
-            ndxChild = (Node) xpath.compile("./child::" + sName).evaluate(ndxList.item(i), XPathConstants.NODE);
-            if (ndxChild != null) {
-              oThis.put(sName, ndxChild.getTextContent());
+          // CHeck if we are expecting a single child or multiple children + attributes
+          if (bChildLists) {
+            // We are expecting multiple children + attributes => make lists
+            Node ndxChild;
+            try {
+              // Read the first child of this kind
+              ndxChild = (Node) xpath.compile("./child::" + sName+"[1]").evaluate(ndxList.item(i), XPathConstants.NODE);
+              JSONArray arThis = new JSONArray();
+              // Loop through the children
+              while (ndxChild != null) {
+                // Add the information of this child to the JSON object
+                JSONObject oQel = new JSONObject();
+                NamedNodeMap attrs = ndxChild.getAttributes();
+                for (int k=0;i<attrs.getLength(); k++) {
+                  Attr attribute = (Attr)attrs.item(k);
+                  oQel.put(attribute.getName(), attribute.getValue());
+                }
+                // Add the element to the array
+                arThis.put(oQel);
+                // Try to find the next child
+                ndxChild = (Node) xpath.compile("./following-sibling::" + sName+"[1]").evaluate(ndxChild, XPathConstants.NODE);
+              }
+              // Add the array to the output object
+              oThis.put(sName, arThis);
+            } catch (XPathExpressionException ex) {
+              logger.error("ReadCrpList: Cannot access child", ex);
+              return false;
             }
-          } catch (XPathExpressionException ex) {
-            logger.error("ReadCrpList: Cannot access child", ex);
-            return false;
+            
+          } else {
+            // Expecting only one single child
+            Node ndxChild;
+            try {
+              ndxChild = (Node) xpath.compile("./child::" + sName).evaluate(ndxList.item(i), XPathConstants.NODE);
+              if (ndxChild != null) {
+                oThis.put(sName, ndxChild.getTextContent());
+              }
+            } catch (XPathExpressionException ex) {
+              logger.error("ReadCrpList: Cannot access child", ex);
+              return false;
+            }
           }
         }
       }
