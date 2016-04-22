@@ -71,7 +71,7 @@ public class CorpusResearchProject {
       + "'FollNum': '1', 'ShowPsd': 'True', 'Locked': 'True', 'Stream': 'True', "
       + "'Language': '', 'Part': '', 'DbaseInput': 'False'}";
   private static final List<String> lCrpParts = Arrays.asList(
-      "General", "QueryConstructor", "DbFeatList", "QueryList", "DefList", "VarList", "PeriodInfo");
+      "General", "QueryConstructor", "DbFeatList", "QwizList", "QueryList", "DefList", "VarList", "PeriodInfo");
   private static final List<String> lCrpDates = Arrays.asList(
       "DateCreated", "DateChanged");
   // ================== Enumerations in use ==================================
@@ -843,6 +843,24 @@ public class CorpusResearchProject {
   public List<JSONObject> getListQC() { return lQueryConstructor;}
   public JSONObject getListQCitem(int iValue) {return lQueryConstructor.get(iValue); }
   public void setListQCitem(int iValue, JSONObject oItem) {lQueryConstructor.set(iValue, oItem);}
+  // ================ Qwiz list elements ===============
+  public int getListQwizId(int iQwizId) {
+    for (int i=0;i<lQueryWiz.size();i++) 
+      if (lQueryWiz.get(i).getInt("QwizId") == iQwizId) 
+        return i;
+    return -1;
+  }
+  public int getListQwizSize() { return lQueryWiz.size(); }
+  public JSONObject getListQwizByName(String sQname) {
+    for (int i=0;i<lQueryWiz.size();i++) 
+      if (lQueryWiz.get(i).getString("Name").equals(sQname)) return lQueryWiz.get(i);
+    return null;
+  }
+  public List<JSONObject> getListQwiz() { return lQueryWiz;}
+  public JSONObject getListQwizItem(int iValue) {return lQueryWiz.get(iValue); }
+  public void setListQwizItem(int iValue, JSONObject oItem) {lQueryWiz.set(iValue, oItem);}
+  
+  
   // ================ Query list elements
   public int getListQueryId(int iQueryId) {
     for (int i=0;i<lQueryList.size();i++) 
@@ -1157,6 +1175,8 @@ public class CorpusResearchProject {
     switch(sName) {
       case "Query":
         return lQueryList;
+      case "Qwiz":
+        return lQueryWiz;
       case "Definition":
         return lDefList;
       case "DbFeat":
@@ -1238,6 +1258,7 @@ public class CorpusResearchProject {
   private String getIdField(String sItemType) {
     switch(sItemType.toLowerCase()) {
       case "query": return "QueryId";
+      case "qwiz": return "QwizId";
       case "definition": return "DefId";
       case "constructor": case "qc": return "QCid";
       case "dbfeat": return "DbFeatId";
@@ -1254,6 +1275,7 @@ public class CorpusResearchProject {
   private String getItemTag(String sItemType) {
     switch(sItemType.toLowerCase()) {
       case "query":       return "Query";
+      case "qwiz":        return "Qwiz";
       case "definition":  return "Definition";
       case "constructor": return "QC";
       case "dbfeat":      return "DbFeat";
@@ -1576,6 +1598,10 @@ public class CorpusResearchProject {
                 if (createCrpListItem(lQueryList, "./descendant::QueryList", "Query", 
                                   "QueryId;Name;File;Goal;Comment;Created;Changed", "Text")) bChanged = true;
                 break;
+              case "qwiz":
+                if (createCrpListItem(lQueryWiz, "./descendant::QwizList", "Qwiz", 
+                                  "QwizId;Name;search;Goal;Comment;Created;Changed", "")) bChanged = true;
+                break;
               case "definition":
                 if (createCrpListItem(lDefList, "./descendant::DefList", "Definition", 
                                   "DefId;Name;File;Goal;Comment;Created;Changed", "Text")) bChanged = true;;
@@ -1595,6 +1621,9 @@ public class CorpusResearchProject {
             switch(sItemType) {
               case "query":
                 if (removeCrpListItem(lQueryList, "./descendant::QueryList/child::Query", "QueryId", iItemId)) bChanged = true;
+                break;
+              case "qwiz":
+                if (removeCrpListItem(lQueryWiz, "./descendant::QwizList/child::Qwiz", "QwizId", iItemId)) bChanged = true;
                 break;
               case "definition":
                 if (removeCrpListItem(lDefList, "./descendant::DefList/child::Definition", "DefId", iItemId)) bChanged = true;;
@@ -1627,6 +1656,22 @@ public class CorpusResearchProject {
                   this.setItemValue("Query", iItemId, sItemKey, sValue);
                   // The change date of the definition needs to be adapted
                   this.setItemValue("Query", iItemId, "Changed", DateUtil.dateToString(new Date()));
+                }
+                break;
+              case "qwiz":
+                iIdx = this.getListQwizId(iItemId);
+                JSONObject oItemQwiz = this.getListQwizItem(iIdx);
+                if (oItemQwiz.has(sItemKey)) {
+                  if (!oItemQwiz.getString(sItemKey).equals(sValue)) {oItemQwiz.put(sItemKey, sValue); bChanged = true;} 
+                } else {
+                  return errHandle.DoError("doChange[Qwiz]: cannot handle key="+sKey, CorpusResearchProject.class);
+                }
+                // Process changes
+                if (bChanged) {
+                  this.setListQwizItem(iIdx, oItemQwiz);
+                  this.setItemValue("Qwiz", iItemId, sItemKey, sValue);
+                  // The change date of the definition needs to be adapted
+                  this.setItemValue("Qwiz", iItemId, "Changed", DateUtil.dateToString(new Date()));
                 }
                 break;
               case "definition":
@@ -1708,6 +1753,7 @@ public class CorpusResearchProject {
       // Find the list
       switch (sList.toLowerCase() ) {
         case "query":       sFeatId = "QueryId";  lstThis = this.getListQuery();  break;
+        case "qwiz":        sFeatId = "QwizId";   lstThis = this.getListQwiz();   break;
         case "definition":  sFeatId = "DefId";    lstThis = this.getListDef();    break;
         case "qc":          sFeatId = "QCid";     lstThis = this.getListQC();     break;
         case "dbfeat":      sFeatId = "DbFeatId"; lstThis = this.lDbFeatList;     break;
@@ -1754,6 +1800,12 @@ public class CorpusResearchProject {
         if (sField.equals("QueryId")) {
           // Sort the QueryConstructor list on [QueryId]
           Collections.sort(this.lQueryList, new IntIdComparator("QueryId") {});
+        } else return false;
+        break;
+      case "QwizList":
+        if (sField.equals("QwizId")) {
+          // Sort the QueryConstructor list on [QueryId]
+          Collections.sort(this.lQueryWiz, new IntIdComparator("QwizId") {});
         } else return false;
         break;
       case "DefList":
@@ -1830,7 +1882,8 @@ public class CorpusResearchProject {
    * @param sChildren
    * @return 
    */
-  private boolean createCrpListItem(List<JSONObject> lThis, String sPath, String sTagName, String sAttribs, String sChildren) {
+  private boolean createCrpListItem(List<JSONObject> lThis, String sPath, String sTagName, String sAttribs, 
+          String sChildren) {
     String sIdName="";        // Name of the id field 
     Node ndParent = null;     // Parent under which we will add
     int iIdValue = -1;        // Value of the new id
@@ -1846,6 +1899,7 @@ public class CorpusResearchProject {
         String sParent = "";
         switch (sTagName) {
           case "Query": sParent = "QueryList"; break;
+          case "Qwiz": sParent = "QwizList"; break;
           case "Definition": sParent = "DefList"; break;
           case "QC": sParent = "QueryConstructor"; break;
           case "DbFeat": sParent = "DbFeatList"; break;
@@ -1879,14 +1933,14 @@ public class CorpusResearchProject {
       if (!sChildren.isEmpty()) {
         // Add the children
         String[] arChild = sChildren.split("[;]");
-        for (int i=0;i<arChild.length; i++) {
+        for (String sChild : arChild) {
           // Create child
-          Node ndChild = this.docProject.createElement(arChild[i]);
+          Node ndChild = this.docProject.createElement(sChild);
           ndChild.setNodeValue("");
           // Add this child
           ndNew.appendChild(ndChild);
           // Add it in the JSON
-          oNew.put(arChild[i], "");
+          oNew.put(sChild, "");
         }      
       }
       // Append the new node to this path
@@ -1967,8 +2021,8 @@ public class CorpusResearchProject {
    --------------------------------------------------------------------------- */
   private boolean ReadCrpList(List<JSONObject> lThis, String sPath, String sAttribs, 
           String sChildren, boolean bChildLists) {
-    NodeList ndxList = null;  // List of all the nodes on the specified path
-    Node ndAttr;              // The attribute we are accessing
+    NodeList ndxList; // List of all the nodes on the specified path
+    Node ndAttr;      // The attribute we are accessing
     String sVal;
 
     try {
