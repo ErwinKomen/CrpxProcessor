@@ -176,12 +176,27 @@ public class Execute extends CrpGlobal {
   
   // ========= GETTERS ====================
   public String getDbaseDir() { 
-    String sDir = this.sProjectBase;
-    if (!sDir.endsWith("/")) sDir = sDir + "/";
-    sDir = sDir + crpThis.getUserId() + "/dbase"; 
-    File fDir = new File(sDir);
-    if (!fDir.exists()) fDir.mkdir();
-    return sDir;
+    try {
+      String sDir = this.sProjectBase;
+      if (!sDir.endsWith("/")) sDir = sDir + "/";
+      sDir = sDir + crpThis.getUserId() + "/dbase"; 
+      File fDir = new File(sDir);
+      sDir = fDir.getCanonicalPath();
+      // Windows check: should be D
+      if (sDir.startsWith("C:")) {
+        sDir = "D:" + sDir.substring(2);
+        fDir = new File(sDir);
+      }
+      if (!fDir.exists()) fDir.mkdir();
+      // Make sure we get a good path
+      sDir = fDir.getCanonicalPath();
+      return sDir;
+    } catch (Exception ex) {
+      // Give an error and set interrupt
+      errHandle.DoError("Execute/getDebaseDir", ex, Execute.class);
+      errHandle.bInterrupt = true;
+      return "";
+    }
   }
   public void setInterrupt() {
     // this.objSearchJob.s

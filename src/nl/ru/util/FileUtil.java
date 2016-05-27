@@ -29,12 +29,21 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.nio.file.DirectoryStream;
+import java.nio.file.FileSystems;
+import java.nio.file.FileVisitOption;
+import java.nio.file.FileVisitResult;
+import static java.nio.file.FileVisitResult.CONTINUE;
+import static java.nio.file.FileVisitResult.TERMINATE;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -714,7 +723,7 @@ public class FileUtil {
   } 
   
   /**
-   * findFileInDirectory
+   * findFileInDirectory_OLD
    *    Given directory sDir, find ONE (!!!) file named [sFile] in it
    *
    * 
@@ -722,7 +731,7 @@ public class FileUtil {
    * @param sFile
    * @return handle to [sFile]
    */
-  public static String findFileInDirectory(String sDir, String sFile) {
+  public static String findFileInDirectory_OLD(String sDir, String sFile) {
     List<String> lRes = new ArrayList<>();
     String sBack = "";
     
@@ -746,7 +755,7 @@ public class FileUtil {
           // Is this item a directory?
           if (path.toFile().isDirectory()) {
             // Look for items inside this directory
-            String sTry = findFileInDirectory(path.toString(), sFile);
+            String sTry = findFileInDirectory_OLD(path.toString(), sFile);
             if (!sTry.isEmpty()) {
               sBack = sTry;
               break;
@@ -763,4 +772,96 @@ public class FileUtil {
       return "";
     }
   }
+  
+  /**
+   * findFileInDirectory
+   *    Given directory sDir, find ONE (!!!) file named [sFile] in it
+   *
+   * 
+   * @param sDir
+   * @param sFile
+   * @return handle to [sFile]
+   */
+  public static String findFileInDirectory(String sDir, String sFile) {  
+    try {
+      Path startDir = Paths.get(sDir);
+      // Set a finder
+      Finder finder = new Finder(sFile);
+      // Walk the file tree
+      // Files.walkFileTree(startDir, finder);
+      
+      Files.walkFileTree(startDir, EnumSet.of(FileVisitOption.FOLLOW_LINKS) , Integer.MAX_VALUE, finder);
+      // Get the first result
+      String sBack = finder.found();
+        // Getting here means we have no success
+      return sBack;
+    } catch(Exception e) {
+      e.printStackTrace();
+      return "";
+    }
+  }
+  
+  /**
+   * Finder - Helper class to find files in a directory fast
+   */
+  public static class Finder
+    extends SimpleFileVisitor<Path> {
+
+    private final PathMatcher matcher;
+    private int numMatches = 0;
+    private String sFound = "";   // Full path of the file found
+
+    Finder(String pattern) {
+      matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
+    }
+
+    // Compares the glob pattern against
+    // the file or directory name.
+    boolean find(Path file) {
+      Path name = file.getFileName();
+      if (name != null && matcher.matches(name)) {
+        sFound = file.toAbsolutePath().toString();
+        numMatches++;
+        return true;
+      }
+      return false;
+    }
+    
+    String found() {
+      return sFound;
+    }
+
+    // Prints the total number of
+    // matches to standard out.
+    void done() {
+        System.out.println("Matched: "
+            + numMatches);
+    }
+
+    // Invoke the pattern matching
+    // method on each file.
+    @Override
+    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+      if (find(file))
+        return TERMINATE;
+      else
+        return CONTINUE;
+    }
+
+    // Invoke the pattern matching
+    // method on each directory.
+    @Override
+    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+      find(dir);
+      return CONTINUE;
+    }
+
+    @Override
+    public FileVisitResult visitFileFailed(Path file, IOException exc) {
+      System.err.println(exc);
+      return CONTINUE;
+    }
+  }    
 }
+
+

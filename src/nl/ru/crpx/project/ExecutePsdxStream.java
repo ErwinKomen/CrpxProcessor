@@ -34,6 +34,7 @@ import nl.ru.crpx.xq.RuBase;
 import nl.ru.util.ByRef;
 import nl.ru.util.DateUtil;
 import nl.ru.util.FileUtil;
+import nl.ru.util.StringUtil;
 import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
 import nl.ru.xmltools.Parse;
@@ -327,6 +328,25 @@ public class ExecutePsdxStream extends ExecuteXml {
   }
   
   /**
+   * getFeatList - Turn into semicolon separated list of features
+   * @param lDbFeat
+   * @return 
+   */
+  private String getFeatList(List<JSONObject> lDbFeat) {
+    List<String> lFtName = new ArrayList<>();
+    
+    try {
+      for (int i=0;i<lDbFeat.size();i++) {
+        lFtName.add(lDbFeat.get(i).getString("Name"));
+      }
+      return StringUtil.join(lFtName, ";");
+    } catch (Exception ex) {
+      // Warn user
+      errHandle.DoError("ExecutePsdxStream/getFeatList error: ", ex, ExecutePsdxStream.class);
+      return "";
+    }
+  }
+  /**
    * makeResultsDbaseList
    *    Two tasks: 
    *    1 - Combine all database-parts for each QC line
@@ -396,8 +416,8 @@ public class ExecutePsdxStream extends ExecuteXml {
                   " <SrcDir>" + this.crpThis.getSrcDir() + "</SrcDir>\n" +
                   " <Language>" + this.crpThis.getLanguage() + "</Language>\n" +
                   " <Part>" + this.crpThis.getPart() + "</Part>\n" +
-                  " <Notes>Created by CorpusStudio from query line " + iQCid + ": [" + arQuery[i].Descr + "]</Notes>\n" +
-                  " <Analysis></Analysis>\n</General>\n";
+                  " <Notes>Created by CorpusStudio (web) from query line " + iQCid + ": [" + arQuery[i].Descr + "]</Notes>\n" +
+                  " <Analysis>"+getFeatList(arQuery[i].DbFeat)+"</Analysis>\n</General>\n";
           pCombi.append(sIntro);
           arPwCombi[i] = pCombi;
           // Add index information to the current xml item indexer
@@ -1026,6 +1046,9 @@ public class ExecutePsdxStream extends ExecuteXml {
 
       // Store the [ndxHeader] in the CrpFile object
       oCrpFile.ndxHeader = ndxHeader.argValue;
+      // Also keep track of the MDI and the CurrentForest
+      oCrpFile.ndxMdi = ndxMdi.argValue;
+      oCrpFile.ndxCurrentForest = ndxForest.argValue;
       
       // Now calculate the sub type
       oCrpFile.currentPeriod = getSubType(oCrpFile, ndxHeader.argValue);
