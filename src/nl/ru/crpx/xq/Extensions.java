@@ -846,7 +846,10 @@ public class Extensions extends RuBase {
     try {
       // Call the actual function, but first check if there is only one node
       NodeInfo node = getOneNode(objXp, "nodetext", sIt);
-      return NodeText(objXp, node, strType);
+      if (node == null)
+        return "";
+      else
+        return NodeText(objXp, node, strType);
     } catch (Exception ex) {
       // Show error
       logger.error("Extensions/NodeText[a] error: ",ex);

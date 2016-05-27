@@ -519,7 +519,7 @@ public class Parse {
         objQuery.run(new DOMDestination(pdxDoc));
       } catch (Exception ex) {
         // Try to get runtime error
-        if (listener != null && listener.processError(qThis.QueryFile, ex.getMessage(), arQinfo, oXq)) {
+        if (listener.processError(qThis.QueryFile, ex.getMessage(), arQinfo, oXq)) {
           oXq.XqErrShow();
           // Add the error to the error object
           errHandle.DoError(oXq.lQerr);
@@ -533,6 +533,24 @@ public class Parse {
       }
       // Check for interrupt
       if (errHandle.bInterrupt) {
+        // Check if this interrupt is due to an error
+        if (errHandle.hasErr()) {
+          // Get to the last error
+          List<JSONObject> oErrList = errHandle.getErrList();
+          String sErr = oErrList.get(0).toString();
+          // Process the error
+          if (listener.processError(qThis.QueryFile, sErr, arQinfo, oXq)) {
+            oXq.XqErrShow();
+            // Add the error to the error object
+            errHandle.DoError(oXq.lQerr);
+          }
+          oJob.setJobErrors(errHandle.getErrList());
+          oJob.setJobStatus("error");
+          // And pass it on tto the Xq Job
+          oJob.getParent().setJobErrors(errHandle.getErrList());
+          return errHandle.DoError("Runtime error while executing [" + strQname + "]: ", Parse.class);        
+        }
+        // If there is no real error, then just react to the interrupt
         errHandle.debug("DoParseXq is interrupted");
         return false;
       }
