@@ -8,6 +8,8 @@
 package nl.ru.xmltools;
 
 import java.io.File;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import javax.xml.xpath.XPathExpressionException;
 import net.sf.saxon.s9api.SaxonApiException;
@@ -49,7 +51,7 @@ public class XmlResultPsdxIndex extends XmlResult {
       // Validate
       if (this.loc_ndxHeader == null) return null;
       // Get information from the <General> section
-      List<XmlNode> lChildren = loc_ndxHeader.SelectNodes("./child::node()");
+      List<XmlNode> lChildren = loc_ndxHeader.SelectNodes("./child::*");
       for (int i=0;i<lChildren.size(); i++) {
         XmlNode ndChild = lChildren.get(i);
         // Determine the key and the value
@@ -87,6 +89,50 @@ public class XmlResultPsdxIndex extends XmlResult {
   }
   
   /**
+   * featureList --
+   *    Create a list of <Feature> names for this result database file
+   * 
+   * @return 
+   */
+  public List<String> featureList() {
+    List<String> lBack = new ArrayList<>(); // Initialize the list we want to return
+    
+    try {
+      // Look at the header
+      XmlNode ndxAnalysis = this.loc_ndxHeader.SelectSingleNode("./descendant-or-self::General/child::Analysis");
+      if (ndxAnalysis != null && !ndxAnalysis.getNodeValue().isEmpty()) {
+        // Get the whole string containing a semicolon-separated list of Feature values
+        String sAnalysis = ndxAnalysis.getNodeValue();
+        String[] arAnalysis = sAnalysis.split(";");
+        for (int i=0;i<arAnalysis.length;i++) {
+          lBack.add(arAnalysis[i]);
+        }
+      } else {
+        // Read the first <Result> node 
+        String sResult = loc_xrdFile.getFirstLine();
+        if (!sResult.isEmpty()) {
+          // Load into an XmlDocument
+          loc_pdxThis.LoadXml(sResult);  
+          XmlNode ndResult = loc_pdxThis.SelectSingleNode("./descendant-or-self::Result[1]");
+          if (ndResult != null) {
+            // Find all the <Feature> nodes
+            List<XmlNode> lAnalysis = ndResult.SelectNodes("./descendant::Feature");
+            // Walk all the feature nodes
+            for (int i=0;i<lAnalysis.size();i++) {
+              lBack.add(lAnalysis.get(i).getAttributeValue("Name"));
+            }
+          }
+        }
+      }
+      // Return the list that has been created
+      return lBack;
+    } catch (Exception ex) {
+      objErr.DoError("XmlResultPsdxIndex/featureList error: ", ex);
+      return null;
+    }
+  }
+  
+  /**
    * Prepare -- Prepare the database @strFile for reading
    * 
    * @param strDbaseFile
@@ -99,8 +145,22 @@ public class XmlResultPsdxIndex extends XmlResult {
     try {
       // Validate: existence of file
       if (strDbaseFile == null || strDbaseFile.length() == 0) return false;
+      // Make sure the path is translated into an OS-allowable one
+      strDbaseFile = Paths.get(strDbaseFile).toString();
       fThis = new File(strDbaseFile);
-      if (!fThis.exists()) return false;
+      if (!fThis.exists()) {
+        // Attempt fixing it if it starts with C:
+        if (strDbaseFile.startsWith("C:")) {
+          strDbaseFile = "D:" + strDbaseFile.substring(2);
+          fThis = new File(strDbaseFile);
+          if (!fThis.exists()) return false;
+        } else if (strDbaseFile.startsWith("\\")) {
+          strDbaseFile = "D:" + strDbaseFile;
+          fThis = new File(strDbaseFile);
+          if (!fThis.exists()) return false;
+        } else
+          return false;
+      }
       // Start up the streamer
       loc_xrdFile = new XmlIndexRaReader(fThis, crpThis, loc_pdxThis, CorpusResearchProject.ProjType.Dbase);
       // Get the list of @File elements inside the database
