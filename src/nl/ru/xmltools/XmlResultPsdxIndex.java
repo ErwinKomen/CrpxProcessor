@@ -8,16 +8,16 @@
 package nl.ru.xmltools;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import javax.xml.xpath.XPathExpressionException;
 import net.sf.saxon.s9api.SaxonApiException;
+import nl.ru.crpx.dataobject.DataObjectMapElement;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.project.CorpusResearchProject.ProjType;
 import nl.ru.crpx.search.JobXq;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.util.ByRef;
+import nl.ru.util.json.JSONObject;
 
 /**
  * XmlResultPsdxIndex - use the indexed reader to go through result database
@@ -36,6 +36,55 @@ public class XmlResultPsdxIndex extends XmlResult {
   // ======================== Make the list of @File elements available =========
   @Override
   public List<String> getResultFileList() { return this.lstResFile; }
+  
+  /**
+   * headerInfo -- provide information from the header through a JSON object
+   * 
+   * @return 
+   */
+  public JSONObject headerInfo() {
+    JSONObject oHeader = new JSONObject();
+    
+    try {
+      // Validate
+      if (this.loc_ndxHeader == null) return null;
+      // Get information from the <General> section
+      List<XmlNode> lChildren = loc_ndxHeader.SelectNodes("./child::node()");
+      for (int i=0;i<lChildren.size(); i++) {
+        XmlNode ndChild = lChildren.get(i);
+        // Determine the key and the value
+        String sKey = ndChild.getNodeName().toString();
+        String sValue = ndChild.getNodeValue();
+        oHeader.put(sKey, sValue);
+      }
+      // Return the object
+      return oHeader;
+    } catch (Exception ex) {
+      objErr.DoError("XmlResultPsdxIndex/headerInfo error: ", ex);
+      return null;
+    }
+  }
+  public DataObjectMapElement headerInfoDO() {
+    DataObjectMapElement oGeneral = new DataObjectMapElement();
+    try {
+      // Validate
+      if (this.loc_ndxHeader == null) return null;
+      // Get information from the <General> section
+      List<XmlNode> lChildren = loc_ndxHeader.SelectNodes("./child::node()");
+      for (int i=0;i<lChildren.size(); i++) {
+        XmlNode ndChild = lChildren.get(i);
+        // Determine the key and the value
+        String sKey = ndChild.getNodeName().toString();
+        String sValue = ndChild.getNodeValue();
+        oGeneral.put(sKey, sValue);
+      }
+      // Return the object
+      return oGeneral;
+    } catch (Exception ex) {
+      objErr.DoError("XmlResultPsdxIndex/headerInfoDO error: ", ex);
+      return null;
+    }
+  }
   
   /**
    * Prepare -- Prepare the database @strFile for reading

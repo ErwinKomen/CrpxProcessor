@@ -49,6 +49,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * Utilities for working with files
@@ -800,6 +802,63 @@ public class FileUtil {
       return "";
     }
   }
+  
+  /**
+   * decompressGzipFile -- 
+   *    Decompress a .gz file into a normal file.
+   * 
+   * See: http://www.journaldev.com/966/java-gzip-example-compress-and-decompress-file-in-gzip-format-in-java
+   * 
+   * @param gzipFile
+   * @param newFile 
+   */
+  public static void decompressGzipFile(String gzipFile, String newFile) {
+    try {
+      FileInputStream fis = new FileInputStream(gzipFile);
+      GZIPInputStream gis = new GZIPInputStream(fis);
+      FileOutputStream fos = new FileOutputStream(newFile);
+      byte[] buffer = new byte[1024];
+      int len;
+      while((len = gis.read(buffer)) != -1){
+          fos.write(buffer, 0, len);
+      }
+      //close resources
+      fos.close();
+      gis.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+  }
+
+  /**
+   * compressGzipFile --
+   *    Compress a file into a .gz file
+   * 
+   * See: http://www.journaldev.com/966/java-gzip-example-compress-and-decompress-file-in-gzip-format-in-java
+   * 
+   * @param file
+   * @param gzipFile 
+   */
+  public static void compressGzipFile(String file, String gzipFile) {
+    try {
+      FileInputStream fis = new FileInputStream(file);
+      FileOutputStream fos = new FileOutputStream(gzipFile);
+      GZIPOutputStream gzipOS = new GZIPOutputStream(fos);
+      byte[] buffer = new byte[1024];
+      int len;
+      while((len=fis.read(buffer)) != -1){
+          gzipOS.write(buffer, 0, len);
+      }
+      //close resources
+      gzipOS.close();
+      fos.close();
+      fis.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+  }  
   
   /**
    * Finder - Helper class to find files in a directory fast

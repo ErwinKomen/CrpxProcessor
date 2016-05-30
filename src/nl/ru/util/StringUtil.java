@@ -407,14 +407,14 @@ public class StringUtil {
   
   /**
    * compressSafe
-	 *    Escape a string for inclusion in JSON output:
+   *    Escape a string for inclusion in JSON output:
    *        (1) compress it
    *        (2) convert it to a hex-dump
-	 *
-	 * @param input the input string
-	 * @return the HEX coded output string
-	 */
-	public static String compressSafe(String input) {
+   *
+   * @param input the input string
+   * @return the HEX coded output string
+   */
+  public static String compressSafe(String input) {
     ErrHandle errHandle = new ErrHandle(StringUtil.class);
 
     try {
@@ -438,10 +438,6 @@ public class StringUtil {
       // Then use base64 encoding (adapted, where + is replaced by ~)
       String sEnc = Base64.encode(arSmall);
 
-      // Use Java 8 Base64
-      // String sEnc = java.util.Base64.getEncoder().encodeToString(arSmall);
-      // Convert + into ~
-      // sEnc = sEnc.replace('+', '~');
       // Return the result
       return sEnc;
     } catch (Exception ex) {
@@ -449,17 +445,18 @@ public class StringUtil {
       return null;
     }
     /* */
-	}
+  }
+  
   /**
    * decompressSafe
-	 *    Unescape a string that was turned into a hex dump:
+   *    Unescape a string that was turned into a hex dump:
    *      (1) hex to byte array
    *      (2) byte array unzip
    *      (3) result to string
-	 *
-	 * @param input the input string
+   *
+   * @param input the input string
    * 
-	 * @return the HEX coded output string
+   * @return the HEX coded output string
    * 
    * @throws java.io.IOException
    * @throws java.util.zip.DataFormatException
@@ -472,12 +469,6 @@ public class StringUtil {
       int compressedDataLength = input.length();
       // Use our own Base63 decoding
       byte[] arByte = Base64.decode(input);
-      /* === this makes use of Java8 =================
-      // Convert ~ back into +
-      input = input.replace('~', '+');
-      // Convert Base64 into byte array
-      byte[] arByte = java.util.Base64.getDecoder().decode(input);
-         ============================================= */
       // Decompress byte-array - guess the length until we have enough
       int iDecrLength = 2 * compressedDataLength;
       Inflater decompresser;
