@@ -31,6 +31,7 @@ public abstract class XmlResult {
   protected String loc_strCurrent = "";     // XML code of current forest
   protected String loc_strPart = "";        // Part to which this one pertains (or empty)
   protected int loc_intCurrent;             // Position of current node within [loc_arContext]
+  protected int loc_size;                   // Number of results in the list
   protected XmlDocument loc_pdxThis;        // Current one
   protected XmlNode loc_ndxHeader;          // My copy of the header node
   protected ErrHandle objErr;               // Local access to the general object with global variables
@@ -74,5 +75,6 @@ public abstract class XmlResult {
   public abstract boolean OneResult(ByRef<XmlNode> ndxResult, String sResultId);              // Get <Result> with indicated id
   public abstract boolean GetHeader(ByRef<XmlNode> ndxHeader);                                // Get the <General> header of the database
   public abstract boolean IsEnd();                                                            // Are we at the end of the file?
-  public abstract boolean Percentage(ByRef<Integer> intPtc);                                  // Return percentage where we are
+  public abstract boolean Percentage(ByRef<Integer> intPtc);                                  // Return percentage where we arep
+  public abstract int Size();                                                                 // Size of the results
 }

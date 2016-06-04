@@ -83,7 +83,7 @@ public class XmlIndexRaReader {
       // Get text identifier
       this.loc_sTextId = FileIO.getFileNameWithoutDirectory(fThis.getName().replace(prjThis.getTextExt(ptThis), ""));
       // Initialise numbers
-      iLines = arIndex.size();  // Total number of lines in this file
+      iLines = arIndex.size()-1;  // Total number of lines in this file minus 1 for the <General> part
       iCurrentLine = -1;        // No line has been read
       this.EOF = false;
     } catch (Exception ex) {
@@ -94,6 +94,7 @@ public class XmlIndexRaReader {
   // ======================== Make the filename available =======================
   public String getFileName() { return (this.loc_fThis == null) ? "" : this.loc_fThis.getName(); }
   public String getTextId() { return this.loc_sTextId; }
+  public int size() { return this.iLines; }
   // ======================== Make the list of parts available ==================
   public List<String> getPartList() { return this.lstParts; }
   

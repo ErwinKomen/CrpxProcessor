@@ -133,6 +133,15 @@ public class XmlResultPsdxIndex extends XmlResult {
   }
   
   /**
+   * Size -- return the number of results
+   * @return 
+   */
+  @Override
+  public int Size() {
+    return this.loc_size;
+  }
+  
+  /**
    * Prepare -- Prepare the database @strFile for reading
    * 
    * @param strDbaseFile
@@ -163,6 +172,8 @@ public class XmlResultPsdxIndex extends XmlResult {
       }
       // Start up the streamer
       loc_xrdFile = new XmlIndexRaReader(fThis, crpThis, loc_pdxThis, CorpusResearchProject.ProjType.Dbase);
+      // Get the size
+      this.loc_size = loc_xrdFile.size();
       // Get the list of @File elements inside the database
       this.lstResFile = loc_xrdFile.getPartList();
       // Do we have a header?
