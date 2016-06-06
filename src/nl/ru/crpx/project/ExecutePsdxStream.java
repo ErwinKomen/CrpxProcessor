@@ -416,6 +416,7 @@ public class ExecutePsdxStream extends ExecuteXml {
                   " <SrcDir>" + this.crpThis.getSrcDir() + "</SrcDir>\n" +
                   " <Language>" + this.crpThis.getLanguage() + "</Language>\n" +
                   " <Part>" + this.crpThis.getPart() + "</Part>\n" +
+                  " <QC>" + Integer.toString(iQCid) + "</QC>" +
                   " <Notes>Created by CorpusStudio (web) from query line " + iQCid + ": [" + arQuery[i].Descr + "]</Notes>\n" +
                   " <Analysis>"+getFeatList(arQuery[i].DbFeat)+"</Analysis>\n</General>\n";
           pCombi.append(sIntro);
