@@ -249,10 +249,12 @@ public class ExecuteXml extends Execute {
    * @param lstFtInfo
    * @param oXqf
    * @param iResId
+   * @param oResult   - Return the results for this line
    * @return 
    */
   public String getResultXml(String sFileName, String sTextId, 
-          String sSubType, List<JSONObject> lstFtInfo, JSONObject oXqf, int iResId) {
+          String sSubType, List<JSONObject> lstFtInfo, JSONObject oXqf, int iResId,
+          ByRef<JSONObject> oResult) {
     StringBuilder bThis = new StringBuilder();
     
     try {
@@ -262,6 +264,18 @@ public class ExecuteXml extends Execute {
       String sSyntax = (oXqf.has("syn")) ? StringUtil.escapeXmlChars(oXqf.getString("syn")) : "";
       String sEnglish = (oXqf.has("eng")) ? StringUtil.escapeXmlChars(oXqf.getString("eng")) : "";
       String sMsg = (oXqf.has("msg")) ? oXqf.getString("msg") : "";
+      
+      // Store results so far
+      oResult.argValue = new JSONObject();
+      oResult.argValue.put("ResId", iResId);
+      oResult.argValue.put("File", sFileName);
+      oResult.argValue.put("TextId", sTextId);
+      oResult.argValue.put("Search", sSearch);
+      oResult.argValue.put("Cat", sCat);
+      oResult.argValue.put("Locs", oXqf.getString("locs"));
+      oResult.argValue.put("Locw", oXqf.getString("locw"));
+      oResult.argValue.put("Notes", "-");
+      oResult.argValue.put("SubType", sSubType);
       
       // Add the opening <Result> one
       bThis.append("<Result ResId=\"" + iResId + "\" File=\"").append(sFileName + "\" " + 
@@ -278,6 +292,7 @@ public class ExecuteXml extends Execute {
       bThis.append("  <Pde>").append(sEnglish).append("</Pde>\n" );
       // Start adding underlying <Feature> nodes
       String[] arFs = sMsg.split(";",-1);
+      JSONArray arFeats = new JSONArray();
       // Walk through the list of Feature Info JSON objects
       for (int q=0;q<lstFtInfo.size(); q++) {
         // Get the number of this feature
@@ -286,6 +301,11 @@ public class ExecuteXml extends Execute {
         String sValue = "";
         if (iFtNum > 0) 
           sValue = StringUtil.escapeXmlChars(arFs[iFtNum-1]);
+        // Keep for oResult
+        JSONObject oFeat = new JSONObject();
+        oFeat.put("Name", lstFtInfo.get(q).getString("Name"));
+        oFeat.put("Value", sValue);
+        arFeats.put(oFeat);
         // Store the results
         bThis.append("  <Feature Name=\"" + 
           lstFtInfo.get(q).getString("Name") + "\" Value=\"" +
@@ -293,6 +313,7 @@ public class ExecuteXml extends Execute {
       }
       // Add ending tag for this result
       bThis.append("</Result>\n");
+      oResult.argValue.put("Features", arFeats);
       // Return the result
       return bThis.toString();
     } catch (Exception ex) {
