@@ -504,8 +504,9 @@ public class ExecutePsdxStream extends ExecuteXml {
               String sOneResult = getResultXml(sFileName, sTextId, sSubType, 
                       arQuery[j].DbFeat, oOneHit, iResId, oResult);
               bThis.append(sOneResult);
-              // Show what we are doing
-              errHandle.debug("Result db adding: " + String.valueOf(iResId));
+              
+              // === DEBUG == Show what we are doing
+              // errHandle.debug("Result db adding: " + String.valueOf(iResId));
               
               // Immediate DB processing
               // arDbStore[iQCid-1].addResult(oResult.argValue);
