@@ -360,6 +360,8 @@ public class ExecutePsdxStream extends ExecuteXml {
     PrintWriter[] arPwCombi;        // Print-writer where we output the combined database
     int[] arPwPos;                  // Array of current positions within the print-writers
     String[] arIdxFileName;         // Array of index file names
+    String[] arFileName;            // Array of database file names
+    // DbStore[] arDbStore;            // Array of database (SQLite) storages
     File[] arIdxFile;               // Array of index FILE handles
     List<XmlIndexItem> arIdxList[]; // Array of index-item-lists
     StringBuilder arIdxSb[];        // Array of index-item string builders
@@ -378,11 +380,13 @@ public class ExecutePsdxStream extends ExecuteXml {
       lstBack = new DataObjectList("dblist");
       // Other initialisations
       arPwCombi = new PrintWriter[arQuery.length];
+      arFileName = new String[arQuery.length];
       arPwPos = new int[arQuery.length];
       arIdxFileName = new String[arQuery.length];
       arIdxFile = new File[arQuery.length];
       arIdxList = new List[arQuery.length];
       arIdxSb = new StringBuilder[arQuery.length];
+      // arDbStore = new DbStore[arQuery.length];
       
       // Walk all the QC items
       for (int i=0;i<arQuery.length;i++) {
@@ -394,8 +398,14 @@ public class ExecutePsdxStream extends ExecuteXml {
           // Create a name for the combined database for this QC
           String sCombi = this.crpThis.getDbaseName(iQCid, this.getDbaseDir());
           File fCombi = new File(sCombi);
+          // Store the name of the current database file
+          arFileName[i] = sCombi;
           // Show what we are doing
           errHandle.debug("Result database of ["+iQCid+"]: "+sCombi);
+          /* === DB slow
+          arDbStore[i] = new DbStore(this.errHandle);
+          arDbStore[i].createWrite(sCombi);
+          */
           // Delete any previous versions of the database
           if (fCombi.exists()) fCombi.delete();
           // Now open it for append
@@ -410,17 +420,32 @@ public class ExecutePsdxStream extends ExecuteXml {
           String sIntro = "<CrpOview>\n"; pCombi.append(sIntro);
           // Keep track of the starting position of the <General> tag
           arPwPos[i] = sIntro.length();
-          sIntro = "<General>\n <ProjectName>" + this.crpThis.getName() + "</ProjectName>\n" +
-                  " <Created>" + DateUtil.dateToString(new Date()) + "</Created>\n" +
-                  " <DstDir></DstDir>\n" +
-                  " <SrcDir>" + this.crpThis.getSrcDir() + "</SrcDir>\n" +
-                  " <Language>" + this.crpThis.getLanguage() + "</Language>\n" +
-                  " <Part>" + this.crpThis.getPart() + "</Part>\n" +
-                  " <QC>" + Integer.toString(iQCid) + "</QC>" +
-                  " <Notes>Created by CorpusStudio (web) from query line " + iQCid + ": [" + arQuery[i].Descr + "]</Notes>\n" +
-                  " <Analysis>"+getFeatList(arQuery[i].DbFeat)+"</Analysis>\n</General>\n";
+          JSONObject oGeneral = new JSONObject();
+          oGeneral.put("ProjectName", this.crpThis.getName());
+          oGeneral.put("Created", DateUtil.dateToString(new Date()));
+          oGeneral.put("DstDir", "");
+          oGeneral.put("SrcDir", this.crpThis.getSrcDir().getAbsolutePath());
+          oGeneral.put("Language", this.crpThis.getLanguage());
+          oGeneral.put("Part", this.crpThis.getPart());
+          oGeneral.put("QC", iQCid);
+          oGeneral.put("Notes", "Created by CorpusStudio (web) from query line " + iQCid + ": [" + arQuery[i].Descr + "]");
+          oGeneral.put("Analysis", getFeatList(arQuery[i].DbFeat));
+          sIntro = "<General>\n <ProjectName>" + oGeneral.getString("ProjectName") + "</ProjectName>\n" +
+                  " <Created>" + oGeneral.getString("Created") + "</Created>\n" +
+                  " <DstDir>"+oGeneral.getString("DstDir")+"</DstDir>\n" +
+                  " <SrcDir>" + oGeneral.getString("SrcDir") + "</SrcDir>\n" +
+                  " <Language>" + oGeneral.getString("Language") + "</Language>\n" +
+                  " <Part>" + oGeneral.getString("Part") + "</Part>\n" +
+                  " <QC>" + Integer.toString(oGeneral.getInt("QC")) + "</QC>" +
+                  " <Notes>"+oGeneral.getString("Notes")+"</Notes>\n" +
+                  " <Analysis>"+oGeneral.getString("Analysis")+"</Analysis>\n</General>\n";
           pCombi.append(sIntro);
           arPwCombi[i] = pCombi;
+          
+          /* SLOW db
+          arDbStore[i].addGeneral(oGeneral);
+          */
+          
           // Add index information to the current xml item indexer
           int iByteLength = sIntro.getBytes("utf-8").length;
           XmlIndexItem oItem = new XmlIndexItem("General", "", "", arPwPos[i], iByteLength);
@@ -475,9 +500,16 @@ public class ExecutePsdxStream extends ExecuteXml {
               // Get this hit
               JSONObject oOneHit = arHitsPerQc.getJSONObject(k);
               // Process the information in this hit
+              ByRef<JSONObject> oResult = new ByRef(null);
               String sOneResult = getResultXml(sFileName, sTextId, sSubType, 
-                      arQuery[j].DbFeat, oOneHit, iResId);
+                      arQuery[j].DbFeat, oOneHit, iResId, oResult);
               bThis.append(sOneResult);
+              // Show what we are doing
+              errHandle.debug("Result db adding: " + String.valueOf(iResId));
+              
+              // Immediate DB processing
+              // arDbStore[iQCid-1].addResult(oResult.argValue);
+              
               // Adapt the index information for this file
               int iByteLength = sOneResult.getBytes("utf-8").length;
               XmlIndexItem oItem = new XmlIndexItem("Result", String.valueOf(iResId), sFileName, arPwPos[iQCid-1], iByteLength);
@@ -501,6 +533,17 @@ public class ExecutePsdxStream extends ExecuteXml {
           arPwCombi[i].close();
           // Save the index file
           FileUtil.writeFile(arIdxFile[i], arIdxSb[i].toString());
+          
+          // Close the SQLite database
+          // arDbStore[i].closeWrite();
+          
+          /* ========= TAKES TOO LONG =============== */
+          // Create a *NEW* database file for this file
+          errHandle.debug("DB writing...");          
+          DbStore oDbStore = new DbStore(this.errHandle);
+          oDbStore.xmlToDb(arFileName[i]);
+          errHandle.debug("DB done!");
+          /* */
         } 
       }
       // The result information is in [lstBack]
