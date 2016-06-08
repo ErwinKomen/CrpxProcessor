@@ -63,6 +63,7 @@ public class CrpxProcessor {
     public static void main(String[] args) throws Exception {
       String indexName = "";    // The request that is being made
       String strProject = "";   // Name of the project to execute
+      String sUser = "";        // Pass on user name (or keep empty)
       int iMaxParJobs=0;        // Max number of parallel XqF jobs
       
       // Try to configure
@@ -159,6 +160,17 @@ public class CrpxProcessor {
               } else {
                 // Get the number
                 iMaxParJobs = Integer.parseInt(args[i]);
+              }
+              break;
+            case "user":
+              // User name must follow
+              i++;
+              if (i>args.length-1) {
+                logger.error("Option --user should be followed by a single name");
+                usage(); return;
+              } else {
+                // Get the user name
+                sUser = args[i];
               }
               break;
             case "help":

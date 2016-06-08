@@ -238,6 +238,93 @@ public class DbStore {
   }
   
   /**
+   * xmlToDb
+   *    Complete conversion of a .xml Result Database into an SQLite .db.gz
+   *    This is a linear method that is not too fast ...
+   * 
+   * @param sFileName
+   * @return 
+   */
+  public boolean xmlToDbNew(String sFileName) {
+    try {
+      // Create a writer
+      if (!createWrite(sFileName)) return false;
+      
+      // Process the header
+      CorpusResearchProject oCrpx = new CorpusResearchProject(true);
+      XmlResultPsdxIndex oDbIndex = new XmlResultPsdxIndex(oCrpx, null, errHandle);
+      if (!oDbIndex.Prepare(sFileName)) { errHandle.DoError("DbStore/xmlToDb: cannot prepare database"); return false;}
+      
+      // Get the General part
+      JSONObject oHdr = oDbIndex.headerInfo();   
+      
+      // Add header to the database
+      if (!addGeneral(oHdr)) return false;
+      
+      // process the results one-by-one
+      ByRef<XmlNode> ndxResult = new ByRef(null);
+      int iFeatIdx = 1;
+      if (oDbIndex.FirstResult(ndxResult)) {
+        // Walk through them
+        int iCheck = 1;
+        while (ndxResult.argValue != null) {
+          // Get the values of this result
+          XmlNode ndxThis = ndxResult.argValue;
+          JSONObject oResult = new JSONObject();
+          // Get the index
+          int iResId = Integer.parseInt(ndxThis.getAttributeValue("ResId"));
+          // Double check
+          if (iCheck != iResId) { errHandle.DoError("DbStore/xmlToDb: index is wrong at " + iCheck); return false; }
+          // Get all the other relevant values
+          oResult.put("File", ndxThis.getAttributeValue("File"));
+          oResult.put("TextId", ndxThis.getAttributeValue("TextId"));
+          oResult.put("Search", ndxThis.getAttributeValue("Search"));
+          oResult.put("Cat", ndxThis.getAttributeValue("Cat"));
+          oResult.put("Locs", ndxThis.getAttributeValue("forestId"));
+          oResult.put("Locw", ndxThis.getAttributeValue("eTreeId"));
+          oResult.put("Notes", ndxThis.getAttributeValue("Notes"));
+          oResult.put("SubType", ndxThis.getAttributeValue("Period"));
+          oResult.put("ResId", Integer.parseInt(ndxThis.getAttributeValue("ResId")));
+          // Determine the features for this result
+          List<XmlNode> lFeatValue = ndxThis.SelectNodes("./child::Feature");
+          JSONArray arFeature = new JSONArray();
+          for (int j=0;j<lFeatValue.size();j++) {
+            // Add this feature
+            JSONObject oFeat = new JSONObject();
+            oFeat.put("Name", lFeatValue.get(j).getAttributeValue("Name"));
+            oFeat.put("Value", lFeatValue.get(j).getAttributeValue("Value"));
+            arFeature.put(oFeat);
+          }
+          oResult.put("Features", arFeature);
+          
+          // Process this Result
+          if (!addResult(oResult)) return false;
+          
+          
+          // Get the next result
+          oDbIndex.NextResult(ndxResult);
+          iCheck += 1;
+        }
+      }
+      
+      // CLose the database result index
+      oDbIndex = null;
+            
+      // Commit all changes
+      conThis.commit();
+      
+      // Close the database
+      if (!closeWrite()) return false;
+      
+      // Return success
+      return true;
+    } catch (Exception ex) {
+      errHandle.DoError("DbStore/xmlToDbNew error: ", ex, DbStore.class);
+      return false;
+    }
+  }
+    
+  /**
    * createWrite
    *    Open an SQLite database for writing
    * 
@@ -264,6 +351,9 @@ public class DbStore {
       // Try make connection
       conThis = DriverManager.getConnection("jdbc:sqlite:" + sDbFile);
       
+      // Switch off auto-commit
+      conThis.setAutoCommit(false);
+      
       // Getting here means that a database *has* been created
       loc_stmt = conThis.createStatement();
       // Create a general table
@@ -272,6 +362,9 @@ public class DbStore {
       loc_stmt.executeUpdate(loc_sqlCreateFeature);
       // Create a table for the Results
       loc_stmt.executeUpdate(loc_sqlCreateResult);
+      
+      // Commit these steps
+      conThis.commit();
       
       // Prepare some statements
       this.loc_psInsertResult = conThis.prepareStatement("INSERT INTO RESULT (RESID, FILE, TEXTID, SEARCH, CAT, "+
@@ -371,17 +464,7 @@ public class DbStore {
       this.loc_psInsertResult.setString(12, "");
       this.loc_psInsertResult.executeUpdate();
 
-      /*
-      // Add this result
-      String sSql = loc_sqlInsertResult+"VALUES ("+iResId+", '"+sFile+
-              "', '"+sTextId+"', '"+sSearch+
-              "', '"+sCat+"', '"+sLocS+
-              "', '"+sLocW+"', '"+sNotes+
-              "', '"+sSubType+"', '', '', '');";
-      // Add this result to the database table
-      loc_stmt.executeUpdate(sSql);   
-      */
-      
+
       // Add features to the FEATURE table
       JSONArray arFeats = oResult.getJSONArray("Features");
       for (int i=0;i<arFeats.length(); i++) {
