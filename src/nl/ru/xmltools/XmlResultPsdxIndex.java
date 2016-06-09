@@ -1,9 +1,14 @@
-/*
+/**
+ * Copyright (c) 2015 CLARIN-NL.
+ * All rights reserved.
+ *
  * This software has been developed at the "Meertens Instituut"
  *   for the CLARIN project "CorpusStudio-WebApplication".
  * The application is based on the "CorpusStudio" program written by Erwin R. Komen
  *   while working for the Radboud University Nijmegen.
  * The program and the source can be freely used and re-distributed.
+ * 
+ * @author Erwin R. Komen
  */
 package nl.ru.xmltools;
 
@@ -139,6 +144,26 @@ public class XmlResultPsdxIndex extends XmlResult {
   @Override
   public int Size() {
     return this.loc_size;
+  }
+  
+  /**
+   * Sort -- Sort the current database according to the [sSortOrder] parameter
+   *    This parameter is, in principle, the name of one column.
+   *    If the name starts with a minus '-' sign, then the order is descending
+   *      otherwise the order is assumed to be ascending
+   * 
+   * @param sSortOrder
+   * @return 
+   */
+  public boolean Sort(String sSortOrder) {
+    try {
+      
+      // Return positively
+      return true;
+    } catch (Exception ex) {
+      objErr.DoError("XmlResult/Sort error: ", ex);
+      return false;
+    }
   }
   
   /**

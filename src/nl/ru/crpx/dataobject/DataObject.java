@@ -178,32 +178,32 @@ public abstract class DataObject {
 		return rv;
 	}
 
-	/**
-	 * Construct a full-fledged error response object.
-   *    The object consists of two parts:
-   *    status  - contains "code" which is set to "error"
-   *    content - contains a message as well as an error code
-	 *
-	 * @param code (string) error code
-	 * @param msg the error message
-	 * @return the data object representing the error message
-	 */
-	public static DataObject errorObject(String code, String msg) {
-		DataObjectMapElement objStatus = new DataObjectMapElement();
-    objStatus.put("code", "error");
-		DataObjectMapElement objContent = new DataObjectMapElement();
-		objContent.put("code", new DataObjectString(code));
-		objContent.put("message", new DataObjectString(msg));
-    // Prepare the total response: indexName + status object
-    DataObjectMapElement response = new DataObjectMapElement();
-    response.put("content", objContent);
-    response.put("status", objStatus);
-    return response;
-	}
+    /**
+     * Construct a full-fledged error response object.
+     *    The object consists of two parts:
+     *    status  - contains "code" which is set to "error"
+     *    content - contains a message as well as an error code
+     *
+     * @param code (string) error code
+     * @param msg the error message
+     * @return the data object representing the error message
+     */
+    public static DataObject errorObject(String code, String msg) {
+             DataObjectMapElement objStatus = new DataObjectMapElement();
+      objStatus.put("code", "error");
+      DataObjectMapElement objContent = new DataObjectMapElement();
+      objContent.put("code", new DataObjectString(code));
+      objContent.put("message", new DataObjectString(msg));
+      // Prepare the total response: indexName + status object
+      DataObjectMapElement response = new DataObjectMapElement();
+      response.put("content", objContent);
+      response.put("status", objStatus);
+      return response;
+    }
 
-	public static DataObject from(String value) {
-		return new DataObjectString(value);
-	}
+    public static DataObject from(String value) {
+            return new DataObjectString(value);
+    }
 
 	public static DataObject from(int value) {
 		return new DataObjectNumber(value);

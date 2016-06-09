@@ -1,9 +1,14 @@
-/*
+/**
+ * Copyright (c) 2015 CLARIN-NL.
+ * All rights reserved.
+ *
  * This software has been developed at the "Meertens Instituut"
  *   for the CLARIN project "CorpusStudio-WebApplication".
  * The application is based on the "CorpusStudio" program written by Erwin R. Komen
  *   while working for the Radboud University Nijmegen.
  * The program and the source can be freely used and re-distributed.
+ * 
+ * @author Erwin R. Komen
  */
 package nl.ru.xmltools;
 
@@ -75,6 +80,7 @@ public abstract class XmlResult {
   public abstract boolean OneResult(ByRef<XmlNode> ndxResult, String sResultId);              // Get <Result> with indicated id
   public abstract boolean GetHeader(ByRef<XmlNode> ndxHeader);                                // Get the <General> header of the database
   public abstract boolean IsEnd();                                                            // Are we at the end of the file?
-  public abstract boolean Percentage(ByRef<Integer> intPtc);                                  // Return percentage where we arep
+  public abstract boolean Percentage(ByRef<Integer> intPtc);                                  // Return percentage where we are
+  public abstract boolean Sort(String sSortOrder);                                            // Instruct the database to be sorted
   public abstract int Size();                                                                 // Size of the results
 }

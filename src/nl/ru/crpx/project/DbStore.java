@@ -14,6 +14,7 @@
 package nl.ru.crpx.project;
 import java.io.File;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.List;
 import nl.ru.crpx.dataobject.DataObject;
 import nl.ru.crpx.tools.ErrHandle;
@@ -96,6 +97,67 @@ public class DbStore {
   }
   
   // =============== Public methods ====================================
+  
+  /**
+   * openDb -- Open an SQLite .db file for reading
+   * 
+   * @param sDbFile
+   * @return 
+   */
+  public boolean openDb(String sDbFile) {
+    try {
+      // Validate
+      loc_sDbSqlFile = sDbFile;
+      File fDbFile = new File(sDbFile);
+      if (!fDbFile.exists()) return false;
+      // Try make connection
+      conThis = DriverManager.getConnection("jdbc:sqlite:" + sDbFile);
+      // Check if it is read-only...
+      if (conThis.isReadOnly()) return false;
+      // Return positively 
+      return true;
+    } catch (Exception ex) {
+      // Provide error message
+      errHandle.DoError("DbStore/openDb error: ", ex, DbStore.class);
+      return false;
+    }
+  }
+  
+  /**
+   * getGeneral -- Read the GENERAL table into a JSONObject
+   * @return 
+   */
+  public JSONObject getGeneral() {
+    JSONObject oGeneral = new JSONObject();
+    
+    try {
+      // Validate
+      if (conThis == null) return null;
+      // Access the general table
+      conThis.setAutoCommit(false);
+      Statement stmt = null;
+      stmt = conThis.createStatement();
+      ResultSet resThis = stmt.executeQuery("SELECT * FROM GENERAL;");
+      if (resThis.next()) {
+        oGeneral.put("ProjectName", resThis.getString("PROJECTNAME"));
+        oGeneral.put("Created", resThis.getString("CREATED"));
+        oGeneral.put("DstDir", resThis.getString("DSTDIR"));
+        oGeneral.put("SrcDir", resThis.getString("SRCDIR"));
+        oGeneral.put("Language", resThis.getString("LANGUAGE"));
+        oGeneral.put("Part", resThis.getString("PART"));
+        oGeneral.put("QC", resThis.getInt("QC"));
+        oGeneral.put("Notes", resThis.getString("NOTES"));
+        oGeneral.put("Analysis", resThis.getString("ANALYSIS"));
+      }   
+      // Return the result
+      return oGeneral;
+    } catch (Exception ex) {
+      // Provide error message
+      errHandle.DoError("DbStore/getGeneral error: ", ex, DbStore.class);
+      return null;
+    }
+  }
+  
   /**
    * xmlToDb
    *    Complete conversion of a .xml Result Database into an SQLite .db.gz
