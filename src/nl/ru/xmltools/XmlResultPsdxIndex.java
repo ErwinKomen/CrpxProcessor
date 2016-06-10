@@ -580,7 +580,10 @@ public class XmlResultPsdxIndex extends XmlResult {
         strNext = loc_xrdFile.getNextLine(loc_strPart);
       }
       // Check for end-of-file and file closing
-      if (loc_xrdFile.EOF) loc_xrdFile = null;
+      if (loc_xrdFile.EOF) {
+        loc_xrdFile.close();
+        loc_xrdFile = null;
+      }
       // Double check what we got
       if (strNext == null || strNext.length() == 0) {
         ndxResult.argValue = null;
@@ -697,4 +700,17 @@ public class XmlResultPsdxIndex extends XmlResult {
       return false;
     }
   }
+  
+  public void close() {
+    try {
+      if (loc_xrdFile != null) {
+        loc_xrdFile.close();
+        loc_xrdFile = null;
+      }
+    } catch (Exception ex) {
+      // Warn user
+      objErr.DoError("XmlResult/close error: ", ex);
+    }
+  }
+  
 }

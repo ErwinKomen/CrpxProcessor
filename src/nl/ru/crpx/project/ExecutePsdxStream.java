@@ -8,8 +8,12 @@
 
 package nl.ru.crpx.project;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -358,6 +362,10 @@ public class ExecutePsdxStream extends ExecuteXml {
   private void makeResultsDbaseList(Job jobCaller, DataObjectList lstBack, JSONArray arListTotal) {
     int iIndexLine = 0;             // index line used to make a file name
     PrintWriter[] arPwCombi;        // Print-writer where we output the combined database
+    BufferedWriter[] arBfCombi;     // 
+    OutputStreamWriter[] arOsCombi;
+    FileOutputStream[] arFosCombi;
+    File[] arFcombi;
     int[] arPwPos;                  // Array of current positions within the print-writers
     String[] arIdxFileName;         // Array of index file names
     String[] arFileName;            // Array of database file names
@@ -376,16 +384,21 @@ public class ExecutePsdxStream extends ExecuteXml {
       }
       if (!bHaveDb) return;   // Leave if no dbase is created anyway
       
+
       // Create a new list
       lstBack = new DataObjectList("dblist");
       // Other initialisations
-      arPwCombi = new PrintWriter[arQuery.length];
       arFileName = new String[arQuery.length];
       arPwPos = new int[arQuery.length];
       arIdxFileName = new String[arQuery.length];
       arIdxFile = new File[arQuery.length];
       arIdxList = new List[arQuery.length];
       arIdxSb = new StringBuilder[arQuery.length];
+      arPwCombi = new PrintWriter[arQuery.length];
+      arBfCombi = new  BufferedWriter[arQuery.length];
+      arOsCombi = new OutputStreamWriter[arQuery.length];
+      arFosCombi = new FileOutputStream[arQuery.length];
+      arFcombi = new File[arQuery.length];
       // arDbStore = new DbStore[arQuery.length];
       
       // Walk all the QC items
@@ -397,7 +410,9 @@ public class ExecutePsdxStream extends ExecuteXml {
           arIdxList[i] = new ArrayList<>(); arIdxSb[i] = new StringBuilder();
           // Create a name for the combined database for this QC
           String sCombi = this.crpThis.getDbaseName(iQCid, this.getDbaseDir());
+          sCombi = Paths.get(sCombi).toAbsolutePath().toString();
           File fCombi = new File(sCombi);
+          arFcombi[i] = fCombi;
           // Store the name of the current database file
           arFileName[i] = sCombi;
           // Show what we are doing
@@ -407,60 +422,85 @@ public class ExecutePsdxStream extends ExecuteXml {
           arDbStore[i].createWrite(sCombi);
           */
           // Delete any previous versions of the database
-          if (fCombi.exists()) fCombi.delete();
+          if (fCombi.exists()) {
+            boolean bIsDeleted = fCombi.delete();
+            if (!bIsDeleted) {
+              // Not sure what to do, but the file needs to be WIPED!!!
+              int stopHere = 1;
+              // Open file for writing, and then close it
+              
+            }
+          }
           // Now open it for append
-          PrintWriter pCombi = FileUtil.openForAppend(fCombi);
-          // Indexing: set the name of the index file
-          arIdxFileName[i] = sCombi.substring(0, sCombi.lastIndexOf(crpThis.getTextExt(ProjType.Dbase))) + ".index";
-          arIdxFile[i] = new File(arIdxFileName[i]);
-          // Remove any last item
-          if (arIdxFile[i].exists()) arIdxFile[i].delete();         
-          
-          // Create this file and add a first part.
-          String sIntro = "<CrpOview>\n"; pCombi.append(sIntro);
-          // Keep track of the starting position of the <General> tag
-          arPwPos[i] = sIntro.length();
-          JSONObject oGeneral = new JSONObject();
-          oGeneral.put("ProjectName", this.crpThis.getName());
-          oGeneral.put("Created", DateUtil.dateToString(new Date()));
-          oGeneral.put("DstDir", "");
-          oGeneral.put("SrcDir", this.crpThis.getSrcDir().getAbsolutePath());
-          oGeneral.put("Language", this.crpThis.getLanguage());
-          oGeneral.put("Part", this.crpThis.getPart());
-          oGeneral.put("QC", iQCid);
-          oGeneral.put("Notes", "Created by CorpusStudio (web) from query line " + iQCid + ": [" + arQuery[i].Descr + "]");
-          oGeneral.put("Analysis", getFeatList(arQuery[i].DbFeat));
-          sIntro = "<General>\n <ProjectName>" + oGeneral.getString("ProjectName") + "</ProjectName>\n" +
-                  " <Created>" + oGeneral.getString("Created") + "</Created>\n" +
-                  " <DstDir>"+oGeneral.getString("DstDir")+"</DstDir>\n" +
-                  " <SrcDir>" + oGeneral.getString("SrcDir") + "</SrcDir>\n" +
-                  " <Language>" + oGeneral.getString("Language") + "</Language>\n" +
-                  " <Part>" + oGeneral.getString("Part") + "</Part>\n" +
-                  " <QC>" + Integer.toString(oGeneral.getInt("QC")) + "</QC>" +
-                  " <Notes>"+oGeneral.getString("Notes")+"</Notes>\n" +
-                  " <Analysis>"+oGeneral.getString("Analysis")+"</Analysis>\n</General>\n";
-          pCombi.append(sIntro);
-          arPwCombi[i] = pCombi;
-          
-          /* SLOW db
-          arDbStore[i].addGeneral(oGeneral);
+          /*
+          arFosCombi[i] = new FileOutputStream(fCombi, true);
+          arOsCombi[i] = new OutputStreamWriter(arFosCombi[i], "utf-8");
+          arBfCombi[i] = new BufferedWriter(arOsCombi[i]);
+          arPwCombi[i] = new PrintWriter(arBfCombi[i]);
           */
-          
-          // Add index information to the current xml item indexer
-          int iByteLength = sIntro.getBytes("utf-8").length;
-          XmlIndexItem oItem = new XmlIndexItem("General", "", "", arPwPos[i], iByteLength);
-          arIdxList[i].add(oItem); arIdxSb[i].append(oItem.csv());
-          // Adapt the position within this database file
-          arPwPos[i] += iByteLength;
-          
-          // Create an object to store the information on this database
-          DataObjectMapElement oDbase = new DataObjectMapElement();
-          oDbase.put("file", sCombi);
-          oDbase.put("query", arQuery[i].Name);
-          oDbase.put("qcname", arQuery[i].Descr);
-          oDbase.put("qcid", iQCid);
-          oDbase.put("n", arListTotal.length());
-          lstBack.add(oDbase);
+          try (FileOutputStream fos = new FileOutputStream(fCombi, true)) {
+            try (OutputStreamWriter osw = new OutputStreamWriter(fos, "utf-8")) {
+              try (BufferedWriter bf = new BufferedWriter(osw)) {
+                try (PrintWriter pCombi = new PrintWriter(bf)) {
+                  // PrintWriter pCombi = FileUtil.openForAppend(fCombi);
+                  // Indexing: set the name of the index file
+                  arIdxFileName[i] = sCombi.substring(0, sCombi.lastIndexOf(crpThis.getTextExt(ProjType.Dbase))) + ".index";
+                  arIdxFile[i] = new File(arIdxFileName[i]);
+                  // Remove any last item
+                  if (arIdxFile[i].exists()) arIdxFile[i].delete();      
+
+                  // Create this file and add a first part.
+                  String sIntro = "<CrpOview>\n"; 
+                  // arPwCombi[i].append(sIntro);
+                  pCombi.append(sIntro);
+                  // Keep track of the starting position of the <General> tag
+                  arPwPos[i] = sIntro.getBytes("utf-8").length;
+                  JSONObject oGeneral = new JSONObject();
+                  oGeneral.put("ProjectName", this.crpThis.getName());
+                  oGeneral.put("Created", DateUtil.dateToString(new Date()));
+                  oGeneral.put("DstDir", "");
+                  oGeneral.put("SrcDir", this.crpThis.getSrcDir().getAbsolutePath());
+                  oGeneral.put("Language", this.crpThis.getLanguage());
+                  oGeneral.put("Part", this.crpThis.getPart());
+                  oGeneral.put("QC", iQCid);
+                  oGeneral.put("Notes", "Created by CorpusStudio (web) from query line " + iQCid + ": [" + arQuery[i].Descr + "]");
+                  oGeneral.put("Analysis", getFeatList(arQuery[i].DbFeat));
+                  sIntro = "<General>\n <ProjectName>" + oGeneral.getString("ProjectName") + "</ProjectName>\n" +
+                          " <Created>" + oGeneral.getString("Created") + "</Created>\n" +
+                          " <DstDir>"+oGeneral.getString("DstDir")+"</DstDir>\n" +
+                          " <SrcDir>" + oGeneral.getString("SrcDir") + "</SrcDir>\n" +
+                          " <Language>" + oGeneral.getString("Language") + "</Language>\n" +
+                          " <Part>" + oGeneral.getString("Part") + "</Part>\n" +
+                          " <QC>" + Integer.toString(oGeneral.getInt("QC")) + "</QC>\n" +
+                          " <Notes>"+oGeneral.getString("Notes")+"</Notes>\n" +
+                          " <Analysis>"+oGeneral.getString("Analysis")+"</Analysis>\n</General>\n";
+                  // arPwCombi[i].append(sIntro);
+                  pCombi.append(sIntro);
+                  // arPwCombi[i] = pCombi;
+
+                  /* SLOW db
+                  arDbStore[i].addGeneral(oGeneral);
+                  */
+
+                  // Add index information to the current xml item indexer
+                  int iByteLength = sIntro.getBytes("utf-8").length;
+                  XmlIndexItem oItem = new XmlIndexItem("General", "", "", arPwPos[i], iByteLength);
+                  arIdxList[i].add(oItem); arIdxSb[i].append(oItem.csv());
+                  // Adapt the position within this database file
+                  arPwPos[i] += iByteLength;
+
+                  // Create an object to store the information on this database
+                  DataObjectMapElement oDbase = new DataObjectMapElement();
+                  oDbase.put("file", sCombi);
+                  oDbase.put("query", arQuery[i].Name);
+                  oDbase.put("qcname", arQuery[i].Descr);
+                  oDbase.put("qcid", iQCid);
+                  oDbase.put("n", arListTotal.length());
+                  lstBack.add(oDbase);                }
+              }
+            }
+          }
+
         } else 
           arPwCombi[i] = null;
       }
@@ -520,7 +560,16 @@ public class ExecutePsdxStream extends ExecuteXml {
               iResId++;
             }
             // Append this information to the PrintWriter for this QC
-            arPwCombi[j].append(bThis);
+            // arPwCombi[j].append(bThis);
+            try (FileOutputStream fos = new FileOutputStream(arFcombi[j], true)) {
+              try (OutputStreamWriter osw = new OutputStreamWriter(fos, "utf-8")) {
+                try (BufferedWriter bf = new BufferedWriter(osw)) {
+                  try (PrintWriter pCombi = new PrintWriter(bf)) {
+                    pCombi.append(bThis);
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -528,24 +577,47 @@ public class ExecutePsdxStream extends ExecuteXml {
       for (int i=0;i<arQuery.length;i++) {
         // Does this query create a database?
         if (arQuery[i].DbFeatSize>0) {
+          try (FileOutputStream fos = new FileOutputStream(arFcombi[i], true)) {
+            try (OutputStreamWriter osw = new OutputStreamWriter(fos, "utf-8")) {
+              try (BufferedWriter bf = new BufferedWriter(osw)) {
+                try (PrintWriter pCombi = new PrintWriter(bf)) {
+                  // Finish this file
+                  pCombi.append("</CrpOview>\n");
+                  pCombi.flush();
+                  // Save the index file
+                  FileUtil.writeFile(arIdxFile[i], arIdxSb[i].toString());
+
+                  // Create a *NEW* database file for this file
+                  errHandle.debug("DB writing...");          
+                  DbStore oDbStore = new DbStore(this.errHandle);
+                  // oDbStore.xmlToDb(arFileName[i]);
+                  oDbStore.xmlToDbNew(arFileName[i]);
+                  errHandle.debug("DB done!");                }
+              }
+            }
+          }
+          
+          /*
           // Finish this file
           arPwCombi[i].append("</CrpOview>\n");
           arPwCombi[i].flush();
+          // Close anything in-between
+          arFosCombi[i].close();
+          arOsCombi[i].close();
+          arBfCombi[i].close();
+          
+          // Finally: close the print-writer
           arPwCombi[i].close();
           // Save the index file
           FileUtil.writeFile(arIdxFile[i], arIdxSb[i].toString());
           
-          // Close the SQLite database
-          // arDbStore[i].closeWrite();
-          
-          /* ========= TAKES TOO LONG =============== */
           // Create a *NEW* database file for this file
           errHandle.debug("DB writing...");          
           DbStore oDbStore = new DbStore(this.errHandle);
           // oDbStore.xmlToDb(arFileName[i]);
           oDbStore.xmlToDbNew(arFileName[i]);
           errHandle.debug("DB done!");
-          /* */
+          */
         } 
       }
       // The result information is in [lstBack]

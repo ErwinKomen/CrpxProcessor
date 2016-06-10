@@ -76,9 +76,10 @@ public class XmlResultDbase extends XmlResult {
    * @return 
    */
   public List<String> featureList() {
-    List<String> lBack = new ArrayList<>(); // Initialize the list we want to return
+    List<String> lBack; // Initialize the list we want to return
     
     try {
+      lBack = this.loc_oStore.getFeatureList();
       // Return the list that has been created
       return lBack;
     } catch (Exception ex) {
@@ -129,10 +130,17 @@ public class XmlResultDbase extends XmlResult {
     try {
       // Validate
       if (!strDbaseFile.endsWith(".xml")) strDbaseFile = strDbaseFile + ".xml";
-      strDbaseFile = strDbaseFile.replace(".xml", ".db");
-      String strDbaseGz = strDbaseFile + ".gz";
-      // Check which one to take
+      String strDbaseDb = strDbaseFile.replace(".xml", ".db");
+      String strDbaseGz = strDbaseDb + ".gz";
+      // Make sure files are okay on this system
       File fDbase = new File(strDbaseFile);
+      if (fDbase.getAbsolutePath().startsWith("C:\\")) {
+        strDbaseFile = "D:" + strDbaseFile;
+        strDbaseGz = "D:" + strDbaseGz;
+        strDbaseDb = "D:" + strDbaseDb;
+      }
+      // Check which one to take
+      fDbase = new File(strDbaseDb);
       File fDbaseGz = new File(strDbaseGz);
       File fDbaseXml = new File(strDbaseFile);
       // Find out which one exists and was modified last
@@ -144,11 +152,11 @@ public class XmlResultDbase extends XmlResult {
           if (fDbaseGz.lastModified() < fDbaseXml.lastModified()) {
             // The .db.gz file is STALE -- delete it, and create a new .db file
             fDbaseGz.delete();
-            oStore.xmlToDb(strDbaseFile);
+            oStore.xmlToDbNew(strDbaseFile);
           }
         } else {
           // There is no .db.gz file, so create it
-          oStore.xmlToDb(strDbaseFile);
+          oStore.xmlToDbNew(strDbaseFile);
         }
         // There now is a .db.gz file: unpack it
         FileUtil.decompressGzipFile(strDbaseGz, strDbaseFile);
@@ -156,7 +164,7 @@ public class XmlResultDbase extends XmlResult {
         // Is the .db newer or older than the .xml file?
         if (fDbase.lastModified() < fDbaseXml.lastModified()) {
           // The .db file is stale --> create a new one
-          oStore.xmlToDb(strDbaseFile);
+          oStore.xmlToDbNew(strDbaseFile);
           FileUtil.decompressGzipFile(strDbaseGz, strDbaseFile);
         }
       }

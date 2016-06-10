@@ -15,6 +15,7 @@ package nl.ru.crpx.project;
 import java.io.File;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import nl.ru.crpx.dataobject.DataObject;
 import nl.ru.crpx.tools.ErrHandle;
@@ -64,6 +65,12 @@ public class DbStore {
           " VALUE          TEXT NOT NULL)";
   private final String loc_sqlInsertFeature = 
           "INSERT INTO FEATURE (ID, RESID, NAME, VALUE) ";
+  private final String loc_sqlCreateFeatName = 
+          "CREATE TABLE FEATNAME " +
+          "(ID INT PRIMARY KEY  NOT NULL,"+
+          " NAME           TEXT NOT NULL)";
+  private final String loc_sqlInsertFeatName = 
+          "INSERT INTO FEATNAME (ID, NAME) ";
   private final String loc_sqlCreateResult = 
           "CREATE TABLE RESULT " +
           "(RESID INT PRIMARY KEY  NOT NULL,"+
@@ -159,145 +166,37 @@ public class DbStore {
   }
   
   /**
-   * xmlToDb
-   *    Complete conversion of a .xml Result Database into an SQLite .db.gz
-   *    This is a linear method that is not too fast ...
+   * geteatureList -- Create a list of the names of the features
    * 
-   * @param sFileName
    * @return 
    */
-  public boolean xmlToDb(String sFileName) {
-    
+  public List<String> getFeatureList() {
+    List<String> lBack = new ArrayList<>(); // Initialize the list we want to return
+
     try {
       // Validate
-      File fThis = new File(sFileName);
-      if (!fThis.exists()) return false;
-      // Set database file name
-      String sDbFile = sFileName.replace(".xml", ".db");
-      String sDbName = fThis.getName().replace(".xml", "");
-      // REmove if exists
-      File fDb = new File(sDbFile);
-      if (fDb.exists()) fDb.delete();
-      // Try make connection
-      conThis = DriverManager.getConnection("jdbc:sqlite:" + sDbFile);
-      
-      // Getting here means that a database *has* been created
-      Statement stmt = conThis.createStatement();
-      // Create a general table
-      stmt.addBatch(loc_sqlCreateGeneral);
-      // Create a table for the Features (linked to Result)
-      stmt.addBatch(loc_sqlCreateFeature);
-      // Create a table for the Results
-      stmt.addBatch(loc_sqlCreateResult);
-      // Process the last three commands
-      stmt.executeBatch();
-      
-      // Get access to the XMl file through a reader
-      CorpusResearchProject oCrpx = new CorpusResearchProject(true);
-      XmlResultPsdxIndex oDbIndex = new XmlResultPsdxIndex(oCrpx, null, errHandle);
-      if (!oDbIndex.Prepare(sFileName)) { errHandle.DoError("DbStore/xmlToDb: cannot prepare database"); return false;}
-      
-      // Get the General part
-      JSONObject oHdr = oDbIndex.headerInfo();      
-      
-      // Populate the content of the general part
-      String sProjectName = ""; // Name of CRPX that created the DB
-      String sCreated = "";     // Created date in sortable date/time
-      String sDstDir = "";
-      String sSrcDir = "";
-      String sLanguage = "";    // Main language
-      String sPart = "";        // Part of corpus
-      String sNotes = "";       // Notes to the DB
-      String sAnalysis = "";    // Names of all features used
-      int iQC = 1;              // The QC number for this database
-      if (oHdr.has("ProjectName")) sProjectName = oHdr.getString("ProjectName");
-      if (oHdr.has("Created")) sCreated = oHdr.getString("Created");
-      if (oHdr.has("DstDir")) sDstDir = oHdr.getString("DstDir");
-      if (oHdr.has("SrcDir")) sSrcDir = oHdr.getString("SrcDir");
-      if (oHdr.has("Language")) sLanguage = oHdr.getString("Language");
-      if (oHdr.has("Part")) sPart = oHdr.getString("Part");
-      if (oHdr.has("Notes")) sNotes = oHdr.getString("Notes");
-      if (oHdr.has("Analysis")) sAnalysis = oHdr.getString("Analysis");
-      if (oHdr.has("QC")) iQC = oHdr.getInt("QC");
-      String sSql = loc_sqlInsertGeneral+"VALUES (1, '"+sProjectName+
-              "', '"+sCreated+"', '"+sDstDir+
-              "', '"+sSrcDir+"', '"+sLanguage+
-              "', '"+sPart+"', "+iQC+
-              ", '"+sNotes+"', '"+sAnalysis+"');";
-      // stmt.executeUpdate(sSql);
-      stmt.addBatch(sSql);
-      
-      // Walk through the <Result> records one-by-one
-      ByRef<XmlNode> ndxResult = new ByRef(null);
-      int iFeatIdx = 1;
-      if (oDbIndex.FirstResult(ndxResult)) {
-        // Walk through them
-        int iCheck = 1;
-        while (ndxResult.argValue != null) {
-          // Get the values of this result
-          XmlNode ndxThis = ndxResult.argValue;
-          // Get the index
-          int iResId = Integer.parseInt(ndxThis.getAttributeValue("ResId"));
-          // Double check
-          if (iCheck != iResId) { errHandle.DoError("DbStore/xmlToDb: index is wrong at " + iCheck); return false; }
-          // Get all the other relevant values
-          String sFile = ndxThis.getAttributeValue("File");
-          String sTextId = ndxThis.getAttributeValue("TextId");
-          String sSearch =  ndxThis.getAttributeValue("Search");
-          String sCat =  ndxThis.getAttributeValue("Cat");
-          String sLocS =  ndxThis.getAttributeValue("forestId");
-          String sLocW =  ndxThis.getAttributeValue("eTreeId");
-          sNotes =  ndxThis.getAttributeValue("Notes");
-          String sSubType =  ndxThis.getAttributeValue("Period");
-          // Do NOT calculate values for Text, Psd and Pde -- these are not determined anyway
-          
-          // Add this result
-          sSql = loc_sqlInsertResult+"VALUES ("+iResId+", '"+sFile+
-                  "', '"+sTextId+"', '"+sSearch+
-                  "', '"+sCat+"', '"+sLocS+
-                  "', '"+sLocW+"', '"+sNotes+
-                  "', '"+sSubType+"', '', '', '');";
-          //stmt.executeUpdate(sSql);   
-          stmt.addBatch(sSql);
-          
-          // Determine the features for this result
-          List<XmlNode> lFeatValue = ndxThis.SelectNodes("./child::Feature");
-          for (int j=0;j<lFeatValue.size();j++) {
-            // Add this feature
-            sSql = loc_sqlInsertFeature+"VALUES ("+iFeatIdx+", "+
-                    iResId+", '"+lFeatValue.get(j).getAttributeValue("Name")+
-                    "', '"+lFeatValue.get(j).getAttributeValue("Value")+"');";
-            // stmt.executeUpdate(sSql);   
-            stmt.addBatch(sSql);   
-            iFeatIdx += 1;
-          }
-          
-          // Get the next result
-          oDbIndex.NextResult(ndxResult);
-          iCheck += 1;
+      if (conThis == null) return null;
+      // Access the general table
+      conThis.setAutoCommit(false);
+      Statement stmt = null;
+      stmt = conThis.createStatement();
+      ResultSet resThis = stmt.executeQuery("SELECT * FROM GENERAL;");
+      if (resThis.next()) {
+        String sAnalysis = resThis.getString("ANALYSIS");
+        String[] arAnalysis = sAnalysis.split(";");
+        for (int i=0;i<arAnalysis.length;i++) {
+          lBack.add(arAnalysis[i]);
         }
-      }
-      // Process all the additions in one go
-      stmt.executeBatch();
-      
-      // CLose the database result index
-      oDbIndex = null;
-      
-      // Close the statement handler
-      stmt.close();
-      // Close the database
-      conThis.close();  
-      // Convert the database to GZ
-      FileUtil.compressGzipFile(sDbFile, sDbFile+".gz");
-      // Remove the actual .db file
-      fDb.delete();
-      // Return success
-      return true;
+      }   
+      // Return the list
+      return lBack;
     } catch (Exception ex) {
-      errHandle.DoError("DbStore/xmlToDb error: ", ex, DbStore.class);
-      return false;
+      // Provide error message
+      errHandle.DoError("DbStore/getFeatureList error: ", ex, DbStore.class);
+      return null;
     }
   }
+  
   
   /**
    * xmlToDb
@@ -322,6 +221,11 @@ public class DbStore {
       
       // Add header to the database
       if (!addGeneral(oHdr)) return false;
+      
+      // Prepare making a list of feature names
+      List<String> lFeatName = new ArrayList<>();
+      String sAnalysis = oHdr.getString("Analysis");
+      boolean bDoFeatNames = true;
       
       // process the results one-by-one
       ByRef<XmlNode> ndxResult = new ByRef(null);
@@ -353,11 +257,18 @@ public class DbStore {
           for (int j=0;j<lFeatValue.size();j++) {
             // Add this feature
             JSONObject oFeat = new JSONObject();
-            oFeat.put("Name", lFeatValue.get(j).getAttributeValue("Name"));
+            // Add this feature
+            String sFeatName = lFeatValue.get(j).getAttributeValue("Name");
+            oFeat.put("Name", sFeatName);
             oFeat.put("Value", lFeatValue.get(j).getAttributeValue("Value"));
             arFeature.put(oFeat);
+            // Check if feature names need to be adapted
+            if (bDoFeatNames) lFeatName.add(sFeatName);
           }
           oResult.put("Features", arFeature);
+          
+          // Switch off feature-name extraction after the first go
+          bDoFeatNames = false;
           
           // Process this Result
           if (!addResult(oResult)) return false;
@@ -370,8 +281,12 @@ public class DbStore {
       }
       
       // CLose the database result index
+      oDbIndex.close();
       oDbIndex = null;
-            
+                  
+      // Add the feature names
+      if (!addFeatNames(lFeatName, sAnalysis)) return false;
+
       // Commit all changes
       conThis.commit();
       
@@ -406,10 +321,16 @@ public class DbStore {
       this.loc_sDbSqlFile = sDbFile;
       // REmove if exists
       File fDb = new File(sDbFile);
-      if (fDb.exists()) fDb.delete();
+      if (fDb.exists()) { 
+        boolean bDbIsDel = fDb.delete(); 
+        if (!bDbIsDel) { int iIsNotDel = 1; }
+      }
       // Also remove a .gz version if it exists
       fDb = new File(sDbFile + ".gz");
-      if (fDb.exists()) fDb.delete();
+      if (fDb.exists()) {
+        boolean bDbGzIsDel = fDb.delete();
+        if (!bDbGzIsDel) { int iIsNotDel = 1; }
+      }
       // Try make connection
       conThis = DriverManager.getConnection("jdbc:sqlite:" + sDbFile);
       
@@ -422,6 +343,8 @@ public class DbStore {
       loc_stmt.executeUpdate(loc_sqlCreateGeneral);
       // Create a table for the Features (linked to Result)
       loc_stmt.executeUpdate(loc_sqlCreateFeature);
+      // Create a table for the Feature Names only (not linked)
+      loc_stmt.executeUpdate(loc_sqlCreateFeatName);
       // Create a table for the Results
       loc_stmt.executeUpdate(loc_sqlCreateResult);
       
@@ -487,6 +410,30 @@ public class DbStore {
     }
   }
   
+  /**
+   * addFeatNames -- Add feature names to table FEATNAMES
+   * 
+   * @param lFeatName
+   * @param sAnalysis
+   * @return 
+   */
+  public boolean addFeatNames(List<String> lFeatName, String sAnalysis) {
+    try {
+      // If there are no feature names - get them from the analysis
+      if (lFeatName.isEmpty()) lFeatName.addAll(Arrays.asList(sAnalysis.split(";")));
+      
+      // Add all feature names to the database
+      for (int i=0;i<lFeatName.size();i++) {
+        String sSql = loc_sqlInsertFeatName +"VALUES ("+(i+1)+ ", '"+lFeatName.get(i)+ "');";
+        loc_stmt.executeUpdate(sSql);
+      }
+      
+      return true;
+    } catch (Exception ex) {
+      errHandle.DoError("DbStore/addFeatNames error: ", ex, DbStore.class);
+      return false;
+    }
+  }
   
   /**
    * addResult
