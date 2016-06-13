@@ -185,6 +185,7 @@ public class XmlResultDbase extends XmlResult {
       // There now is a good .db file: open it into my local DbStore copy
       this.loc_oStore = new DbStore(objErr);
       this.loc_oStore.openDb(strDbaseDb);
+      this.loc_size = this.loc_oStore.getSize();
       
       // Return positively
       return true;

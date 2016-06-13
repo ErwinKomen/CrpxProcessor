@@ -33,16 +33,17 @@ import nl.ru.xmltools.XmlResultPsdxIndex;
  */
 public class DbStore {
   // =============== Local class stuff =================================
-  private ErrHandle errHandle;              // Local copy of error handler
-  private Connection conThis = null;        // JDBC connection
+  private ErrHandle errHandle;                // Local copy of error handler
+  private Connection conThis = null;          // JDBC connection
   private String loc_sDbName = "";
   private String loc_sDbXmlFile = "";
   private String loc_sDbSqlFile = "";
-  private String loc_sOrder = "ASC";        // Sort order
-  private String loc_sSortField = "RESID";  // Normally we sort by the Result Id
-  private boolean loc_bIsFeature = false;   // Search column is a feature
-  private int loc_iResId = 0;               // ResId for 
-  private int loc_iFeatIdx = 0;             // Unique ID for each Feature
+  private String loc_sOrder = "ASC";          // Sort order
+  private String loc_sSortField = "RESID";    // Normally we sort by the Result Id
+  private boolean loc_bIsFeature = false;     // Search column is a feature
+  private int loc_iResId = 0;                 // ResId for 
+  private int loc_iFeatIdx = 0;               // Unique ID for each Feature
+  private int loc_iSize = 0;                  // Size of the database
   private Statement loc_stmt = null;
   private List<String> loc_lFeatName = null;  // List of feature names
   private List<String> loc_lSortField = null; // List of fields for which indices have been built
@@ -110,6 +111,30 @@ public class DbStore {
   }
   
   // =============== Public methods ====================================
+  /**
+   * getSize -- Get the size of a dbase that has been read
+   * 
+   * @return 
+   */
+  public int getSize() {
+    try {
+      // Validate
+      if (conThis == null) return 0;
+      // Create a statement
+      Statement stmt = conThis.createStatement();
+      ResultSet resThis = stmt.executeQuery("SELECT COUNT(*) FROM RESULT");
+      if (resThis.next()) {
+        // Get the result
+        this.loc_iSize = resThis.getInt(1);
+      }
+      // REturn what we found
+      return this.loc_iSize;
+    } catch (Exception ex) {
+      // Provide error message
+      errHandle.DoError("DbStore/getSize error: ", ex, DbStore.class);
+      return 0;
+    }
+  }
   
   /**
    * openDb -- Open an SQLite .db file for reading
@@ -245,10 +270,13 @@ public class DbStore {
       // process the results one-by-one
       ByRef<XmlNode> ndxResult = new ByRef(null);
       int iFeatIdx = 1;
+      int iCount = 0;
       if (oDbIndex.FirstResult(ndxResult)) {
         // Walk through them
-        int iCheck = 1;
+        int iCheck = 1; 
         while (ndxResult.argValue != null) {
+          // Keep track of the count
+          iCount += 1;
           // Get the values of this result
           XmlNode ndxThis = ndxResult.argValue;
           JSONObject oResult = new JSONObject();
@@ -326,6 +354,9 @@ public class DbStore {
       // CLose the database result index
       oDbIndex.close();
       oDbIndex = null;
+      
+      // Store the size
+      this.loc_iSize = iCount;
                   
       // Add the feature names in a separate table
       if (!addFeatNames(lFeatName, sAnalysis)) return false;
