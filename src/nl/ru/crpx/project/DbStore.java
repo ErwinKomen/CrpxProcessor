@@ -21,6 +21,7 @@ import nl.ru.crpx.dataobject.DataObject;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
+import nl.ru.util.StringUtil;
 import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
 import nl.ru.xmltools.XmlNode;
@@ -32,14 +33,19 @@ import nl.ru.xmltools.XmlResultPsdxIndex;
  */
 public class DbStore {
   // =============== Local class stuff =================================
-  private ErrHandle errHandle;            // Local copy of error handler
-  private Connection conThis = null;      // JDBC connection
+  private ErrHandle errHandle;              // Local copy of error handler
+  private Connection conThis = null;        // JDBC connection
   private String loc_sDbName = "";
   private String loc_sDbXmlFile = "";
   private String loc_sDbSqlFile = "";
-  private int loc_iResId = 0;             // ResId for 
-  private int loc_iFeatIdx = 0;           // Unique ID for each Feature
+  private String loc_sOrder = "ASC";        // Sort order
+  private String loc_sSortField = "RESID";  // Normally we sort by the Result Id
+  private boolean loc_bIsFeature = false;   // Search column is a feature
+  private int loc_iResId = 0;               // ResId for 
+  private int loc_iFeatIdx = 0;             // Unique ID for each Feature
   private Statement loc_stmt = null;
+  private List<String> loc_lFeatName = null;  // List of feature names
+  private List<String> loc_lSortField = null; // List of fields for which indices have been built
   // =============== Local constants ===================================
 // <editor-fold desc="Local constants">
   private final String loc_sqlCreateGeneral = 
@@ -84,7 +90,7 @@ public class DbStore {
           " SUBTYPE        CHAR(200),"+
           " TEXT           TEXT NOT NULL,"+
           " PSD            TEXT NOT NULL,"+
-          " PDE            TEXT NOT NULL)";
+          " PDE            TEXT NOT NULL";
   private final String loc_sqlInsertResult = 
           "INSERT INTO RESULT (RESID, FILE, TEXTID, SEARCH, CAT, "+
           "LOCS, LOCW, NOTES, SUBTYPE, TEXT, PSD, PDE) ";
@@ -121,6 +127,10 @@ public class DbStore {
       conThis = DriverManager.getConnection("jdbc:sqlite:" + sDbFile);
       // Check if it is read-only...
       if (conThis.isReadOnly()) return false;
+      // Now make sure the array with feature names is created
+      if (this.loc_lFeatName == null || this.loc_lFeatName.isEmpty()) {
+        this.loc_lFeatName = getFeatureList();
+      }
       // Return positively 
       return true;
     } catch (Exception ex) {
@@ -143,8 +153,13 @@ public class DbStore {
       // Access the general table
       conThis.setAutoCommit(false);
       Statement stmt = null;
+      ResultSet resThis = null;
       stmt = conThis.createStatement();
-      ResultSet resThis = stmt.executeQuery("SELECT * FROM GENERAL;");
+      try {
+        resThis = stmt.executeQuery("SELECT * FROM GENERAL;");
+      } catch (Exception ex) {
+        // Ignore the exception
+      }
       if (resThis.next()) {
         oGeneral.put("ProjectName", resThis.getString("PROJECTNAME"));
         oGeneral.put("Created", resThis.getString("CREATED"));
@@ -180,14 +195,11 @@ public class DbStore {
       conThis.setAutoCommit(false);
       Statement stmt = null;
       stmt = conThis.createStatement();
-      ResultSet resThis = stmt.executeQuery("SELECT * FROM GENERAL;");
-      if (resThis.next()) {
-        String sAnalysis = resThis.getString("ANALYSIS");
-        String[] arAnalysis = sAnalysis.split(";");
-        for (int i=0;i<arAnalysis.length;i++) {
-          lBack.add(arAnalysis[i]);
-        }
-      }   
+      // Look at the table with the feature names
+      ResultSet resThis = stmt.executeQuery("SELECT * FROM FEATNAME;");
+      while (resThis.next()) {
+        lBack.add(resThis.getString("NAME"));
+      }
       // Return the list
       return lBack;
     } catch (Exception ex) {
@@ -208,9 +220,6 @@ public class DbStore {
    */
   public boolean xmlToDbNew(String sFileName) {
     try {
-      // Create a writer
-      if (!createWrite(sFileName)) return false;
-      
       // Process the header
       CorpusResearchProject oCrpx = new CorpusResearchProject(true);
       XmlResultPsdxIndex oDbIndex = new XmlResultPsdxIndex(oCrpx, null, errHandle);
@@ -219,11 +228,17 @@ public class DbStore {
       // Get the General part
       JSONObject oHdr = oDbIndex.headerInfo();   
       
+      // Create a writer
+      List<String> lFeatName = oDbIndex.featureList();
+      // Adapt the list
+      for (int i=0;i<lFeatName.size();i++) { lFeatName.set(i, "ft_"+lFeatName.get(i));}
+      this.loc_lFeatName = lFeatName;
+      if (!createWrite(sFileName, lFeatName)) return false;
+      
       // Add header to the database
       if (!addGeneral(oHdr)) return false;
       
       // Prepare making a list of feature names
-      List<String> lFeatName = new ArrayList<>();
       String sAnalysis = oHdr.getString("Analysis");
       boolean bDoFeatNames = true;
       
@@ -253,8 +268,11 @@ public class DbStore {
           oResult.put("ResId", Integer.parseInt(ndxThis.getAttributeValue("ResId")));
           // Determine the features for this result
           List<XmlNode> lFeatValue = ndxThis.SelectNodes("./child::Feature");
+          /* ---------- Old Method: separate feature table --------------
           JSONArray arFeature = new JSONArray();
+          ---------------------------------------------------------------   */
           for (int j=0;j<lFeatValue.size();j++) {
+            /* ---------- Old Method: separate feature table --------------
             // Add this feature
             JSONObject oFeat = new JSONObject();
             // Add this feature
@@ -262,10 +280,35 @@ public class DbStore {
             oFeat.put("Name", sFeatName);
             oFeat.put("Value", lFeatValue.get(j).getAttributeValue("Value"));
             arFeature.put(oFeat);
+            ---------------------------------------------------------------   */
+            // Create name for feature
+            String sFeatName = "ft_" + lFeatValue.get(j).getAttributeValue("Name");
+            // Add this in the result
+            oResult.put(sFeatName, lFeatValue.get(j).getAttributeValue("Value"));
+            /*
             // Check if feature names need to be adapted
-            if (bDoFeatNames) lFeatName.add(sFeatName);
+            if (bDoFeatNames) {
+              lFeatName.add(sFeatName);
+              // Also need to add a column to the table
+              // if (!addColumn("RESULT", sFeatName)) return false;
+            }
+            */
           }
+          /* ---------- Old Method: separate feature table --------------
           oResult.put("Features", arFeature);
+          ---------------------------------------------------------------   */
+          // If this is the first go, we should create an insert statement
+          if (bDoFeatNames) {
+            // Prepare a string for the values
+            String sSql = "INSERT INTO RESULT (RESID, FILE, TEXTID, SEARCH, CAT, "+
+                "LOCS, LOCW, NOTES, SUBTYPE, TEXT, PSD, PDE,"+
+                StringUtil.join(this.loc_lFeatName, ", ")+
+                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"+
+                new String(new char[this.loc_lFeatName.size()]).replace("\0", ", ?")+
+                ")";
+            // Prepare an insert statement
+            this.loc_psInsertResult = conThis.prepareStatement(sSql);            
+          }
           
           // Switch off feature-name extraction after the first go
           bDoFeatNames = false;
@@ -284,8 +327,10 @@ public class DbStore {
       oDbIndex.close();
       oDbIndex = null;
                   
-      // Add the feature names
+      // Add the feature names in a separate table
       if (!addFeatNames(lFeatName, sAnalysis)) return false;
+      // Also add the list of feature names locally
+      this.loc_lFeatName = lFeatName;
 
       // Commit all changes
       conThis.commit();
@@ -306,9 +351,10 @@ public class DbStore {
    *    Open an SQLite database for writing
    * 
    * @param sFileName
+   * @param arFeatList
    * @return 
    */
-  public boolean createWrite(String sFileName) {
+  public boolean createWrite(String sFileName, List<String> arFeatList) {
     try {
       // NOTE: do not check existence of the database -- we are creating...
       File fThis = new File(sFileName);
@@ -341,20 +387,27 @@ public class DbStore {
       loc_stmt = conThis.createStatement();
       // Create a general table
       loc_stmt.executeUpdate(loc_sqlCreateGeneral);
-      // Create a table for the Features (linked to Result)
-      loc_stmt.executeUpdate(loc_sqlCreateFeature);
       // Create a table for the Feature Names only (not linked)
       loc_stmt.executeUpdate(loc_sqlCreateFeatName);
+      // Prepare the create statement for the RESULTS table
+      String sSqlCreateResult = loc_sqlCreateResult;
+      for (int i=0;i<arFeatList.size();i++) {
+        sSqlCreateResult += ", " + arFeatList.get(i) + " TEXT NOT NULL";
+      }
+      // Finish the statement
+      sSqlCreateResult += ")";
       // Create a table for the Results
-      loc_stmt.executeUpdate(loc_sqlCreateResult);
+      loc_stmt.executeUpdate(sSqlCreateResult);
       
       // Commit these steps
       conThis.commit();
-      
+
+/* ---------------------- OLD SYSTEM ------------      
       // Prepare some statements
       this.loc_psInsertResult = conThis.prepareStatement("INSERT INTO RESULT (RESID, FILE, TEXTID, SEARCH, CAT, "+
           "LOCS, LOCW, NOTES, SUBTYPE, TEXT, PSD, PDE) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
       this.loc_psInsertFeature = conThis.prepareStatement("INSERT INTO FEATURE VALUES (?, ?, ?, ?)");
+      ------------------------------------------- */
       
       // Other initialisations
       loc_iFeatIdx = 1; loc_iResId = 1;
@@ -471,15 +524,23 @@ public class DbStore {
       this.loc_psInsertResult.setString(10, "");
       this.loc_psInsertResult.setString(11, "");
       this.loc_psInsertResult.setString(12, "");
+      // Add the feature values
+      for (int i=0;i<this.loc_lFeatName.size();i++ ) {
+        int iNum = 12+i+1;  // The number of the element to be set
+        // Get the feature 
+        String sFeatValue = oResult.getString(this.loc_lFeatName.get(i));
+        this.loc_psInsertResult.setString(iNum, sFeatValue);
+      }
       this.loc_psInsertResult.executeUpdate();
 
-
+/* ============== OLD ====================
       // Add features to the FEATURE table
       JSONArray arFeats = oResult.getJSONArray("Features");
       for (int i=0;i<arFeats.length(); i++) {
         JSONObject oFeat = arFeats.getJSONObject(i);
         if (!addFeature(iResId, oFeat)) return false;
       }
+      ===================================== */
       // Book keeping
       loc_iResId += 1;
       
@@ -529,31 +590,90 @@ public class DbStore {
    * 
    * @param sSortField
    * @param bAscending
-   * @param bIsFeature
    * @return 
    */
-  public boolean sort(String sSortField, boolean bAscending, boolean bIsFeature) {
+  public boolean sort(String sSortField, boolean bAscending) {
     try {
       // Validate
       if (conThis == null) return false;
+      if (sSortField.isEmpty()) {
+        this.loc_sSortField = "RESID";
+        return true;
+      }
       // Access the general table
       conThis.setAutoCommit(false);
       Statement stmt = null;
       stmt = conThis.createStatement();
       // Determine the sort order string
-      String sOrder = (bAscending) ? "ASC" : "DESC";
-      // Action depends on bIsFeature
-      if (bIsFeature) {
-        
-      } else {
-        // Just look up result
-        ResultSet resThis = stmt.executeQuery("SELECT * FROM RESULT ORDER BY "+sSortField+" "+sOrder+" ;");
-      }
+      this.loc_sOrder = (bAscending) ? "ASC" : "DESC";
+      // Keep the sort field
+      this.loc_sSortField = sSortField;
+      // Create an index
+      stmt.execute("CREATE INDEX IF NOT EXISTS Res_"+sSortField+" ON RESULT("+sSortField+")");
+      // Make sure it is created
+      conThis.commit();
       // Return positively
       return true;
     } catch (Exception ex) {
       errHandle.DoError("DbStore/sort error: ", ex, DbStore.class);
       return false;
+    }
+  }
+  
+  /**
+   * getResults
+   *    Return [iCount] (sorted) results that start at [iStart]
+   * 
+   * @param iStart
+   * @param iCount
+   * @return 
+   */
+  public JSONArray getResults(int iStart, int iCount) {
+    JSONArray arBack = new JSONArray();
+    
+    try {
+      // Validate
+      if (conThis == null) return null;
+      // Access the general table
+      conThis.setAutoCommit(false);
+      Statement stmt = null;
+      stmt = conThis.createStatement();
+      // Create the SQL query
+      String sSql = "SELECT * FROM RESULT "+
+              "ORDER BY "+this.loc_sSortField+" "+this.loc_sOrder+
+              " LIMIT "+iCount+" OFFSET "+iStart+
+              ";";
+      ResultSet resThis = stmt.executeQuery(sSql);
+      // Walk the result set
+      while (resThis.next()) {
+        JSONObject oResult = new JSONObject();
+        // Get all the result items
+        oResult.put("ResId", resThis.getInt("RESID"));
+        oResult.put("File", resThis.getString("FILE"));
+        oResult.put("TextId", resThis.getString("TEXTID"));
+        oResult.put("Search", resThis.getString("SEARCH"));
+        oResult.put("Cat", resThis.getString("CAT"));
+        oResult.put("Locs", resThis.getString("LOCS"));
+        oResult.put("Locw", resThis.getString("LOCW"));
+        oResult.put("Notes", resThis.getString("NOTES"));
+        oResult.put("SubType", resThis.getString("SUBTYPE"));
+        oResult.put("Text", resThis.getString("TEXT"));
+        oResult.put("Psd", resThis.getString("PSD"));
+        oResult.put("Pde", resThis.getString("PDE"));
+        // Get all the features from the result object
+        for (int i=0;i<this.loc_lFeatName.size();i++) {
+          String sFeatName = loc_lFeatName.get(i);
+          oResult.put(sFeatName, resThis.getString(sFeatName));
+        }
+        // Add this result to the array
+        arBack.put(oResult);
+      }
+      
+      // Return our findings
+      return arBack;
+    } catch (Exception ex) {
+      errHandle.DoError("DbStore/getResults error: ", ex, DbStore.class);
+      return null;
     }
   }
   
@@ -571,6 +691,7 @@ public class DbStore {
       if (!fDb.exists()) return false;
       // Close the database
       conThis.close();  
+      conThis = null;
       // Convert the database to GZ
       FileUtil.compressGzipFile(this.loc_sDbSqlFile, this.loc_sDbSqlFile+".gz");
       // Remove the actual .db file
@@ -582,5 +703,27 @@ public class DbStore {
       return false;
     }
   }
-  
+
+ // ========================= PRIVATE METHODS ======================  
+  /**
+   * addColumn
+   *    Add one column to the indicated table
+   * 
+   * @param sTable
+   * @param sColName
+   * @return 
+   */
+  private boolean addColumn(String sTable, String sColName) {
+    try {
+      String sSql = "ALTER TABLE "+sTable+" ADD COLUMN "+sColName+" TEXT;";
+      // Put it into motion
+      Statement stmt = conThis.createStatement();
+      if (!stmt.execute(sSql)) return false;      
+      // Return success
+      return true;      
+    } catch (Exception ex) {
+      errHandle.DoError("DbStore/addColumn error: ", ex, DbStore.class);
+      return false;
+    }
+  }
 }

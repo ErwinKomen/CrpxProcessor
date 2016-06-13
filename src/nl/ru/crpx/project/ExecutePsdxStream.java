@@ -417,10 +417,6 @@ public class ExecutePsdxStream extends ExecuteXml {
           arFileName[i] = sCombi;
           // Show what we are doing
           errHandle.debug("Result database of ["+iQCid+"]: "+sCombi);
-          /* === DB slow
-          arDbStore[i] = new DbStore(this.errHandle);
-          arDbStore[i].createWrite(sCombi);
-          */
           // Delete any previous versions of the database
           if (fCombi.exists()) {
             boolean bIsDeleted = fCombi.delete();

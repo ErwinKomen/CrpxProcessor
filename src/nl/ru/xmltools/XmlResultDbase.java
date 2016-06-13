@@ -21,6 +21,7 @@ import nl.ru.crpx.search.JobXq;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
+import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
 
 /**
@@ -112,13 +113,15 @@ public class XmlResultDbase extends XmlResult {
         // DO away with the leading minus sign
         sSortOrder = sSortOrder.substring(1);
       }
+      /* ===== Obsolete =========
       // CHeck if this is a feature or not
       if (sSortOrder.startsWith("ft:")) {
         bIsFeature = true;
         sSortOrder = sSortOrder.substring(3);
       }
+      ============================ */
       // Pass on the SORT request to DbStore
-      if (!this.loc_oStore.sort(sSortOrder, bAscending, bIsFeature)) return false;
+      if (!this.loc_oStore.sort(sSortOrder, bAscending)) return false;
       
       // Return positively
       return true;
@@ -170,18 +173,18 @@ public class XmlResultDbase extends XmlResult {
           oStore.xmlToDbNew(strDbaseFile);
         }
         // There now is a .db.gz file: unpack it
-        FileUtil.decompressGzipFile(strDbaseGz, strDbaseFile);
+        FileUtil.decompressGzipFile(strDbaseGz, strDbaseDb);
       } else {
         // Is the .db newer or older than the .xml file?
         if (fDbase.lastModified() < fDbaseXml.lastModified()) {
           // The .db file is stale --> create a new one
           oStore.xmlToDbNew(strDbaseFile);
-          FileUtil.decompressGzipFile(strDbaseGz, strDbaseFile);
+          FileUtil.decompressGzipFile(strDbaseGz, strDbaseDb);
         }
       }
       // There now is a good .db file: open it into my local DbStore copy
       this.loc_oStore = new DbStore(objErr);
-      this.loc_oStore.openDb(strDbaseFile);
+      this.loc_oStore.openDb(strDbaseDb);
       
       // Return positively
       return true;
@@ -284,6 +287,28 @@ public class XmlResultDbase extends XmlResult {
         return true;
       }
       
+      // Return positively
+      return true;
+    } catch (Exception ex) {
+      // Warn user
+      objErr.DoError("XmlResult/OneResult error: ", ex);
+      // Return failure
+      return false;
+    }
+  }
+  
+  /**
+   * getResults
+   *    Get an array of results to the requester
+   * 
+   * @param arResult
+   * @param iStart
+   * @param iCount
+   * @return 
+   */
+  public boolean getResults(ByRef<JSONArray> arResult, int iStart, int iCount) {
+    try {
+      arResult.argValue = this.loc_oStore.getResults(iStart, iCount);
       // Return positively
       return true;
     } catch (Exception ex) {
@@ -446,4 +471,12 @@ public class XmlResultDbase extends XmlResult {
       return false;
     }
   }
+  
+  public void close() {
+    // Try close database connection
+    if (this.loc_oStore != null) {
+      this.loc_oStore.closeWrite();
+    }
+  }
+  
 }
