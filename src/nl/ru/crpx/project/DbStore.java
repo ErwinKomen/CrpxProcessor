@@ -670,6 +670,7 @@ public class DbStore {
       Statement stmt = null;
       stmt = conThis.createStatement();
       // Create the SQL query
+      // Note: the [iStart] indicates the first
       String sSql = "SELECT * FROM RESULT "+
               "ORDER BY "+this.loc_sSortField+" "+this.loc_sOrder+
               " LIMIT "+iCount+" OFFSET "+iStart+
