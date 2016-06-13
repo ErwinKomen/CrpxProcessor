@@ -525,6 +525,39 @@ public class DbStore {
   }
   
   /**
+   * sort -- Sort the database on the indicated criteria
+   * 
+   * @param sSortField
+   * @param bAscending
+   * @param bIsFeature
+   * @return 
+   */
+  public boolean sort(String sSortField, boolean bAscending, boolean bIsFeature) {
+    try {
+      // Validate
+      if (conThis == null) return false;
+      // Access the general table
+      conThis.setAutoCommit(false);
+      Statement stmt = null;
+      stmt = conThis.createStatement();
+      // Determine the sort order string
+      String sOrder = (bAscending) ? "ASC" : "DESC";
+      // Action depends on bIsFeature
+      if (bIsFeature) {
+        
+      } else {
+        // Just look up result
+        ResultSet resThis = stmt.executeQuery("SELECT * FROM RESULT ORDER BY "+sSortField+" "+sOrder+" ;");
+      }
+      // Return positively
+      return true;
+    } catch (Exception ex) {
+      errHandle.DoError("DbStore/sort error: ", ex, DbStore.class);
+      return false;
+    }
+  }
+  
+  /**
    * closeWrite
    *    Close a database file to which we have been writing
    * 

@@ -14,14 +14,8 @@
 package nl.ru.xmltools;
 
 import java.io.File;
-import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
-import javax.xml.xpath.XPathExpressionException;
-import net.sf.saxon.s9api.SaxonApiException;
-import nl.ru.crpx.dataobject.DataObjectMapElement;
 import nl.ru.crpx.project.CorpusResearchProject;
-import nl.ru.crpx.project.CorpusResearchProject.ProjType;
 import nl.ru.crpx.project.DbStore;
 import nl.ru.crpx.search.JobXq;
 import nl.ru.crpx.tools.ErrHandle;
@@ -106,8 +100,25 @@ public class XmlResultDbase extends XmlResult {
    * @param sSortOrder
    * @return 
    */
+  @Override
   public boolean Sort(String sSortOrder) {
+    boolean bAscending = true;  // Sort order is ascending
+    boolean bIsFeature = false; // Sort column is a feature
+    
     try {
+      // Review the sort-order string
+      if (sSortOrder.startsWith("-")) {
+        bAscending = false;
+        // DO away with the leading minus sign
+        sSortOrder = sSortOrder.substring(1);
+      }
+      // CHeck if this is a feature or not
+      if (sSortOrder.startsWith("ft:")) {
+        bIsFeature = true;
+        sSortOrder = sSortOrder.substring(3);
+      }
+      // Pass on the SORT request to DbStore
+      if (!this.loc_oStore.sort(sSortOrder, bAscending, bIsFeature)) return false;
       
       // Return positively
       return true;
