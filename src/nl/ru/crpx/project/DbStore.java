@@ -693,10 +693,15 @@ public class DbStore {
         oResult.put("Psd", resThis.getString("PSD"));
         oResult.put("Pde", resThis.getString("PDE"));
         // Get all the features from the result object
+        JSONArray arFeat = new JSONArray();
         for (int i=0;i<this.loc_lFeatName.size();i++) {
           String sFeatName = loc_lFeatName.get(i);
-          oResult.put(sFeatName, resThis.getString(sFeatName));
+          JSONObject oFeat = new JSONObject();
+          oFeat.put("Name", sFeatName);
+          oFeat.put("Value", resThis.getString(sFeatName));
+          arFeat.put(oFeat);
         }
+        oResult.put("Features", arFeat);
         // Add this result to the array
         arBack.put(oResult);
       }
