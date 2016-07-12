@@ -421,10 +421,14 @@ public class ExecutePsdxStream extends ExecuteXml {
           if (fCombi.exists()) {
             boolean bIsDeleted = fCombi.delete();
             if (!bIsDeleted) {
+              // Show what happened
+              errHandle.debug("WARNING: Could not delete database " + sCombi);
               // Not sure what to do, but the file needs to be WIPED!!!
               int stopHere = 1;
               // Open file for writing, and then close it
-              
+              PrintWriter wWipe = new PrintWriter(fCombi);
+              wWipe.close();
+              errHandle.debug("Wiped database: " + sCombi);
             }
           }
           // Now open it for append
