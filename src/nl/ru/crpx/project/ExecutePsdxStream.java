@@ -399,7 +399,6 @@ public class ExecutePsdxStream extends ExecuteXml {
       arOsCombi = new OutputStreamWriter[arQuery.length];
       arFosCombi = new FileOutputStream[arQuery.length];
       arFcombi = new File[arQuery.length];
-      // arDbStore = new DbStore[arQuery.length];
       
       // Walk all the QC items
       for (int i=0;i<arQuery.length;i++) {
@@ -444,7 +443,7 @@ public class ExecutePsdxStream extends ExecuteXml {
                 try (PrintWriter pCombi = new PrintWriter(bf)) {
                   // PrintWriter pCombi = FileUtil.openForAppend(fCombi);
                   // Indexing: set the name of the index file
-                  arIdxFileName[i] = sCombi.substring(0, sCombi.lastIndexOf(crpThis.getTextExt(ProjType.Dbase))) + ".index";
+                  arIdxFileName[i] = sCombi.substring(0, sCombi.lastIndexOf(CorpusResearchProject.getTextExt(ProjType.Dbase))) + ".index";
                   arIdxFile[i] = new File(arIdxFileName[i]);
                   // Remove any last item
                   if (arIdxFile[i].exists()) arIdxFile[i].delete();      
@@ -490,13 +489,14 @@ public class ExecutePsdxStream extends ExecuteXml {
                   arPwPos[i] += iByteLength;
 
                   // Create an object to store the information on this database
-                  DataObjectMapElement oDbase = new DataObjectMapElement();
-                  oDbase.put("file", sCombi);
-                  oDbase.put("query", arQuery[i].Name);
-                  oDbase.put("qcname", arQuery[i].Descr);
-                  oDbase.put("qcid", iQCid);
-                  oDbase.put("n", arListTotal.length());
-                  lstBack.add(oDbase);                }
+                  DataObjectMapElement oDbaseInfo = new DataObjectMapElement();
+                  oDbaseInfo.put("file", sCombi);
+                  oDbaseInfo.put("query", arQuery[i].Name);
+                  oDbaseInfo.put("qcname", arQuery[i].Descr);
+                  oDbaseInfo.put("qcid", iQCid);
+                  oDbaseInfo.put("n", arListTotal.length());
+                  lstBack.add(oDbaseInfo);    
+                }
               }
             }
           }
@@ -545,12 +545,6 @@ public class ExecutePsdxStream extends ExecuteXml {
                       arQuery[j].DbFeat, oOneHit, iResId, oResult);
               bThis.append(sOneResult);
               
-              // === DEBUG == Show what we are doing
-              // errHandle.debug("Result db adding: " + String.valueOf(iResId));
-              
-              // Immediate DB processing
-              // arDbStore[iQCid-1].addResult(oResult.argValue);
-              
               // Adapt the index information for this file
               int iByteLength = sOneResult.getBytes("utf-8").length;
               XmlIndexItem oItem = new XmlIndexItem("Result", String.valueOf(iResId), sFileName, arPwPos[iQCid-1], iByteLength);
@@ -560,7 +554,6 @@ public class ExecutePsdxStream extends ExecuteXml {
               iResId++;
             }
             // Append this information to the PrintWriter for this QC
-            // arPwCombi[j].append(bThis);
             try (FileOutputStream fos = new FileOutputStream(arFcombi[j], true)) {
               try (OutputStreamWriter osw = new OutputStreamWriter(fos, "utf-8")) {
                 try (BufferedWriter bf = new BufferedWriter(osw)) {
@@ -596,28 +589,6 @@ public class ExecutePsdxStream extends ExecuteXml {
               }
             }
           }
-          
-          /*
-          // Finish this file
-          arPwCombi[i].append("</CrpOview>\n");
-          arPwCombi[i].flush();
-          // Close anything in-between
-          arFosCombi[i].close();
-          arOsCombi[i].close();
-          arBfCombi[i].close();
-          
-          // Finally: close the print-writer
-          arPwCombi[i].close();
-          // Save the index file
-          FileUtil.writeFile(arIdxFile[i], arIdxSb[i].toString());
-          
-          // Create a *NEW* database file for this file
-          errHandle.debug("DB writing...");          
-          DbStore oDbStore = new DbStore(this.errHandle);
-          // oDbStore.xmlToDb(arFileName[i]);
-          oDbStore.xmlToDbNew(arFileName[i]);
-          errHandle.debug("DB done!");
-          */
         } 
       }
       // The result information is in [lstBack]
