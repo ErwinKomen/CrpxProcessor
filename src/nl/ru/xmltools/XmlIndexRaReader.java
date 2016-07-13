@@ -557,10 +557,11 @@ public class XmlIndexRaReader {
       for (int i=0;i<arIndex.size();i++ ) {
         XmlIndexItem objThis = arIndex.get(i);
         if (objThis.id.equals(sLineId)) {
-          // Make sure we note what the current line is
-          iCurrentLine = i;
+          // NOTE: make sure we do NOT touch the [iCurrentLine], otherwise [getNextLine] gets into trouble!!
+          // iCurrentLine = i;
           // Read the chunck from there
-          String sBack = getLineByIndex(iCurrentLine, oItem);   
+          // String sBack = getLineByIndex(iCurrentLine, oItem);   
+          String sBack = getLineByIndex(i, oItem);   
           // Return it
           return sBack;
         }
