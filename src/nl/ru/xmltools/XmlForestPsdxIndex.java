@@ -222,7 +222,7 @@ public class XmlForestPsdxIndex extends XmlForest {
         if (loc_xrdFile==null) return false;
       }
       // Read this <forest>
-      strNext = (bUseRa) ? loc_xrdRaFile.getOneLine(sSentId) : loc_xrdFile.getOneLine(sSentId);
+      strNext = (bUseRa) ? loc_xrdRaFile.getOneLine(sSentId, false) : loc_xrdFile.getOneLine(sSentId);
       // Double check what we got
       if (strNext == null || strNext.length() == 0) {
         ndxForest.argValue = null;

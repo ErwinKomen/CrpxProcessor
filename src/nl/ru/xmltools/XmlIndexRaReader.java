@@ -547,6 +547,9 @@ public class XmlIndexRaReader {
    * @return String containing the line sought for
    */
   public String getOneLine(String sLineId) {
+    return getOneLine(sLineId, true);
+  }
+  public String getOneLine(String sLineId, boolean bTouch) {
     ByRef<XmlIndexItem> oItem = new ByRef(null);
 
     try {
@@ -558,7 +561,9 @@ public class XmlIndexRaReader {
         XmlIndexItem objThis = arIndex.get(i);
         if (objThis.id.equals(sLineId)) {
           // NOTE: make sure we do NOT touch the [iCurrentLine], otherwise [getNextLine] gets into trouble!!
-          // iCurrentLine = i;
+          // Default:   touch it
+          // Exception: don't touch if [bTouch] is false (as from XmlForestPsdxIndex.java)
+          if (bTouch) iCurrentLine = i;
           // Read the chunck from there
           // String sBack = getLineByIndex(iCurrentLine, oItem);   
           String sBack = getLineByIndex(i, oItem);   
