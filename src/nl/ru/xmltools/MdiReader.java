@@ -85,8 +85,14 @@ public class MdiReader {
         fMdi = new File(strFileMdi + ".cmdi.xml");
         if (fMdi.exists()) 
           strFileMdi += ".cmdi.xml";
-        else
-          strFileMdi = "";
+        else {
+          strFileMdi = strFileMdi.toLowerCase();
+          fMdi = new File(strFileMdi + ".cmdi.xml");
+          if (fMdi.exists()) 
+            strFileMdi += ".cmdi.xml";
+          else
+            strFileMdi = "";
+        }
       }
       // Return the filename we created
       return strFileMdi;
