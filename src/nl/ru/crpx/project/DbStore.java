@@ -283,7 +283,9 @@ public class DbStore {
           // Get the index
           int iResId = Integer.parseInt(ndxThis.getAttributeValue("ResId"));
           // Double check
-          if (iCheck != iResId) { errHandle.DoError("DbStore/xmlToDb: index is wrong at " + iCheck); return false; }
+          if (iCheck != iResId) { 
+            errHandle.DoError("DbStore/xmlToDb: index is wrong at " + iCheck); return false; 
+          }
           // Get all the other relevant values
           oResult.put("File", ndxThis.getAttributeValue("File"));
           oResult.put("TextId", ndxThis.getAttributeValue("TextId"));

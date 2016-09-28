@@ -367,6 +367,7 @@ public class ExecutePsdxStream extends ExecuteXml {
     FileOutputStream[] arFosCombi;
     File[] arFcombi;
     int[] arPwPos;                  // Array of current positions within the print-writers
+    int[] arResId;                  // Array where we keep track of the ResId numbers
     String[] arIdxFileName;         // Array of index file names
     String[] arFileName;            // Array of database file names
     // DbStore[] arDbStore;            // Array of database (SQLite) storages
@@ -399,9 +400,12 @@ public class ExecutePsdxStream extends ExecuteXml {
       arOsCombi = new OutputStreamWriter[arQuery.length];
       arFosCombi = new FileOutputStream[arQuery.length];
       arFcombi = new File[arQuery.length];
+      arResId = new int[arQuery.length];
       
       // Walk all the QC items
       for (int i=0;i<arQuery.length;i++) {
+        // Set the Resid for this one
+        arResId[i] = 1;
         // Does this query create a database?
         if (arQuery[i].DbFeatSize>0) {
           int iQCid = i+1;
@@ -506,8 +510,8 @@ public class ExecutePsdxStream extends ExecuteXml {
       }
 
       setProgress(jobCaller, "", "extracting databases...", -1,-1,-1);
-      // Start counting result id
-      int iResId = 1;
+      // Start counting result id for all files
+      // int iResId = 1;
       // Get to the list for all files
       for (int i=0;i<arListTotal.length();i++) {
         // Get the object for this file
@@ -539,6 +543,8 @@ public class ExecutePsdxStream extends ExecuteXml {
             for (int k=0;k<arHitsPerQc.length(); k++) {
               // Get this hit
               JSONObject oOneHit = arHitsPerQc.getJSONObject(k);
+              // Get the result id of this hit
+              int iResId = arResId[iQCid-1];
               // Process the information in this hit
               ByRef<JSONObject> oResult = new ByRef(null);
               String sOneResult = getResultXml(sFileName, sTextId, sSubType, 
@@ -551,7 +557,8 @@ public class ExecutePsdxStream extends ExecuteXml {
               arIdxList[iQCid-1].add(oItem); arIdxSb[iQCid-1].append(oItem.csv());
               arPwPos[iQCid-1] += iByteLength;
               // Adapt the result id
-              iResId++;
+              // iResId++;
+              arResId[iQCid-1] += 1;
             }
             // Append this information to the PrintWriter for this QC
             try (FileOutputStream fos = new FileOutputStream(arFcombi[j], true)) {
