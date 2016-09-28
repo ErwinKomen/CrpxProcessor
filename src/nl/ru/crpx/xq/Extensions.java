@@ -83,6 +83,57 @@ public class Extensions extends RuBase {
       errHandle.DoError("Could not initialise Extensions: ", ex, Extensions.class);
     }
   }
+  
+// <editor-fold desc="ru:ant">
+    // ------------------------------------------------------------------------------------
+    // Name:   ant
+    // Goal:   Return the antecedent from this node
+    // History:
+    // 15-05-2012  ERK Created for .NET
+    // 24-09-2013  ERK Added line with only 1 argument
+    // 27/Sep/2016 ERK Started adaptation for Java
+    // ------------------------------------------------------------------------------------
+    public static Node ant(XPathContext objXp) {
+      XmlNode ndxRes = null;
+      Node ndxBack = null;
+      try {
+        // Determine which CRP this is
+        CrpFile oCF = getCrpFile(objXp);
+        ByRef<XmlNode> ndxNew = new ByRef(null);
+        switch(oCF.crpThis.intProjType) {
+          /*
+          case ProjPsdx:
+            if (oCF.objProcType.OneForest(ndxNew, sNewSentId)) {
+              ndxRes = ndxNew.argValue;
+            }
+            break;
+          case ProjFolia:
+            if (oCF.objProcType.OneForest(ndxNew, sNewSentId)) {
+              ndxRes = ndxNew.argValue;
+            }
+            break;
+          */
+        }
+        
+        // Convert Xdm or Xml node to Node
+        if (ndxRes == null)
+          ndxBack = null;
+        else {
+          ndxBack = oCF.oDocFac.newDocumentBuilder().parse(new InputSource(new StringReader(ndxRes.toString())));
+        }
+        
+        // Return the result
+        return ndxBack;
+      } catch (Exception ex) {
+        // Show error
+        errHandle.DoError("Extensions/ant", ex);
+        setRtError(objXp, "ant", ex.getMessage());
+        // Return failure
+        return null;
+      }
+    }
+// </editor-fold>
+    
 // <editor-fold defaultstate="collapsed" desc="ru:back">
   // ------------------------------------------------------------------------------------
   // Name:  back
