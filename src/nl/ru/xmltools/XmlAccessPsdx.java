@@ -193,6 +193,52 @@ public class XmlAccessPsdx extends XmlAccess {
   }
   
   /**
+   * getHitSvg
+   *    Given the sentence in [ndxSentence] get a JSON representation of 
+   *    this sentence that includes:
+   *    { "all": {<svg>...</svg>},
+   *      "hit": {<svg>...</svg>}
+   *    }
+   * 
+   * @param sLngName
+   * @param sLocs
+   * @param sLocw
+   * @return 
+   */
+  @Override
+  public DataObject getHitSvg(String sLngName, String sLocs, String sLocw) {
+    XmlNode ndxTop;         // Top constituent
+    XmlNode ndxHit;         // The target constituent from sLocs
+    String sConvType = "";  // Kind of additional ru:conv()
+    DataObjectMapElement oBack = new DataObjectMapElement();
+    
+    try {
+      // Make sure the indicated sentence is read
+      if (!readSent(sLocs)) return null;
+      // Validate
+      if (ndxSent == null) return null;
+      // Possible corrections depending on language
+      switch(sLngName) {
+        case "eng_hist":
+          // Convert OE symbols
+          sConvType = "OE";
+          break;
+      }
+      // Get the hit constituent
+      ndxHit = this.ndxSent.SelectSingleNode("./descendant::eTree[@Id=" + sLocw + "]");
+      if (ndxHit==null) { logger.error("getHitSvg: ndxHit is empty");  return null;}
+      // Get constituent nodes of the whole sentence
+      ndxTop = ndxHit.SelectSingleNode("./ancestor-or-self::eTree[parent::forest]");
+      if (ndxTop == null) { logger.error("getHitSvg: ndxTop is empty"); return null;}
+      
+      return oBack;
+    } catch (Exception ex) {
+      logger.error("getHitSvg failed", ex);
+      return null;
+    }    
+  }  
+  
+  /**
    * getOffsetNode
    *    Get the sentence that is [iOffset] away from the current one
    * 
