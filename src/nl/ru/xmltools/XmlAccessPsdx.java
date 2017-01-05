@@ -227,6 +227,7 @@ public class XmlAccessPsdx extends XmlAccess {
       // Get the hit constituent
       ndxHit = this.ndxSent.SelectSingleNode("./descendant::eTree[@Id=" + sLocw + "]");
       if (ndxHit==null) { logger.error("getHitSvg: ndxHit is empty");  return null;}
+      
       // Get constituent nodes of the whole sentence
       ndxTop = ndxHit.SelectSingleNode("./ancestor-or-self::eTree[parent::forest]");
       if (ndxTop == null) { logger.error("getHitSvg: ndxTop is empty"); return null;}
