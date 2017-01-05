@@ -222,7 +222,7 @@ public class XmlAccessPsdx extends XmlAccess {
         case "eng_hist":
           // Convert OE symbols
           sConvType = "OE";
-          break;
+          break; 
       }
       // Get the hit constituent
       ndxHit = this.ndxSent.SelectSingleNode("./descendant::eTree[@Id=" + sLocw + "]");
