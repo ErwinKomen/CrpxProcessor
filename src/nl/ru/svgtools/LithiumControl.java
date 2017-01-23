@@ -22,7 +22,7 @@ public class LithiumControl {
   public enum TreeDirection { Vertical, Horizontal;   }       // Direction in which tree layout spreads the diagram
   public enum ConnectionType {Default, Traditional, Bezier; } // Types of connections in this assembly
   // This class uses a logger
-  protected final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(XmlForest.class);
+  protected final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(LithiumControl.class);
   // </editor-fold>
   
   // <editor-fold desc="Fields"> 
@@ -40,8 +40,8 @@ public class LithiumControl {
   protected boolean tracking = false;
   protected Point refp;
   protected Font font = new Font("Verdana", 10F);
-  public int width = 0;   // 1025;                          // My own width
-  public int height = 0;  // 631;                          // My own height
+  public int width = 1025;                          // My own width
+  public int height = 631;                          // My own height
   // protected ContextMenu menu;
   // protected Random rnd;
   // protected Proxy proxy;
@@ -201,7 +201,7 @@ public class LithiumControl {
         case Vertical:
           p = new Point(graphAbstract.Root().X(), graphAbstract.Root().Y());
           VerticalDrawTree(graphAbstract.Root(),false,this.marginLeft,this.graphAbstract.Root().Y());
-          p = new Point(graphAbstract.Root().X() + p.getX(), graphAbstract.Root().Y() + p.getY());
+          p = new Point(p.getX() - graphAbstract.Root().X(), p.getY() - graphAbstract.Root().Y());
           MoveDiagram(p);
           break;
         case Horizontal:

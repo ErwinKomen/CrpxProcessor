@@ -30,7 +30,7 @@ public class Lithium {
   public enum TreeDirection { Vertical, Horizontal;   }       // Direction in which tree layout spreads the diagram
   public enum ConnectionType {Default, Traditional, Bezier; } // Types of connections in this assembly
   // This class uses a logger
-  protected final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(XmlForest.class);
+  protected final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(Lithium.class);
   // ================= Parameters ===============================
   protected TreeDirection layoutDirection = TreeDirection.Vertical;
   protected int wordSpacing = 20;                   // Space between nodes
@@ -142,7 +142,7 @@ public class Lithium {
       objLitTree.DrawTree();
       
       // Show the tree
-      objLitTree.dumpShapes();
+      // objLitTree.dumpShapes();
       
       // Convert the tree to SVG
       sBack = objLitTree.renderSvg();
@@ -171,7 +171,7 @@ public class Lithium {
       if (lNodes == null || oShape == null || oShape.argValue == null) return false;
       
       // ==================== DEBUG =================
-      this.objLitTree.dumpShapes();
+      // this.objLitTree.dumpShapes();
       // ============================================
       
       // Create the childshape

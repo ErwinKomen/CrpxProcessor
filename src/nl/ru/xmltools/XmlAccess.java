@@ -31,7 +31,7 @@ import nl.ru.util.json.JSONObject;
  */
 public abstract class XmlAccess { 
   // This class uses a logger
-  protected final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(XmlForest.class);
+  protected final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(XmlAccess.class);
   // ========================================== LOCAL VARIABLE ================================================
   protected String sCurrentSentId;    // ID of the currently loaded sentence
   protected XmlDocument pdxDoc;       // Provide facilities to convert a string into an xml document

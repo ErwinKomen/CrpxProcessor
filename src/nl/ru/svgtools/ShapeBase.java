@@ -18,7 +18,7 @@ import nl.ru.xmltools.XmlForest;
  */
 public class ShapeBase extends Entity {
   // This class uses a logger
-  protected final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(XmlForest.class);
+  protected final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(ShapeBase.class);
   // ================= Fields ==============
   protected Rectangle rectangle;                  // Rectangle on which any shape lives
   public Color shapeColor = Color.STEELBLUE;      // Back color of the shapes
