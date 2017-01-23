@@ -169,6 +169,11 @@ public class Lithium {
     try {
       // Validate
       if (lNodes == null || oShape == null || oShape.argValue == null) return false;
+      
+      // ==================== DEBUG =================
+      this.objLitTree.dumpShapes();
+      // ============================================
+      
       // Create the childshape
       objChildShape = new  ByRef(null);
       // Walk all the children

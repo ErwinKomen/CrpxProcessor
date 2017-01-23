@@ -40,8 +40,8 @@ public class LithiumControl {
   protected boolean tracking = false;
   protected Point refp;
   protected Font font = new Font("Verdana", 10F);
-  public int width = 1025;                          // My own width
-  public int height = 631;                          // My own height
+  public int width = 0;   // 1025;                          // My own width
+  public int height = 0;  // 631;                          // My own height
   // protected ContextMenu menu;
   // protected Random rnd;
   // protected Proxy proxy;
@@ -247,17 +247,21 @@ public class LithiumControl {
   public void dumpShapes() {
     try {
       for (int i=0;i<this.Shapes().size();i++) {
+        StringBuilder sb = new StringBuilder();
         // Access this shape
         ShapeBase shape = this.Shapes().get(i);
-        // Look at color and calculate the maxY
-        if (shape.shapeColor == Color.IVORY) {
-          if (shape.visible) {
-            // Show where it is
-            logger.debug(Integer.toString(i) + " " + shape.Text() + ": [" + 
-                    shape.X() + "," + shape.Y()+ "] size=[" + 
-                    shape.Width() + "," + shape.Height() + "]");
-          }
-        }
+        // Show where it is
+        // (1) Shape number and text
+        sb.append(Integer.toString(i)).append(" ").append(shape.Text()).append(": ");
+        // (2) Shape location
+        sb.append("[").append(shape.X()).append(",").append(shape.Y()).append("]");
+        // (3) Shape size
+        sb.append(" size=[").append(shape.Width()).append(",").append(shape.Height()).append("]");
+        // (4) Visibility
+        sb.append(" " + ((shape.visible ) ? "+" : "-"));
+        // (5) Color
+        sb.append(" " + shape.shapeColor.toString());
+        logger.debug(sb.toString());
       }
     } catch (Exception ex) {
       logger.error("LithiumControl/dumpShapes failed", ex);
