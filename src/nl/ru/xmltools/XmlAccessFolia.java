@@ -229,12 +229,18 @@ public class XmlAccessFolia extends XmlAccess {
       }
       // Get the hit constituent
       ndxHit = this.ndxSent.SelectSingleNode("./descendant::su[@xml:id='" + sLocw + "']");
-      // DEBUGGING: XmlNode ndxTmp = this.ndxSent.SelectSingleNode("./descendant::su[@class='SMAIN']");
       if (ndxHit==null)  { logger.error("getHitSvg: ndxHit is empty"); return null; }
-      // Get constituent nodes of the whole sentence: everything under <syntax>
-      ndxTop = ndxHit.SelectSingleNode("./ancestor-or-self::su[parent::syntax]");
-      if (ndxTop == null)  { logger.error("getHitSvg: ndxTop is empty"); return null; }
       
+      // Get a tree for this hit in the form of an SVG string
+      String sHitG = FoliaToSvg(sConvType, ndxHit, null);
+      
+      // Get a tree of the whole sentence
+      String sAllG = FoliaToSvg(sConvType, ndxSent, ndxHit);
+      
+      // Prepare the object to be returned
+      oBack.put("all", sHitG);
+      oBack.put("hit", sAllG);      
+
       return oBack;
     } catch (Exception ex) {
       logger.error("getHitSvg failed", ex);
@@ -469,4 +475,28 @@ public class XmlAccessFolia extends XmlAccess {
       return false;
     }      
   }
+  
+  /**
+   * FoliaToSvg
+   *    Convert the tree starting at [ndxThis] to an SVG element
+   *    Then return this SVG element as a string
+   * 
+   * @param ndxTree
+   * @param ndxSel
+   * @return String
+   */
+  private String FoliaToSvg(String sConvType, XmlNode ndxTree, XmlNode ndxSel) {
+    String sBack = "";  // The string to be returned
+    Lithium litThis = new Lithium(CorpusResearchProject.ProjType.ProjFolia, sConvType);
+    
+    
+    try {
+      // Start making a new Lithium tree
+      sBack = litThis.MakeLitTree(ndxTree, ndxSel);
+      return sBack;
+    } catch (Exception ex) {
+      logger.error("PsdxToSvg failed", ex);
+      return sBack;
+    }
+  }  
 }

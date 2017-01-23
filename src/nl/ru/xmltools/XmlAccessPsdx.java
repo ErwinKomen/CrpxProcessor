@@ -215,22 +215,28 @@ public class XmlAccessPsdx extends XmlAccess {
     try {
       // Make sure the indicated sentence is read
       if (!readSent(sLocs)) return null;
-      // Validate
+      // Validate: we expect the sentence to be within [ndxSent]
       if (ndxSent == null) return null;
+      // Get the hit constituent
+      ndxHit = this.ndxSent.SelectSingleNode("./descendant::eTree[@Id=" + sLocw + "]");
+      if (ndxHit==null) { logger.error("getHitSvg: ndxHit is empty");  return null;}
       // Possible corrections depending on language
       switch(sLngName) {
         case "eng_hist":
           // Convert OE symbols
           sConvType = "OE";
-          break; 
+          break;
       }
-      // Get the hit constituent
-      ndxHit = this.ndxSent.SelectSingleNode("./descendant::eTree[@Id=" + sLocw + "]");
-      if (ndxHit==null) { logger.error("getHitSvg: ndxHit is empty");  return null;}
       
-      // Get constituent nodes of the whole sentence
-      ndxTop = ndxHit.SelectSingleNode("./ancestor-or-self::eTree[parent::forest]");
-      if (ndxTop == null) { logger.error("getHitSvg: ndxTop is empty"); return null;}
+      // Get a tree for this hit in the form of an SVG string
+      String sHitG = PsdxToSvg(sConvType, ndxHit, null);
+      
+      // Get a tree of the whole sentence
+      String sAllG = PsdxToSvg(sConvType, ndxSent, ndxHit);
+      
+      // Prepare the object to be returned
+      oBack.put("all", sHitG);
+      oBack.put("hit", sAllG);      
       
       return oBack;
     } catch (Exception ex) {
@@ -462,5 +468,28 @@ public class XmlAccessPsdx extends XmlAccess {
       logger.error("readSent failed", ex);
       return false;
     }      
+  }
+  
+  /**
+   * PsdxToSvg
+   *    Convert the tree starting at [ndxThis] to an SVG element
+   *    Then return this SVG element as a string
+   * 
+   * @param ndxTree
+   * @param ndxSel
+   * @return String
+   */
+  private String PsdxToSvg(String sConvType, XmlNode ndxTree, XmlNode ndxSel) {
+    String sBack = "";  // The string to be returned
+    Lithium litThis = new Lithium(CorpusResearchProject.ProjType.ProjPsdx, sConvType);
+        
+    try {
+      // Start making a new Lithium tree
+      sBack = litThis.MakeLitTree(ndxTree, ndxSel);
+      return sBack;
+    } catch (Exception ex) {
+      logger.error("PsdxToSvg failed", ex);
+      return sBack;
+    }
   }
 }
