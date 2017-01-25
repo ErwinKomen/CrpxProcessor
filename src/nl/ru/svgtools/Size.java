@@ -23,4 +23,6 @@ public class Size {
   }
   public int getHeight() { return this.loc_height; }
   public int getWidth() { return this.loc_width; }
+  public void setWidth(int value) { this.loc_width = value; }
+  public void setHeight(int value) { this.loc_height = value; }
 }

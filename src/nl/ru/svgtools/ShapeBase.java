@@ -68,7 +68,12 @@ public class ShapeBase extends Entity {
   public void X(int value) { this.rectangle.X(value); }
   public int Y() { return this.rectangle.Y(); }
   public void Y(int value) { this.rectangle.Y(value); }
+  // Other measurements of the box around me
   public int Left() { return this.rectangle.X(); }
+  public int Top()  { return this.rectangle.Y(); }
+  public int Bottom() { return this.rectangle.Y() + this.rectangle.Height();}
+  public int Right()  { return this.rectangle.X() + this.rectangle.Width();}
+  // Make my 'location' available, which is my upper left position [x,y]
   public Point Location() { return new Point(this.rectangle.X(), this.rectangle.Y());}
   public void Location(Point value) {
     //we use the move method but it requires the delta value, not an absolute position!
@@ -196,6 +201,19 @@ public class ShapeBase extends Entity {
     this.rectangle.Height(s.getHeight() + 8);
     this.Invalidate();
   }
+  
+  /**
+   * renderSvg
+   *    Render this shape as SVG
+   * 
+   * @return 
+   */
+  public String renderSvg(GraphicsBase g) {
+    // This method should be overridden by specific shapes
+    return "";
+  }
+  
+  
 
   @Override
   public boolean Hit(Point p) {

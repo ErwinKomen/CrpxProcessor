@@ -42,6 +42,8 @@ public class LithiumControl {
   protected Font font = new Font("Verdana", 10F);
   public int width = 1025;                          // My own width
   public int height = 631;                          // My own height
+  public int minWidth = width;                      // Minimal width  of the tree that has been made
+  public int minHeight = height;                    // Minimal height of the tree that has been made
   // protected ContextMenu menu;
   // protected Random rnd;
   // protected Proxy proxy;
@@ -50,7 +52,7 @@ public class LithiumControl {
   // protected Connection neoCon = null;
   protected ShapeBase memChild = null;
   protected ShapeBase memParent = null;
-  protected ConnectionType connectionType = ConnectionType.Default; // TYpe of connection
+  protected ConnectionType connectionType = ConnectionType.Traditional; // TYpe of connection
   int marginLeft = 10;			
   // ================= Local to this class ======================
   private ShapeBase root = null;
@@ -233,7 +235,7 @@ public class LithiumControl {
       }
       
       // The following is not necessary for XML-to-SVG conversion:
-      // AutoScrollBars()
+      CalculateScrollBars();
       
       Invalidate();
       
@@ -278,10 +280,23 @@ public class LithiumControl {
    */
   public String renderSvg() {
     StringBuilder sb = new StringBuilder();
+    GraphicsSvg g = new GraphicsSvg();
     
     try {
+      // Start the SVG xml object
       sb.append("<svg>");
+      // Go through all the connections
+      for (Connection conThis : this.Connections()) {
+        sb.append(conThis.renderSvg(g));
+      }
+      // SKIP: neoCon.Paint(g);
       
+      // Loop over the shapes
+      for (ShapeBase shpThis : this.Shapes()) {
+        sb.append(shpThis.renderSvg(g));
+      }
+      
+      // Finish the SVG xml object
       sb.append("</svg>");
       return sb.toString();
     } catch (Exception ex) {
@@ -290,6 +305,7 @@ public class LithiumControl {
     }
   }
 
+  
   /**
    * MoveDiagram
    *    Move with the given vector [p]
@@ -322,6 +338,42 @@ public class LithiumControl {
   // </editor-fold>
   
   // <editor-fold desc="Private Methods">
+  private void CalculateScrollBars() {
+    try {
+      Point minPoint = new Point(Integer.MAX_VALUE, Integer.MAX_VALUE);
+      Size maxSize = new Size(0,0);
+      for (ShapeBase shape : this.Shapes()) {
+        if (shape.visible) {
+          int iNewWidth = shape.X() + shape.Width();
+          int iNewHeight = shape.Y() + shape.Height();
+          
+          // Look for max Width / max Height
+          if (iNewWidth > maxSize.getWidth())
+            maxSize.setWidth(iNewWidth);
+          if (iNewHeight > maxSize.getHeight())
+            maxSize.setHeight(iNewHeight);
+          
+          // Look for minimum size
+          if (shape.X() < minPoint.getX())
+            minPoint.setX(shape.X());
+          if (shape.Y() < minPoint.getY())
+            minPoint.setY(shape.Y());
+        }
+      }
+      
+      // Move the whole diagram, taking into account [minPoint] (upper left point)
+      this.MoveDiagram(new Point(50 - minPoint.getX(), 50 - minPoint.getY()));
+      
+      // Adapt maxSize again
+      maxSize.setWidth(maxSize.getWidth() - minPoint.getX() + 100);
+      maxSize.setHeight(maxSize.getHeight() - minPoint.getY() + 100);
+      this.minWidth = maxSize.getWidth();
+      this.minHeight = maxSize.getHeight();
+    } catch (Exception ex) {
+      logger.error("LithiumControl/CalculateScrollBars failed", ex);
+    }
+  }
+  
   /**
    * VerticalDrawTree
    *    Positions everything underneath the node and returns the total width of the children

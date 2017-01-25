@@ -38,6 +38,8 @@ public class Rectangle {
   public void Width(int value) {this.loc_width = value;}
   public int Height() {return this.loc_height; }
   public void Height(int value) {this.loc_height = value;}
+  public int Right() { return this.loc_x + this.loc_width;}
+  public int Bottom() { return this.loc_y + this.loc_height;}
   /**
    * Location
    *    Gets or sets the coordinates of the upper-left corner of this Rectangle structure.
