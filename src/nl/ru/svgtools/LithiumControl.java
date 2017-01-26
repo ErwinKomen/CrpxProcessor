@@ -162,7 +162,7 @@ public class LithiumControl {
       rootLocal.Width(50);
       rootLocal.Height(25);
       rootLocal.Text(rootText);
-      rootLocal.shapeColor = Color.STEELBLUE;
+      rootLocal.setColor("steelblue");
       rootLocal.isRoot= true;
       rootLocal.font = this.font;
       rootLocal.level = 0;

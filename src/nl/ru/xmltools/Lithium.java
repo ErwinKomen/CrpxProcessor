@@ -7,7 +7,6 @@ package nl.ru.xmltools;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import net.sf.saxon.s9api.QName;
@@ -205,7 +204,7 @@ public class Lithium {
                 // Create and add a child to the Shape object
                 objChildShape.argValue = oShape.argValue.AddChild(strToken);
                 // Set the features of this child
-                objChildShape.argValue.shapeColor = NodeColor(ndxThis, false);
+                objChildShape.argValue.setColor(NodeColor(ndxThis, false));
                 objChildShape.argValue.NodeName = "eLeaf";
                 objChildShape.argValue.NodeId = ndxThis.SelectSingleNode("./parent::eTree").getAttributeValue("Id");
                 break;
@@ -223,10 +222,10 @@ public class Lithium {
                       this.loc_strSelId = "-1";
                     if (ndxThis.SelectSingleNode("ancestor-or-self::eTree[@Id=" + this.loc_strSelId + "]") == null) {
                       // Not selected -- default text
-                      objChildShape.argValue.shapeColor = NodeColor(ndxThis, false);
+                      objChildShape.argValue.setColor(NodeColor(ndxThis, false));
                     } else {
                       // This is a selected node
-                      objChildShape.argValue.shapeColor = NodeColor(ndxThis, true);
+                      objChildShape.argValue.setColor(NodeColor(ndxThis, true));
                       objChildShape.argValue.IsSelected(true);
                     }
                     // Now address the children
@@ -259,11 +258,11 @@ public class Lithium {
    * @param bSelected
    * @return 
    */
-  private Color NodeColor(XmlNode ndxThis, boolean bSelected) {
+  private String NodeColor(XmlNode ndxThis, boolean bSelected) {
     String strNodeLabel = "";
     try {
       // Validate 
-      if (ndxThis==null) return Color.WHITE;
+      if (ndxThis==null) return "white";
       // Get the name of the node
       String strNodeName = ndxThis.getNodeName().toString();
       // Action depends on type and node name
@@ -276,9 +275,9 @@ public class Lithium {
               strNodeLabel = ndxThis.getAttributeValue("Type");
               switch(strNodeLabel) {
                 case "Vern": case "Punct":
-                  return (bSelected) ? Color.LIGHTBLUE : Color.IVORY;
+                  return (bSelected) ? "lightblue" : "ivory";
                 case "Zero": case "Star":
-                  return (bSelected) ? Color.DARKGREEN : Color.LIGHTGREEN;
+                  return (bSelected) ? "darkgreen" : "lightgreen";
               }
               break;
             case "eTree":
@@ -286,12 +285,12 @@ public class Lithium {
               strNodeLabel = ndxThis.getAttributeValue("Label");
               switch(strNodeLabel) {
                 case "META": case "CODE":
-                  return Color.LIGHTGRAY;
+                  return "lightgray";
                 default:
-                  return (bSelected) ? Color.DARKGOLDENROD : Color.STEELBLUE;
+                  return (bSelected) ? "darkgoldenrod" : "steelblue";
               }
             case "forest":
-              return (bSelected) ? Color.DARKGOLDENROD : Color.STEELBLUE;
+              return (bSelected) ? "darkgoldenrod" : "steelblue";
           }
           break;
         case ProjFolia:
@@ -300,10 +299,10 @@ public class Lithium {
           break;
       }
       // Getting here means we have not detected anything
-      return Color.WHITE;
+      return "white";
     } catch (Exception ex) {
       logger.error("Lithium/NodeColor failed", ex);
-      return null;
+      return "";
     }
   }
 

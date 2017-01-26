@@ -19,9 +19,14 @@ import nl.ru.xmltools.XmlForest;
 public class ShapeBase extends Entity {
   // This class uses a logger
   protected final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(ShapeBase.class);
+  private final String sGradient = 
+          "<linearGradient id='%1$s'><stop offset='%2$s' stop-color='%3$s' />"+
+          "<stop offset='%4$s' stop-color='%5$s' /></linearGradient>";
   // ================= Fields ==============
   protected Rectangle rectangle;                  // Rectangle on which any shape lives
   public Color shapeColor = Color.STEELBLUE;      // Back color of the shapes
+  public String shapeColName = "steelblue";
+  public String svgGradientDef = "";
   // protected Brush shapeBrush;                  // Brush corresponding to the backcolor
   public String text = "";                        // The text on the shape
   public String NodeName = "";                    // Name of the node
@@ -82,6 +87,27 @@ public class ShapeBase extends Entity {
     //this.rectangle.X = value.X; this.rectangle.Y = value.Y; Invalidate();
     this.Move(p);
   }
+  public void setColor(String sColName) {
+    // Set the color name
+    this.shapeColName = sColName;
+    // Set the color value
+    Color colThis = Color.PURPLE;
+    switch(sColName) {
+      case "white": colThis = Color.WHITE; break;
+      case "lightblue": colThis = Color.LIGHTBLUE; break;
+      case "steelblue": colThis = Color.STEELBLUE; break;
+      case "darkgreen": colThis = Color.DARKGREEN; break;
+      case "darkgoldenrod": colThis = Color.DARKGOLDENROD; break;
+      case "black": colThis = Color.BLACK; break;
+      case "ivory": colThis = Color.IVORY; break;
+      case "linen": colThis = Color.LINEN; break;
+    }
+    this.shapeColor = colThis;
+    // Also define a gradient definitioni
+    this.svgGradientDef = String.format(this.sGradient, 
+            this.getColId(), "5%", sColName, "95%", "white");
+  }
+  public String getColId() { return this.shapeColName + "_gradient";}
   
 
   /**
@@ -150,7 +176,7 @@ public class ShapeBase extends Entity {
       shape.Text(sText);
       shape.NodeId = "";
       shape.NodeName = "";
-      shape.shapeColor = Color.LINEN;
+      shape.setColor("linen");
       shape.isRoot = false;
       shape.parentNode = this;
       shape.Font(this.font);
