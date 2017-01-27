@@ -11,12 +11,12 @@ package nl.ru.svgtools;
  */
 public class GraphicsSvg extends GraphicsBase {
   // ================== Fields
-  private final String sLine = "<line x1='%1$d' y1='%2$d' x2='%3$d' y2='%4$d' stroke='black' stroke-width='1' />";
-  private final String sBezier = "<path d='M%1$d %2$d C%3$d %4$d, %5$d %6$d, %7$d %8$d' stroke='black' fill='%9$s' />";
-  private final String sRect = "<rect x='%1$d' y='%2$d' width='%3$d' height='%4$d' fill='%5$s' stroke='black' stroke-width='1' />";
+  private final String sLine = "<line x1='%1$d' y1='%2$d' x2='%3$d' y2='%4$d' stroke='black' stroke-width='1' />\n";
+  private final String sBezier = "<path d='M%1$d %2$d C%3$d %4$d, %5$d %6$d, %7$d %8$d' stroke='black' fill='%9$s' />\n";
+  private final String sRect = "<rect x='%1$d' y='%2$d' width='%3$d' height='%4$d' fill='%5$s' stroke='black' stroke-width='1' />\n";
   private final String sRectR = 
           "<rect x='%1$d' y='%2$d' width='%3$d' height='%4$d' "+
-          "rx='%5$d' ry='%5$d' fill='%6$s' stroke='black' stroke-width='1' />";
+          "rx='%5$d' ry='%5$d' fill='%6$s' stroke='black' stroke-width='1' />\n";
   public String fill = "transparent";
 
   // ================== Methods

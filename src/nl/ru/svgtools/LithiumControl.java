@@ -318,7 +318,8 @@ public class LithiumControl {
         sb.append(shpThis.connection.renderSvg(g));
       }
       // Now render the shape itself
-      sb.append(shpThis.renderSvg(g));
+      SimpleRectangle srMe = (SimpleRectangle) shpThis;
+      sb.append(srMe.renderSvg(g));
       
       // Next: walk all children
       for (ShapeBase shpChild : shpThis.childNodes) {

@@ -18,7 +18,7 @@ public class ShapeBase extends Entity {
   protected final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(ShapeBase.class);
   private final String sGradient = 
           "<linearGradient id='%1$s'><stop offset='%2$s' stop-color='%3$s' />"+
-          "<stop offset='%4$s' stop-color='%5$s' /></linearGradient>";
+          "<stop offset='%4$s' stop-color='%5$s' /></linearGradient>\n";
   private final String[] arColor = {"black", "darkgoldenrod", "darkgreen",
     "gainsboro", "ivory", "lightblue", "linen", "purple", "steelblue",
     "white", "whitesmoke"};
@@ -109,7 +109,8 @@ public class ShapeBase extends Entity {
     // Also define a gradient definition that goes from [sColName] to [whitesmoke]
     this.svgGradientDef = this.getGradientDef(sColName);
   }
-  public String getColId() { return this.shapeColName + "_gradient";}
+  public String getColId() { return this.getColId(this.shapeColName);}
+  public String getColId(String sColName) { return sColName + "_gradient"; }
   public String getSvgDefs() {
     StringBuilder sbThis = new StringBuilder();
     // Walk all colors
@@ -120,8 +121,9 @@ public class ShapeBase extends Entity {
     return sbThis.toString();
   }
   private String getGradientDef(String sColName) {
+    String sColId = this.getColId(sColName);
     return String.format(this.sGradient, 
-            this.getColId(), "5%", sColName, "95%", "whitesmoke");
+            sColId, "5%", sColName, "95%", "whitesmoke");
   }
   
 
