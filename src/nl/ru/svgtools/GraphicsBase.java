@@ -16,7 +16,7 @@ public abstract class GraphicsBase {
   public abstract String renderLine(PointF p1, PointF p2);
   public abstract String renderRect(Point p1, Point p2);
   public abstract String renderRect(Point p1, Point p2, Point r);
-  public abstract String renderRect(Point p1, Point p2, Point r, String colName);
+  public abstract String renderRect(Point p1, Point p2, Point r, String colName, boolean bGradient);
   public abstract String renderBezier(Point p1, Point p2, Point p3, Point p4);
   public abstract String renderBezier(PointF p1, PointF p2, PointF p3, PointF p4);
 }

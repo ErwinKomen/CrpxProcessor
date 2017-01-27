@@ -284,23 +284,51 @@ public class LithiumControl {
     
     try {
       // Start the SVG xml object
-      sb.append("<svg>");
-      // Go through all the connections
-      for (Connection conThis : this.Connections()) {
-        sb.append(conThis.renderSvg(g));
-      }
-      // SKIP: neoCon.Paint(g);
+      sb.append("<svg>\n");
+      // Add all color-gradient definitions
+      sb.append("<defs>").append(this.graphAbstract.root.getSvgDefs()).append("</defs>\n");
       
-      // Loop over the shapes
-      for (ShapeBase shpThis : this.Shapes()) {
-        sb.append(shpThis.renderSvg(g));
-      }
+      // Visit all the shapes recursively
+      sb.append(doShapeSvg(g, this.Root()));
       
       // Finish the SVG xml object
-      sb.append("</svg>");
+      sb.append("</svg>\n");
       return sb.toString();
     } catch (Exception ex) {
       logger.error("LithiumControl/renderSvg failed", ex);
+      return "";
+    }
+  }
+  
+  /**
+   * doShapeSvg
+   *    Render ONE shape recursively to SVG
+   * 
+   * @param g
+   * @param shpThis
+   * @return 
+   */
+  private String doShapeSvg(GraphicsSvg g, ShapeBase shpThis) {
+    StringBuilder sb = new StringBuilder();
+    
+    try {
+      // CHeck if there is a connection attached to this shape
+      if (shpThis.connection != null) {
+        // Render the connection
+        sb.append(shpThis.connection.renderSvg(g));
+      }
+      // Now render the shape itself
+      sb.append(shpThis.renderSvg(g));
+      
+      // Next: walk all children
+      for (ShapeBase shpChild : shpThis.childNodes) {
+        // Add the result of this child
+        sb.append(doShapeSvg(g, shpChild));
+      }
+      // Return the total
+      return sb.toString();
+    } catch (Exception ex) {
+      logger.error("LithiumControl/doShapeSvg failed", ex);
       return "";
     }
   }

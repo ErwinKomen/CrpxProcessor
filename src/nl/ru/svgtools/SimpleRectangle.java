@@ -78,7 +78,7 @@ public class SimpleRectangle extends ShapeBase {
       
       region.append(g.renderRect(lPoint.get(0), 
               new Point(sMain), 
-              new Point(bshift, bshift), "whitesmoke"));
+              new Point(bshift, bshift), this.shapeColName, true));
       region.append("</g>");
       
       // Translate all the points
@@ -88,9 +88,14 @@ public class SimpleRectangle extends ShapeBase {
       shadow.append("<g >");
       shadow.append(g.renderRect(lPoint.get(0), 
               new Point(sMain), 
-              new Point(bshift, bshift), "gainsboro"));
+              new Point(bshift, bshift), "gainsboro", false));
       shadow.append("</g>");
       
+      // Do we need to add the text to the shape?
+      if (this.text != "") {
+        // Yes, add the text
+        
+      }
       
 
       return sb.toString();

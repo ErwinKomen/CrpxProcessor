@@ -5,16 +5,13 @@
  */
 package nl.ru.svgtools;
 
-// import java.awt.FontMetrics;
-// import java.awt.Graphics;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.scene.paint.Color;
-import nl.ru.xmltools.XmlForest;
 
 /**
  *
- * @author erwin
+ * @author Erwin R. Komen
  */
 public class ShapeBase extends Entity {
   // This class uses a logger
@@ -22,6 +19,9 @@ public class ShapeBase extends Entity {
   private final String sGradient = 
           "<linearGradient id='%1$s'><stop offset='%2$s' stop-color='%3$s' />"+
           "<stop offset='%4$s' stop-color='%5$s' /></linearGradient>";
+  private final String[] arColor = {"black", "darkgoldenrod", "darkgreen",
+    "gainsboro", "ivory", "lightblue", "linen", "purple", "steelblue",
+    "white", "whitesmoke"};
   // ================= Fields ==============
   protected Rectangle rectangle;                  // Rectangle on which any shape lives
   public Color shapeColor = Color.STEELBLUE;      // Back color of the shapes
@@ -93,21 +93,36 @@ public class ShapeBase extends Entity {
     // Set the color value
     Color colThis = Color.PURPLE;
     switch(sColName) {
-      case "white": colThis = Color.WHITE; break;
-      case "lightblue": colThis = Color.LIGHTBLUE; break;
-      case "steelblue": colThis = Color.STEELBLUE; break;
-      case "darkgreen": colThis = Color.DARKGREEN; break;
-      case "darkgoldenrod": colThis = Color.DARKGOLDENROD; break;
       case "black": colThis = Color.BLACK; break;
+      case "darkgoldenrod": colThis = Color.DARKGOLDENROD; break;
+      case "darkgreen": colThis = Color.DARKGREEN; break;
+      case "gainsboro": colThis = Color.GAINSBORO; break;
       case "ivory": colThis = Color.IVORY; break;
+      case "lightblue": colThis = Color.LIGHTBLUE; break;
       case "linen": colThis = Color.LINEN; break;
+      case "purple": colThis = Color.PURPLE; break;
+      case "steelblue": colThis = Color.STEELBLUE; break;
+      case "white": colThis = Color.WHITE; break;
+      case "whitesmoke": colThis = Color.WHITESMOKE; break;
     }
     this.shapeColor = colThis;
-    // Also define a gradient definitioni
-    this.svgGradientDef = String.format(this.sGradient, 
-            this.getColId(), "5%", sColName, "95%", "white");
+    // Also define a gradient definition that goes from [sColName] to [whitesmoke]
+    this.svgGradientDef = this.getGradientDef(sColName);
   }
   public String getColId() { return this.shapeColName + "_gradient";}
+  public String getSvgDefs() {
+    StringBuilder sbThis = new StringBuilder();
+    // Walk all colors
+    for (String sColName : arColor) {
+      sbThis.append(this.getGradientDef(sColName));
+    }
+    // REturn the total string
+    return sbThis.toString();
+  }
+  private String getGradientDef(String sColName) {
+    return String.format(this.sGradient, 
+            this.getColId(), "5%", sColName, "95%", "whitesmoke");
+  }
   
 
   /**
@@ -232,6 +247,7 @@ public class ShapeBase extends Entity {
    * renderSvg
    *    Render this shape as SVG
    * 
+   * @param g
    * @return 
    */
   public String renderSvg(GraphicsBase g) {
@@ -239,11 +255,10 @@ public class ShapeBase extends Entity {
     return "";
   }
   
-  
-
   @Override
   public boolean Hit(Point p) {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    // This is not really supported
+    throw new UnsupportedOperationException("Not supported yet."); 
   }
 
   @Override

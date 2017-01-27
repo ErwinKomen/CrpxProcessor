@@ -17,6 +17,10 @@ public class Point {
     this.loc_x = x;
     this.loc_y = y;
   }
+  public Point(double x, double y) {
+    this.loc_x = (int) Math.round(x);
+    this.loc_y = (int) Math.round(y);
+  }
   public Point(Size sz) {
     this.loc_x = sz.getWidth();
     this.loc_y = sz.getHeight();
