@@ -4,10 +4,15 @@
  * and open the template in the editor.
  */
 package nl.ru.svgtools;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.font.FontRenderContext;
+import java.awt.font.TextLayout;
+import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
 import java.util.List;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import nl.ru.xmltools.XmlForest;
 
 /**
  * LithiumControl
@@ -28,7 +33,7 @@ public class LithiumControl {
   // <editor-fold desc="Fields"> 
   // ================= Parameters ===============================
   protected TreeDirection layoutDirection = TreeDirection.Vertical;
-  protected int wordSpacing = 10;                   // Space between nodes
+  protected int wordSpacing = 12;                   // Space between nodes
   protected int branchHeight = 70;                  // Height between branches
   protected boolean layoutEnabled = true;           // Tree layout algorithm does its work by default
   protected final String defaultRootName = "Root";  // Default name when root is added
@@ -39,11 +44,12 @@ public class LithiumControl {
   protected int hoveredId;
   protected boolean tracking = false;
   protected Point refp;
-  protected Font font = new Font("Verdana", 10F);
+  protected Font font = new Font("Verdana", Font.PLAIN, 12);
   public int width = 1025;                          // My own width
   public int height = 631;                          // My own height
   public int minWidth = width;                      // Minimal width  of the tree that has been made
   public int minHeight = height;                    // Minimal height of the tree that has been made
+  public int fontheight = 10;
   // protected ContextMenu menu;
   // protected Random rnd;
   // protected Proxy proxy;
@@ -56,6 +62,7 @@ public class LithiumControl {
   int marginLeft = 10;			
   // ================= Local to this class ======================
   private ShapeBase root = null;
+  private FontRenderContext frc;
   
   // ======================= Getters and setters
   public List<Connection> Connections() {return this.graphAbstract.connections; }
@@ -67,7 +74,9 @@ public class LithiumControl {
   public LithiumControl() {
     // Init the graph abstract
     this.graphAbstract  = new GraphAbstract();
-
+    BufferedImage image = new BufferedImage(100,100, BufferedImage.TYPE_INT_ARGB);
+    Graphics2D g2d = image.createGraphics();
+    frc = g2d.getFontRenderContext();
   }
   // </editor-fold>
 
@@ -129,14 +138,18 @@ public class LithiumControl {
    * @param fntThis
    * @return 
    */
-  public static Point MeasureString(String sText, Font fntThis) {
-    double dLen = sText.length();
-    double dFactor = 5;
-    double dWidth = dLen * fntThis.getSize() / dFactor;
-    int iWidth = (int) Math.round(dWidth);
-    int iHeight = (int) Math.round(fntThis.getSize() /1.2);
+  public Point MeasureString(String sText, Font fntThis) {
+    int iAddW = 15;
+    int iAddH = 10;
     
-    return new Point(iWidth, iHeight);
+    TextLayout layout = new TextLayout(sText, font, frc);
+    Rectangle2D bounds = layout.getBounds();
+    
+    Point pBack = new Point (bounds.getWidth() + iAddW, font.getSize() + iAddH);
+    
+    this.fontheight = pBack.getY();
+    // Point pBack = new Point(iWidth, iHeight);
+    return pBack;
   }
   
   /**
@@ -145,7 +158,7 @@ public class LithiumControl {
    * @param shape
    */
   public void Fit(ShapeBase shape) {
-    Size s = new Size(LithiumControl.MeasureString(shape.Text(), this.font));
+    Size s = new Size(this.MeasureString(shape.Text(), this.font));
     shape.Width(s.getWidth() + 20);
     shape.Height(s.getHeight() + 8);
   }
@@ -162,6 +175,7 @@ public class LithiumControl {
       rootLocal.Width(50);
       rootLocal.Height(25);
       rootLocal.Text(rootText);
+      rootLocal.Fit();
       rootLocal.setColor("steelblue");
       rootLocal.isRoot= true;
       rootLocal.font = this.font;
@@ -281,16 +295,26 @@ public class LithiumControl {
   public String renderSvg() {
     StringBuilder sb = new StringBuilder();
     GraphicsSvg g = new GraphicsSvg();
+    boolean bDebug = true;
     
     try {
-      // Start the SVG xml object
-      sb.append("<svg>\n");
+      if (bDebug) {
+        sb.append("<?xml-stylesheet type=\"text/css\" href=\"style8.css\"?>\n");
+      }
+      // Start the SVG xml object--make sure the namespace is there
+      sb.append(String.format("<svg width='%1$spx' height='%2$spx' xmlns='%3$s' xmlns:xlink='%4$s'>\n",
+                this.minWidth, this.minHeight, 
+                "http://www.w3.org/2000/svg", 
+                "http://www.w3.org/1999/xlink"));
       // Add all color-gradient definitions
       sb.append("<defs>").append(this.graphAbstract.root.getSvgDefs()).append("</defs>\n");
       
       // Visit all the shapes recursively
-      sb.append(doShapeSvg(g, this.Root()));
+      sb.append(doShapeSvg(g, this.Root(), "connection"));
       
+      // Visit all the shapes recursively
+      sb.append(doShapeSvg(g, this.Root(), "shape"));
+
       // Finish the SVG xml object
       sb.append("</svg>\n");
       return sb.toString();
@@ -308,24 +332,32 @@ public class LithiumControl {
    * @param shpThis
    * @return 
    */
-  private String doShapeSvg(GraphicsSvg g, ShapeBase shpThis) {
+  private String doShapeSvg(GraphicsSvg g, ShapeBase shpThis, String sArea) {
     StringBuilder sb = new StringBuilder();
     
     try {
-      // CHeck if there is a connection attached to this shape
-      if (shpThis.connection != null) {
-        // Render the connection
-        sb.append(shpThis.connection.renderSvg(g));
+      // What we do depends on the area
+      switch(sArea) {
+        case "connection":
+          // CHeck if there is a connection attached to this shape
+          if (shpThis.connection != null) {
+            // Render the connection
+            sb.append(shpThis.connection.renderSvg(g));
+          }
+          break;
+        case "shape":
+          // Now render the shape itself
+          SimpleRectangle srMe = (SimpleRectangle) shpThis;
+          sb.append(srMe.renderSvg(g));
+          break;
       }
-      // Now render the shape itself
-      SimpleRectangle srMe = (SimpleRectangle) shpThis;
-      sb.append(srMe.renderSvg(g));
       
       // Next: walk all children
       for (ShapeBase shpChild : shpThis.childNodes) {
         // Add the result of this child
-        sb.append(doShapeSvg(g, shpChild));
+        sb.append(doShapeSvg(g, shpChild, sArea));
       }
+
       // Return the total
       return sb.toString();
     } catch (Exception ex) {
@@ -349,10 +381,8 @@ public class LithiumControl {
         shape.Move(p);
         Invalidate();
       }
-      return;
     }catch (Exception ex) {
       logger.error("LithiumControl/MoveDiagram failed", ex);
-      return;
     }
   } 
 
@@ -426,8 +456,7 @@ public class LithiumControl {
       // <editor-fold defaultstate="collapsed" desc="Children width">
       for (int i=0;i<containerNode.childNodes.size();i++) {
         // Determine the width of the label
-        if (i==0) isFirst = true;
-        else isFirst = false;
+        isFirst = (i==0);
         if (containerNode.childNodes.get(i).visible) {
           if ( (branchHeight - containerNode.Height()) < 30) // If too close to the child, shift it with 40 units
             verticalDelta = containerNode.Height() + 40;
@@ -437,7 +466,7 @@ public class LithiumControl {
       }
       if(childrenWidth>0 && containerNode.expanded) {
         //in case the length of the containerNode is bigger than the total length of the children
-        childrenWidth=Math.max(Math.round(childrenWidth + (containerNode.Width()-childrenWidth)/2), childrenWidth); 
+        childrenWidth=Math.max((int) Math.ceil(childrenWidth + (containerNode.Width()-childrenWidth)/2), childrenWidth); 
       }
       // </editor-fold>
       
@@ -448,7 +477,7 @@ public class LithiumControl {
       thisY = shiftTop;
       if (containerNode.childNodes.size() > 0 && containerNode.expanded) {
         if(containerNode.childNodes.size()==1) {
-          thisX = Math.round(containerNode.childNodes.get(0).X()+containerNode.childNodes.get(0).Width()/2 - containerNode.Width()/2);
+          thisX = (int) Math.ceil(containerNode.childNodes.get(0).X()+containerNode.childNodes.get(0).Width()/2 - containerNode.Width()/2);
         } else {
           float firstChild = containerNode.childNodes.get(0).Left()+ containerNode.childNodes.get(0).Width()/2;
           float lastChild = containerNode.childNodes.get(containerNode.childNodes.size()-1).Left() +
@@ -456,7 +485,7 @@ public class LithiumControl {
           //the following max in case the containerNode is larger than the childrenWidth
           float dW = containerNode.Width();
           float dMax = Math.max(firstChild + (lastChild - firstChild - dW)/2, firstChild);
-          thisX = Math.round(dMax);
+          thisX = (int) Math.ceil(dMax);
         }
       } else {
         thisX = shiftLeft;

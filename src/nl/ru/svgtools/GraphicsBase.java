@@ -11,12 +11,16 @@ package nl.ru.svgtools;
  * @author erwin
  */
 public abstract class GraphicsBase {
+  // ============ Fields =====================
+  public String fill = "transparent";
   // ============ Methods ====================
   public abstract String renderLine(Point p1, Point p2);
   public abstract String renderLine(PointF p1, PointF p2);
+  public abstract String renderRect(Rectangle r);
   public abstract String renderRect(Point p1, Point p2);
   public abstract String renderRect(Point p1, Point p2, Point r);
   public abstract String renderRect(Point p1, Point p2, Point r, String colName, boolean bGradient);
   public abstract String renderBezier(Point p1, Point p2, Point p3, Point p4);
   public abstract String renderBezier(PointF p1, PointF p2, PointF p3, PointF p4);
+  public abstract String renderText(Point p1, String sFontName, double dFontSize, String colName, String sText);
 }

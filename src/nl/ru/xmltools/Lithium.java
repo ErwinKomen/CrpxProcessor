@@ -111,6 +111,8 @@ public class Lithium {
           // TODO: implement FoLiA processing
           break;
       }
+      objRoot.Fit();
+      objRoot.Site().CenterRoot();
       // Set the selected tree
       ndxSelTree = ndxSel;
       this.loc_strSelId = (ndxSel == null) ? "" : ndxSel.getAttributeValue(sAttrConstId);
@@ -206,7 +208,7 @@ public class Lithium {
                 // Set the features of this child
                 objChildShape.argValue.setColor(NodeColor(ndxThis, false));
                 objChildShape.argValue.NodeName = "eLeaf";
-                objChildShape.argValue.NodeId = ndxThis.SelectSingleNode("./parent::eTree").getAttributeValue("Id");
+                objChildShape.argValue.NodeId = "leaf_" + ndxThis.SelectSingleNode("./parent::eTree").getAttributeValue("Id");
                 break;
               case "eTree": // We do NOT want to look at certain nodes...
                 String strLabel = ndxThis.getAttributeValue("Label");
@@ -228,6 +230,8 @@ public class Lithium {
                       objChildShape.argValue.setColor(NodeColor(ndxThis, true));
                       objChildShape.argValue.IsSelected(true);
                     }
+                    objChildShape.argValue.NodeName = "eTree";
+                    objChildShape.argValue.NodeId = ndxThis.getAttributeValue("Id");
                     // Now address the children
                     if (!WalkTree(objChildShape, ndxThis.SelectNodes("./child::*"))) return false;
                     break;

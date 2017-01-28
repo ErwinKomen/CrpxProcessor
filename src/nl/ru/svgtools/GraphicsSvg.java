@@ -11,13 +11,14 @@ package nl.ru.svgtools;
  */
 public class GraphicsSvg extends GraphicsBase {
   // ================== Fields
-  private final String sLine = "<line x1='%1$d' y1='%2$d' x2='%3$d' y2='%4$d' stroke='black' stroke-width='1' />\n";
-  private final String sBezier = "<path d='M%1$d %2$d C%3$d %4$d, %5$d %6$d, %7$d %8$d' stroke='black' fill='%9$s' />\n";
-  private final String sRect = "<rect x='%1$d' y='%2$d' width='%3$d' height='%4$d' fill='%5$s' stroke='black' stroke-width='1' />\n";
+  private final String sLine = "<line x1='%1$d' y1='%2$d' x2='%3$d' y2='%4$d' stroke='black' stroke-width='0.5' />\n";
+  private final String sBezier = "<path d='M%1$d %2$d C%3$d %4$d, %5$d %6$d, %7$d %8$d' stroke='black' fill='%9$s' stroke-width='0.5' />\n";
+  private final String sRect = "<rect x='%1$d' y='%2$d' width='%3$d' height='%4$d' fill='%5$s' stroke='black' stroke-width='0.5' />\n";
   private final String sRectR = 
           "<rect x='%1$d' y='%2$d' width='%3$d' height='%4$d' "+
-          "rx='%5$d' ry='%5$d' fill='%6$s' stroke='black' stroke-width='1' />\n";
-  public String fill = "transparent";
+          "rx='%5$d' ry='%6$d' fill='%7$s' stroke='%8$s' stroke-width='0.5' />\n";
+  private final String sText = "<text x='%1$d' y='%2$d' font-family='%3$s' font-size='%4$d' fill='%5$s'>%6$s</text>\n";
+  // public String fill = "transparent";
 
   // ================== Methods
   @Override
@@ -49,6 +50,13 @@ public class GraphicsSvg extends GraphicsBase {
   }
 
   @Override
+  public String renderRect(Rectangle r) {
+    // Make rectangle with p1 upper-left and p2 lower-right
+    // Calculate 'width' and 'height' parameters
+    return String.format(sRect, r.X(), r.Y(), r.Width(), r.Height(), fill);
+  }
+
+  @Override
   public String renderRect(Point p1, Point p2) {
     // Make rectangle with p1 upper-left and p2 lower-right
     // Calculate 'width' and 'height' parameters
@@ -57,11 +65,13 @@ public class GraphicsSvg extends GraphicsBase {
 
   @Override
   public String renderRect(Point p1, Point p2, Point r) {
+    String sStroke = "black";
     // Make rectangle with p1 upper-left and p2 lower-right
     //    Calculate 'width' and 'height' parameters
     // Use 'r' as both 'rx' as well as 'ry'
+    if (this.fill.equals("gainsboro")) sStroke = this.fill;
     return String.format(sRectR, p1.getX(), p1.getY(), 
-            p2.getX()-p1.getX(), p2.getY()-p1.getY(), r.getX(), r.getY(), fill);
+            p2.getX()-p1.getX(), p2.getY()-p1.getY(), r.getX(), r.getY(), fill, sStroke);
   }
   @Override
   public String renderRect(Point p1, Point p2, Point r, String sColName, boolean bGradient) {
@@ -75,6 +85,12 @@ public class GraphicsSvg extends GraphicsBase {
       this.fill = sColName;
     }
     return this.renderRect(p1,p2,r);
+  }
+
+  @Override
+  public String renderText(Point p1, String sFontName, double dFontSize, String colName, String sText) {
+    // Place the text at the right location in the right font, right color
+    return String.format(this.sText, p1.getX(), p1.getY(), sFontName, Math.round(dFontSize), colName, sText);
   }
   
 }

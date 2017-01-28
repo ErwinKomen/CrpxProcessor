@@ -20,7 +20,7 @@ public class ShapeBase extends Entity {
           "<linearGradient id='%1$s'><stop offset='%2$s' stop-color='%3$s' />"+
           "<stop offset='%4$s' stop-color='%5$s' /></linearGradient>\n";
   private final String[] arColor = {"black", "darkgoldenrod", "darkgreen",
-    "gainsboro", "ivory", "lightblue", "linen", "purple", "steelblue",
+    "gainsboro", "ivory", "lightblue", "lightgreen", "linen", "purple", "steelblue",
     "white", "whitesmoke"};
   // ================= Fields ==============
   protected Rectangle rectangle;                  // Rectangle on which any shape lives
@@ -99,6 +99,7 @@ public class ShapeBase extends Entity {
       case "gainsboro": colThis = Color.GAINSBORO; break;
       case "ivory": colThis = Color.IVORY; break;
       case "lightblue": colThis = Color.LIGHTBLUE; break;
+      case "lightgreen": colThis = Color.LIGHTGREEN; break;
       case "linen": colThis = Color.LINEN; break;
       case "purple": colThis = Color.PURPLE; break;
       case "steelblue": colThis = Color.STEELBLUE; break;
@@ -238,10 +239,10 @@ public class ShapeBase extends Entity {
    */
   public void Fit() {
     // Determine the size of the text
-    Size s = new Size(LithiumControl.MeasureString(this.text, this.font));
+    Size s = new Size(this.site.MeasureString(this.text, this.font));
     // Adapt the rectangle to include this text
-    this.rectangle.Width(s.getWidth() + 10);
-    this.rectangle.Height(s.getHeight() + 8);
+    this.rectangle.Width(s.getWidth());
+    this.rectangle.Height(s.getHeight());
     this.Invalidate();
   }
   

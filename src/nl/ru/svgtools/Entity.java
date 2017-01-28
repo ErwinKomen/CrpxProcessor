@@ -5,8 +5,9 @@
  */
 package nl.ru.svgtools;
 
+import java.awt.Font;
 import java.util.UUID;
-import javafx.scene.text.Font;
+// import javafx.scene.text.Font;
 
 /**
  *
@@ -17,7 +18,7 @@ public abstract class Entity {
   protected boolean hovered = false;
   protected LithiumControl site;
   protected boolean isSelected = false;
-  protected Font font = new Font("Verdana", 10F);
+  protected Font font = new Font("Verdana", Font.PLAIN, 12);
   // protected Pen blackPen = new Pen(Brushes.Black, 1f);
   // protected Pen redPen = new Pen(Brushes.Red, 2f);
   // protected Pen thickPen = new Pen(Color.BLACK, 1.7f);

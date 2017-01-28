@@ -39,6 +39,8 @@ public class Connection extends Entity {
     try {
       // Only render if visible
       if (this.visible) {
+        sb.append(String.format("<g id='conn_%1$s_%2$s' class='lithium-conn'>", 
+                this.from.NodeId, this.to.NodeId));
         switch(this.site.connectionType) {
           case Default:
             switch(this.site.layoutDirection) {
@@ -57,8 +59,8 @@ public class Connection extends Entity {
               case Vertical:
                 p1 = new PointF(from.Left() + from.Width() / 2, from.Top() - (from.Top() - to.Bottom())/2);
                 p2 = new PointF(to.Left() + to.Width() / 2, from.Top() - (from.Top() - to.Bottom())/2);
-                PointF pStart = new PointF(from.X(), from.Y());
-                PointF pEnd = new PointF(to.X(), to.Y());
+                PointF pStart = new PointF(from.X()+ from.Width() / 2, from.Y() + from.Height()/2);
+                PointF pEnd = new PointF(to.X() + to.Width()/2, to.Y() + to.Height()/2);
                 // Make a line from [Start] to [p1]
                 sb.append(g.renderLine(pStart, p1));
                 // Make a line from [p1] to [p2]
@@ -87,6 +89,7 @@ public class Connection extends Entity {
             }
             break;
         }
+        sb.append("</g>");
       }
 
       return sb.toString();
