@@ -51,15 +51,15 @@ public class SimpleRectangle extends ShapeBase {
               lPoint.get(1).translate(bshift,bshift), 
               new Point(bshift, bshift), "gainsboro", false));
       
-      // Render shadow and region SVG to the stringbuilder
-      sb.append(shadow.toString());
-      
       // Build the inner shape: 'region'      
       region.append(g.renderRect(lPoint.get(0), lPoint.get(1), 
               new Point(bshift, bshift), this.shapeColName, true));
       
       // Render the region, encapsulating it in a 
       sb.append(String.format("<g id='node_%1$s' class='lithium-node'>", this.NodeId));
+      // Render shadow as a separate <g> node within [lithium-node]
+      sb.append("<g class='lithium-shadow'>").append(shadow.toString()).append("</g>");
+      // Only now add the actual region
       sb.append(region.toString());
       
       // Do we need to add the text to the shape?

@@ -309,10 +309,14 @@ public class LithiumControl {
       sb.append("<defs>").append(this.graphAbstract.root.getSvgDefs()).append("</defs>\n");
       
       // Visit all the shapes recursively
+      sb.append(doShapeSvg(g, this.Root(), "tree"));
+
+      /* 
       sb.append(doShapeSvg(g, this.Root(), "connection"));
       
       // Visit all the shapes recursively
       sb.append(doShapeSvg(g, this.Root(), "shape"));
+      */
 
       // Finish the SVG xml object
       sb.append("</svg>\n");
@@ -333,6 +337,7 @@ public class LithiumControl {
    */
   private String doShapeSvg(GraphicsSvg g, ShapeBase shpThis, String sArea) {
     StringBuilder sb = new StringBuilder();
+    String sRoot = "";
     
     try {
       // What we do depends on the area
@@ -349,6 +354,13 @@ public class LithiumControl {
           SimpleRectangle srMe = (SimpleRectangle) shpThis;
           sb.append(srMe.renderSvg(g));
           break;
+        case "tree":
+          // Check if this is the root
+          if (shpThis.isRoot) sRoot = " lithium-root";
+          // Start a <g> element
+          sb.append(String.format("<g id='%1$s' class='lithium-tree%2$s'>\n", 
+                  "tree_"+shpThis.NodeId, sRoot));
+          break;
       }
       
       // Next: walk all children
@@ -356,6 +368,23 @@ public class LithiumControl {
         // Add the result of this child
         sb.append(doShapeSvg(g, shpChild, sArea));
       }
+      
+      // What we do depends on the area
+      switch(sArea) {
+        case "tree":
+          // Now draw the connection
+          // CHeck if there is a connection attached to this shape
+          if (shpThis.connection != null) {
+            // Render the connection
+            sb.append(shpThis.connection.renderSvg(g));
+          }
+          // And now add the shape
+          SimpleRectangle srMe = (SimpleRectangle) shpThis;
+          sb.append(srMe.renderSvg(g));
+          // Finish the <g> object
+          sb.append("</g>\n");
+          break;
+      }      
 
       // Return the total
       return sb.toString();
