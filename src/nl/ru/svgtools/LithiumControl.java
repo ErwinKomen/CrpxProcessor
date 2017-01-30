@@ -294,7 +294,7 @@ public class LithiumControl {
   public String renderSvg() {
     StringBuilder sb = new StringBuilder();
     GraphicsSvg g = new GraphicsSvg();
-    boolean bDebug = true;
+    boolean bDebug = false;
     
     try {
       if (bDebug) {
