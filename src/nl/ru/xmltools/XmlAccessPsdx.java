@@ -235,8 +235,8 @@ public class XmlAccessPsdx extends XmlAccess {
       String sAllG = PsdxToSvg(sConvType, ndxSent, ndxHit);
       
       // Prepare the object to be returned
-      oBack.put("all", sHitG);
-      oBack.put("hit", sAllG);      
+      oBack.put("all", sAllG);
+      oBack.put("hit", sHitG);      
       
       return oBack;
     } catch (Exception ex) {

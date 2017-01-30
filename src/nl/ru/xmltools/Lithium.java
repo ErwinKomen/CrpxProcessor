@@ -6,9 +6,9 @@
 package nl.ru.xmltools;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
-import javafx.scene.shape.Rectangle;
-import javafx.scene.text.Font;
+// import java.util.UUID;
+// import javafx.scene.shape.Rectangle;
+// import javafx.scene.text.Font;
 import net.sf.saxon.s9api.QName;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.xq.English;

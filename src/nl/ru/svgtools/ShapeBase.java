@@ -7,7 +7,7 @@ package nl.ru.svgtools;
 
 import java.util.ArrayList;
 import java.util.List;
-import javafx.scene.paint.Color;
+// import javafx.scene.paint.Color;
 
 /**
  *
@@ -24,7 +24,7 @@ public class ShapeBase extends Entity {
     "white", "whitesmoke"};
   // ================= Fields ==============
   protected Rectangle rectangle;                  // Rectangle on which any shape lives
-  public Color shapeColor = Color.STEELBLUE;      // Back color of the shapes
+  // public Color shapeColor = Color.STEELBLUE;      // Back color of the shapes
   public String shapeColName = "steelblue";
   public String svgGradientDef = "";
   // protected Brush shapeBrush;                  // Brush corresponding to the backcolor
@@ -90,6 +90,7 @@ public class ShapeBase extends Entity {
   public void setColor(String sColName) {
     // Set the color name
     this.shapeColName = sColName;
+    /* Do NOT use JAVAFX colors
     // Set the color value
     Color colThis = Color.PURPLE;
     switch(sColName) {
@@ -107,6 +108,7 @@ public class ShapeBase extends Entity {
       case "whitesmoke": colThis = Color.WHITESMOKE; break;
     }
     this.shapeColor = colThis;
+    */
     // Also define a gradient definition that goes from [sColName] to [whitesmoke]
     this.svgGradientDef = this.getGradientDef(sColName);
   }

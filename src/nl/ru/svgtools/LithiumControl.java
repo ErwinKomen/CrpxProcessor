@@ -5,14 +5,13 @@
  */
 package nl.ru.svgtools;
 import java.awt.Font;
-import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.font.FontRenderContext;
 import java.awt.font.TextLayout;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.List;
-import javafx.scene.paint.Color;
+// import javafx.scene.paint.Color;
 
 /**
  * LithiumControl
@@ -229,7 +228,7 @@ public class LithiumControl {
         // Access this shape
         ShapeBase shape = this.Shapes().get(i);
         // Look at color and calculate the maxY
-        if (shape.shapeColor == Color.IVORY) {
+        if (shape.shapeColName.equals("ivory")) {
           if (shape.visible) {
             // Possibly adapt the maxY value
             if (shape.Y() > maxY) maxY = shape.Y();
@@ -240,7 +239,7 @@ public class LithiumControl {
         // Access this shape
         ShapeBase shape = this.Shapes().get(i);
         // Look at color and calculate the maxY
-        if (shape.shapeColor == Color.IVORY) {
+        if (shape.shapeColName.equals("ivory")) {
           if (shape.visible) {
             // Move in the Y-direction
             shape.Move(new Point(0, maxY - shape.Y()));
@@ -276,7 +275,7 @@ public class LithiumControl {
         // (4) Visibility
         sb.append(" " + ((shape.visible ) ? "+" : "-"));
         // (5) Color
-        sb.append(" " + shape.shapeColor.toString());
+        sb.append(" " + shape.shapeColName);
         logger.debug(sb.toString());
       }
     } catch (Exception ex) {
