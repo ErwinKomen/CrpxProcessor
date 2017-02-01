@@ -29,4 +29,8 @@ public class GraphAbstract {
     this.connections = new ArrayList<>();
     this.shapes = new ArrayList<>();
   }
+  public void clear() {
+    this.connections.clear();
+    this.shapes.clear();
+  }
 }

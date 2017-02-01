@@ -89,7 +89,7 @@ public class LithiumControl {
    */
   public boolean NewDiagram() {
     try {
-      this.graphAbstract = new GraphAbstract();
+      this.graphAbstract.clear();
       this.AddRoot(defaultRootName);
       CenterRoot();
       Invalidate();      
