@@ -311,13 +311,6 @@ public class LithiumControl {
       // Visit all the shapes recursively
       sb.append(doShapeSvg(g, this.Root(), "tree"));
 
-      /* 
-      sb.append(doShapeSvg(g, this.Root(), "connection"));
-      
-      // Visit all the shapes recursively
-      sb.append(doShapeSvg(g, this.Root(), "shape"));
-      */
-
       // Finish the SVG xml object
       sb.append("</svg>\n");
       return sb.toString();
@@ -342,18 +335,6 @@ public class LithiumControl {
     try {
       // What we do depends on the area
       switch(sArea) {
-        case "connection":
-          // CHeck if there is a connection attached to this shape
-          if (shpThis.connection != null) {
-            // Render the connection
-            sb.append(shpThis.connection.renderSvg(g));
-          }
-          break;
-        case "shape":
-          // Now render the shape itself
-          SimpleRectangle srMe = (SimpleRectangle) shpThis;
-          sb.append(srMe.renderSvg(g));
-          break;
         case "tree":
           // Check if this is the root
           if (shpThis.isRoot) sRoot = " lithium-root";
