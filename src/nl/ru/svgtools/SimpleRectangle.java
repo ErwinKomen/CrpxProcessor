@@ -97,7 +97,8 @@ public class SimpleRectangle extends ShapeBase {
         // If expanded: also draw the vertical bar | (forming a plus)
         if (!this.expanded) {
           // Yes, draw |
-          sb.append(g.renderLine(new Point(x + w/2, y+1), new Point(x + w/2, y + h - 1)));
+          sb.append(g.renderLine(new Point(x + w/2, y+1), 
+                                 new Point(x + w/2, y + h - 1)));
         }
         sb.append("</g>\n");
         
