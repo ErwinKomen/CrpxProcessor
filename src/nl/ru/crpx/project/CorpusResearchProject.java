@@ -1053,6 +1053,17 @@ public class CorpusResearchProject {
     // Unidentified project
     return ".xml";
   }
+  public static List<String> getTextExtList() {
+    List<String> lBack = new ArrayList<>();
+    // Make sure these are in decreasin size
+    lBack.add(getTextExt(ProjType.ProjFolia));
+    lBack.add(getTextExt(ProjType.ProjNegra));
+    lBack.add(getTextExt(ProjType.ProjPsdx));
+    lBack.add(getTextExt(ProjType.ProjPsd));
+    lBack.add(getTextExt(ProjType.ProjAlp));
+    // NOTE: do not include Dbase
+    return lBack;
+  }
   public String getTagPara() {
     return getTagPara(this.intProjType);
   }
