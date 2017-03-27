@@ -1053,6 +1053,18 @@ public class CorpusResearchProject {
     // Unidentified project
     return ".xml";
   }
+  public static String getTextExt(String sExtType) {
+    switch(sExtType.toLowerCase()) {
+      case "psdx": return ".psdx";
+      case "folia": return ".folia.xml";
+      case "negra": return ".negra";
+      case "psd": return ".psd";
+      case "alp": return ".xml";
+      case "dbase": return ".xml";
+    }
+    // Unidentified project
+    return ".xml";
+  }
   public static List<String> getTextExtList() {
     List<String> lBack = new ArrayList<>();
     // Make sure these are in decreasin size
