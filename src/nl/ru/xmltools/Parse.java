@@ -647,6 +647,55 @@ public class Parse {
     }
   }
   
+  /**
+   * getMetaInfo
+   *    Get the metadata information for [sFileName]
+   * 
+   * @param oProj
+   * @param sFileName
+   * @return 
+   */
+  public JSONObject getMetaInfo(CorpusResearchProject oProj, String sFileName) {
+    ByRef<XmlNode> ndxForest;   // Forest we are working on
+    ByRef<XmlNode> ndxHeader;   // Header of this file
+    ByRef<XmlNode> ndxMdi;      // Access to corresponding .imdi or .cmdi file
+    XmlForest objProcType;      // Access to the XmlForest object allocated to me
+    CrpFile oCrpFile;
+    JSONObject oBack = new JSONObject();
+    
+    try {
+      // Validate
+      if (oProj == null || sFileName.isEmpty()) return oBack;
+      File fThis = new File(sFileName);
+      if (!fThis.exists()) return oBack;
+      
+      // Create a CrpFile for this project/file combination
+      oCrpFile = new CrpFile(oProj, fThis, oProj.getSaxProc(), null);
+      // Initialisations
+      objProcType = oCrpFile.objProcType;
+      ndxForest = new ByRef(null); 
+      ndxHeader = new ByRef(null);
+      ndxMdi = new ByRef(null);
+      // (a) Read the first sentence (psdx: <forest>) as well as the header (psdx: <teiHeader>)
+      if (!objProcType.FirstForest(ndxForest, ndxHeader, ndxMdi, fThis.getAbsolutePath())) {
+        errHandle.DoError("hasInputRestr could not process first forest of " + fThis.getName());
+        return oBack;
+      }
+      // Get the header information 
+      oCrpFile.ndxHeader = ndxHeader.argValue;
+      oCrpFile.ndxMdi = ndxMdi.argValue;
+      // TODO: Read the header information
+      
+      // Make sure to close the Random-Access-Reader for this file
+      oCrpFile.close();
+      // Return the group we found
+      return oBack;
+    } catch (Exception ex) {
+      errHandle.DoError("Parse/getGroupName problem with [" + sFileName + "]: ", ex, Parse.class);
+      return oBack;
+    }
+  }
+  
 // <editor-fold defaultstate="collapsed" desc="ErrorListener class">
   public class MyErrorListener implements ErrorListener {
     // private ExecuteXml parent;
