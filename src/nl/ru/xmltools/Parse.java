@@ -76,8 +76,35 @@ public class Parse {
   private static final QName loc_xq_forestId = new QName("", "", "forestId");  
   private static final QName loc_xq_FoliaT = new QName("", "", "t");
   private static final QName loc_xq_FoliaClass = new QName("", "", "class");
-  private static XPathSelector ru_xpeNodeText_Folia; // Path to all <w> elements in a FoLiA <s> element
-  private XPathCompiler xpComp;             // My own xpath compiler (Xdm, saxon)
+  private static XPathSelector ru_xpeNodeText_Folia;  // Path to all <w> elements in a FoLiA <s> element
+  private XPathCompiler xpComp;                       // My own xpath compiler (Xdm, saxon)
+  // ============ MDI metadata =================================
+  private final String[] loc_MetaMdi_Title = new String[]{
+    "./descendant::TextName", "./descendant::Edition"};
+  private final String[] loc_MetaMdi_Genre = new String[]{
+    "./descendant::TextClassification/child::Genre"};
+  private final String[] loc_MetaMdi_Author = new String[]{
+    "./descendant::TextSource/child::Author"};
+  private final String[] loc_MetaMdi_Date = new String[]{
+    "./descendant::TextIdentification/child::Dating/child::Date",
+    "./descendant::TextIdentification/child::Dating/child::OriginalDate",
+    "./descendant::TextIdentification/child::Dating/child::ManuscriptDate"};
+  private final String[] loc_MetaMdi_SubType = new String[]{
+    "./descendant::TextIdentification/child::Dating/child::Period"};
+  // ============ PSDX and TEI metadata ================================
+  private final String[] loc_MetaPsdx_Title = new String[]{
+    "./descendant::fileDesc/child::titleStmt/@title",
+    "./descendant::metadata/child::meta[@id='PublicationName]"};
+  private final String[] loc_MetaPsdx_Genre = new String[]{
+    "./descendant::langUsage/child::creation/@genre",
+    "./descendant::metadata/child::meta[@id='TextType]"};
+  private final String[] loc_MetaPsdx_Author = new String[]{
+    "./descendant::fileDesc/child::titleStmt/@author",
+    "./descendant::metadata/child::meta[@id='AuthorNameOrPseudonym]"};
+  private final String[] loc_MetaPsdx_Date = new String[]{
+    "./descendant::langUsage/child::creation/@manuscript"};
+  private final String[] loc_MetaPsdx_SubType = new String[]{
+    "./descendant::langUsage/child::creation/@subtype"};
   // =============== local constants ===========================================
   // in .NET: String strRuDef = "declare namespace ru = 'clitype:CorpusStudio.RuXqExt.RU?asm=CorpusStudio';\r\n";
   private static final String strRuDef = "declare namespace ru = 'java:nl.ru.crpx.xq.Extensions';\r\n";
@@ -651,11 +678,10 @@ public class Parse {
    * getMetaInfo
    *    Get the metadata information for [sFileName]
    * 
-   * @param oProj
    * @param sFileName
    * @return 
    */
-  public JSONObject getMetaInfo(CorpusResearchProject oProj, String sFileName) {
+  public JSONObject getMetaInfo(String sFileName) {
     ByRef<XmlNode> ndxForest;   // Forest we are working on
     ByRef<XmlNode> ndxHeader;   // Header of this file
     ByRef<XmlNode> ndxMdi;      // Access to corresponding .imdi or .cmdi file
@@ -665,12 +691,12 @@ public class Parse {
     
     try {
       // Validate
-      if (oProj == null || sFileName.isEmpty()) return oBack;
+      if (this.crpThis == null || sFileName.isEmpty()) return oBack;
       File fThis = new File(sFileName);
       if (!fThis.exists()) return oBack;
       
       // Create a CrpFile for this project/file combination
-      oCrpFile = new CrpFile(oProj, fThis, oProj.getSaxProc(), null);
+      oCrpFile = new CrpFile(this.crpThis, fThis, this.crpThis.getSaxProc(), null);
       // Initialisations
       objProcType = oCrpFile.objProcType;
       ndxForest = new ByRef(null); 
@@ -684,6 +710,21 @@ public class Parse {
       // Get the header information 
       oCrpFile.ndxHeader = ndxHeader.argValue;
       oCrpFile.ndxMdi = ndxMdi.argValue;
+      
+      // Preferably use the MDI
+      if (oCrpFile.ndxMdi != null) {
+        oBack.put("title", getMetaElement(loc_MetaMdi_Title, oCrpFile.ndxMdi));
+        oBack.put("genre", getMetaElement(loc_MetaMdi_Genre, oCrpFile.ndxMdi));
+        oBack.put("author", getMetaElement(loc_MetaMdi_Author, oCrpFile.ndxMdi));
+        oBack.put("date", getMetaElement(loc_MetaMdi_Date, oCrpFile.ndxMdi));
+        oBack.put("subtype", getMetaElement(loc_MetaMdi_SubType, oCrpFile.ndxMdi));
+      } else if (oCrpFile.ndxHeader != null) {
+        oBack.put("title", getMetaElement(loc_MetaPsdx_Title, oCrpFile.ndxMdi));
+        oBack.put("genre", getMetaElement(loc_MetaPsdx_Genre, oCrpFile.ndxMdi));
+        oBack.put("author", getMetaElement(loc_MetaPsdx_Author, oCrpFile.ndxMdi));
+        oBack.put("date", getMetaElement(loc_MetaPsdx_Date, oCrpFile.ndxMdi));
+        oBack.put("subtype", getMetaElement(loc_MetaPsdx_SubType, oCrpFile.ndxMdi));
+      }
       // TODO: Read the header information
       
       // Make sure to close the Random-Access-Reader for this file
@@ -691,8 +732,23 @@ public class Parse {
       // Return the group we found
       return oBack;
     } catch (Exception ex) {
-      errHandle.DoError("Parse/getGroupName problem with [" + sFileName + "]: ", ex, Parse.class);
+      errHandle.DoError("Parse/getMetaInfo problem with [" + sFileName + "]: ", ex, Parse.class);
       return oBack;
+    }
+  }
+  private String getMetaElement(String[] arPath, XmlNode ndxTop) {
+    String sBack = "";
+    int i;
+    
+    try {
+      // Follow all possibilities
+      for (i=0;i<arPath.length;i++) {
+        
+      }
+      return sBack;
+    } catch (Exception ex) {
+      errHandle.DoError("Parse/getMetaElement", ex, Parse.class);
+      return sBack;
     }
   }
   
