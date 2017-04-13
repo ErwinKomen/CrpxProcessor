@@ -79,6 +79,40 @@ public class Parse {
   private static XPathSelector ru_xpeNodeText_Folia;  // Path to all <w> elements in a FoLiA <s> element
   private XPathCompiler xpComp;                       // My own xpath compiler (Xdm, saxon)
   // ============ MDI metadata =================================
+  private final String loc_sMetaInfo = 
+          "[ { \"name\": \"header\",\n" +
+"    \"def\": { \"title\": [\n" +
+"        { \"node\": \"./descendant::TextName\", \"attr\": \"\"},\n" +
+"        { \"node\": \"./descendant::Edition\", \"attr\": \"\"}],\n" +
+"      \"genre\": [\n" +
+"        { \"node\": \"./descendant::Genre\", \"attr\": \"\"}],\n" +
+"      \"author\": [\n" +
+"        { \"node\": \"./descendant::Author\", \"attr\": \"\"}],\n" +
+"      \"date\": [\n" +
+"        { \"node\": \"./descendant::TextIdentification/child::Dating/child::Date\", \"attr\": \"\"},\n" +
+"        { \"node\": \"./descendant::TextIdentification/child::Dating/child::OriginalDate\", \"attr\": \"\"},\n" +
+"        { \"node\": \"./descendant::TextIdentification/child::Dating/child::ManuscriptDate\", \"attr\": \"\"}],\n" +
+"      \"subtype\": [\n" +
+"        { \"node\": \"./descendant::TextIdentification/child::Dating/child::Period\", \"attr\": \"\"}]\n" +
+"    }\n" +
+"  },\n" +
+"  { \"name\": \"mdi\",\n" +
+"    \"def\": {\"title\": [\n" +
+"        { \"node\": \"./descendant::fileDesc/child::titleStmt\", \"attr\": \"title\"},\n" +
+"        { \"node\": \"./descendant::metadata/child::meta\", \"attr\": \"PublicationName\"}],\n" +
+"      \"genre\": [\n" +
+"        { \"node\": \"./descendant::langUsage/child::creation\", \"attr\": \"genre\"},\n" +
+"        { \"node\": \"./descendant::metadata/child::meta\", \"attr\": \"TextType\"}],\n" +
+"      \"author\": [\n" +
+"        { \"node\": \"./descendant::fileDesc/child::titleStmt\", \"attr\": \"author\"},\n" +
+"        { \"node\": \"./descendant::metadata/child::meta\", \"attr\": \"AuthorNameOrPseudonym\"}],\n" +
+"      \"date\": [\n" +
+"        { \"node\": \"./descendant::langUsage/child::creation\", \"attr\": \"manuscript\"}],\n" +
+"      \"subtype\": [\n" +
+"        { \"node\": \"./descendant::langUsage/child::creation\", \"attr\": \"subtype\"}]}\n" +
+"  }\n" +
+"]\n" +
+"";
   private final String[] loc_MetaMdi_Title = new String[]{
     "./descendant::TextName", "./descendant::Edition"};
   private final String[] loc_MetaMdi_Genre = new String[]{
@@ -114,12 +148,14 @@ public class Parse {
   CorpusResearchProject crpThis;    // Which CRP are we working with?
   DocumentBuilderFactory dfactory;  // Dom document factory
   javax.xml.parsers.DocumentBuilder dbuilder;         // DOM document builder
+  JSONArray arMetaInfo = null;      // THe information in loc_sMetaInfo
   // ========== Class initialisation ===========================================
   public Parse(CorpusResearchProject objPrj, ErrHandle objEh) {
     try {
       // Set the correct CRP and error handle
       this.crpThis = objPrj;
       this.errHandle = objEh;
+      this.arMetaInfo = new JSONArray(this.loc_sMetaInfo);
       // Initialize the DOM handling
       dfactory = DocumentBuilderFactory.newInstance();
       dbuilder = dfactory.newDocumentBuilder();
@@ -688,6 +724,7 @@ public class Parse {
     XmlForest objProcType;      // Access to the XmlForest object allocated to me
     CrpFile oCrpFile;
     JSONObject oBack = new JSONObject();
+    JSONObject oDef = null;
     
     try {
       // Validate
@@ -713,17 +750,19 @@ public class Parse {
       
       // Preferably use the MDI
       if (oCrpFile.ndxMdi != null) {
-        oBack.put("title", getMetaElement(loc_MetaMdi_Title, oCrpFile.ndxMdi));
-        oBack.put("genre", getMetaElement(loc_MetaMdi_Genre, oCrpFile.ndxMdi));
-        oBack.put("author", getMetaElement(loc_MetaMdi_Author, oCrpFile.ndxMdi));
-        oBack.put("date", getMetaElement(loc_MetaMdi_Date, oCrpFile.ndxMdi));
-        oBack.put("subtype", getMetaElement(loc_MetaMdi_SubType, oCrpFile.ndxMdi));
+        oDef = this.arMetaInfo.getJSONObject(1).getJSONObject("def");
+        oBack.put("title", getMetaElement(oDef.getJSONArray("title"), oCrpFile.ndxMdi));
+        oBack.put("genre", getMetaElement(oDef.getJSONArray("genre"), oCrpFile.ndxMdi));
+        oBack.put("author", getMetaElement(oDef.getJSONArray("author"), oCrpFile.ndxMdi));
+        oBack.put("date", getMetaElement(oDef.getJSONArray("date"), oCrpFile.ndxMdi));
+        oBack.put("subtype", getMetaElement(oDef.getJSONArray("subtype"), oCrpFile.ndxMdi));
       } else if (oCrpFile.ndxHeader != null) {
-        oBack.put("title", getMetaElement(loc_MetaPsdx_Title, oCrpFile.ndxMdi));
-        oBack.put("genre", getMetaElement(loc_MetaPsdx_Genre, oCrpFile.ndxMdi));
-        oBack.put("author", getMetaElement(loc_MetaPsdx_Author, oCrpFile.ndxMdi));
-        oBack.put("date", getMetaElement(loc_MetaPsdx_Date, oCrpFile.ndxMdi));
-        oBack.put("subtype", getMetaElement(loc_MetaPsdx_SubType, oCrpFile.ndxMdi));
+        oDef = this.arMetaInfo.getJSONObject(0).getJSONObject("def");
+        oBack.put("title", getMetaElement(oDef.getJSONArray("title"), oCrpFile.ndxHeader));
+        oBack.put("genre", getMetaElement(oDef.getJSONArray("genre"), oCrpFile.ndxHeader));
+        oBack.put("author", getMetaElement(oDef.getJSONArray("author"), oCrpFile.ndxHeader));
+        oBack.put("date", getMetaElement(oDef.getJSONArray("date"), oCrpFile.ndxHeader));
+        oBack.put("subtype", getMetaElement(oDef.getJSONArray("subtype"), oCrpFile.ndxHeader));
       }
       // TODO: Read the header information
       
@@ -736,13 +775,13 @@ public class Parse {
       return oBack;
     }
   }
-  private String getMetaElement(String[] arPath, XmlNode ndxTop) {
+  private String getMetaElement(JSONArray arDefList, XmlNode ndxTop) {
     String sBack = "";
     int i;
     
     try {
       // Follow all possibilities
-      for (i=0;i<arPath.length;i++) {
+      for (i=0;i<arDefList.length();i++) {
         
       }
       return sBack;
