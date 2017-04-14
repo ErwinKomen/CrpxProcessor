@@ -1076,6 +1076,9 @@ public class CorpusResearchProject {
     // NOTE: do not include Dbase
     return lBack;
   }
+  public void setTextExt(ProjType ptThis) {
+    this.intProjType = ptThis;
+  }
   public String getTagPara() {
     return getTagPara(this.intProjType);
   }
