@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.Reader;
+import nl.ru.util.json.JSONArray;
 
 import nl.ru.util.json.JSONException;
 import nl.ru.util.json.JSONObject;
@@ -62,6 +63,10 @@ public class Json {
 	public static JSONObject read(InputStream is) throws JSONException, IOException {
 		BufferedReader reader = IoUtil.makeBuffered(new InputStreamReader(is));
 		return new JSONObject(readFileStripLineComments(reader));
+	}
+	public static JSONArray readArray(InputStream is) throws JSONException, IOException {
+		BufferedReader reader = IoUtil.makeBuffered(new InputStreamReader(is));
+		return new JSONArray(readFileStripLineComments(reader));
 	}
 
 	/**

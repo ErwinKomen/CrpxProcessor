@@ -1,0 +1,42 @@
+[ { "name": "mdi",
+    "def": { "title": [
+        { "node": "./descendant::TextTitle", "attr": ""},
+        { "node": "./descendant::TextName", "attr": ""},
+        { "node": "./descendant::Edition", "attr": ""}],
+      "genre": [
+        { "node": "./descendant::TextClass", "attr": ""},
+        { "node": "./descendant::TextType", "attr": ""},
+        { "node": "./descendant::Genre", "attr": ""}],
+      "author": [
+        { "node": "./descendant::Author/child::Name", "attr": ""},
+        { "node": "./descendant::Author", "attr": ""}],
+      "date": [
+        { "node": "./descendant::Publication/child::PublicationDate", "attr": ""},
+        { "node": "./descendant::BroadcastPublication/child::BroadcastDate", "attr": ""},
+        { "node": "./descendant::TextIdentification/child::Dating/child::Date", "attr": ""},
+        { "node": "./descendant::TextIdentification/child::Dating/child::OriginalDate", "attr": ""},
+        { "node": "./descendant::TextIdentification/child::Dating/child::ManuscriptDate", "attr": ""}],
+      "subtype": [
+        { "node": "./descendant::TextIdentification/child::Dating/child::Period", "attr": ""},
+        { "node": "./descendant::TextType", "attr": ""}]
+    }
+  },
+  { "name": "header",
+    "def": {"title": [
+        { "node": "./descendant::fileDesc/child::titleStmt", "attr": "title"},
+        { "node": "./descendant::metadata/child::meta[@id=\"PublicationName\"]", "attr": ""},
+        { "node": "./descendant::metadata/child::meta[@id=\"Text name\"]", "attr": ""}],
+      "genre": [
+        { "node": "./descendant::langUsage/child::creation", "attr": "genre"},
+        { "node": "./descendant::metadata/child::meta[@id=\"TextType\"]", "attr": ""},
+        { "node": "./descendant::metadata/child::meta[@id=\"Genre\"]", "attr": ""}],
+      "author": [
+        { "node": "./descendant::fileDesc/child::titleStmt", "attr": "author"},
+        { "node": "./descendant::metadata/child::meta[@id=\"AuthorNameOrPseudonym\"]", "attr": ""}],
+      "date": [
+        { "node": "./descendant::langUsage/child::creation", "attr": "manuscript"},
+        { "node": "./descendant::metadata/child::meta[@id=\"Manuscript date\"]", "attr": ""}],
+      "subtype": [
+        { "node": "./descendant::langUsage/child::creation", "attr": "subtype"}]}
+  }
+]

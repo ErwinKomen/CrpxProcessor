@@ -7,8 +7,7 @@
 package nl.ru.xmltools;
 
 import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -33,17 +32,20 @@ import net.sf.saxon.s9api.XdmItem;
 import net.sf.saxon.s9api.XdmNode;
 import net.sf.saxon.s9api.XdmNodeKind;
 import net.sf.saxon.s9api.XdmSequenceIterator;
+import nl.ru.crpx.cmd.CrpxProcessor;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.project.CorpusResearchProject.ProjType;
 import nl.ru.crpx.project.Qinfo;
 import nl.ru.crpx.project.Query;
 import nl.ru.crpx.search.Job;
 import nl.ru.crpx.tools.ErrHandle;
+import nl.ru.crpx.tools.FileIO;
 import nl.ru.crpx.xq.CrpFile;
 import static nl.ru.crpx.xq.RuBase.ru_qnFoliaId;
 import nl.ru.crpx.xq.XqErrorListener;
 import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
+import nl.ru.util.Json;
 import nl.ru.util.StringUtil;
 import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
@@ -78,67 +80,7 @@ public class Parse {
   private static final QName loc_xq_FoliaClass = new QName("", "", "class");
   private static XPathSelector ru_xpeNodeText_Folia;  // Path to all <w> elements in a FoLiA <s> element
   private XPathCompiler xpComp;                       // My own xpath compiler (Xdm, saxon)
-  // ============ MDI metadata =================================
-  private final String loc_sMetaInfo = 
-          "[ { \"name\": \"header\",\n" +
-"    \"def\": { \"title\": [\n" +
-"        { \"node\": \"./descendant::TextName\", \"attr\": \"\"},\n" +
-"        { \"node\": \"./descendant::Edition\", \"attr\": \"\"}],\n" +
-"      \"genre\": [\n" +
-"        { \"node\": \"./descendant::Genre\", \"attr\": \"\"}],\n" +
-"      \"author\": [\n" +
-"        { \"node\": \"./descendant::Author\", \"attr\": \"\"}],\n" +
-"      \"date\": [\n" +
-"        { \"node\": \"./descendant::TextIdentification/child::Dating/child::Date\", \"attr\": \"\"},\n" +
-"        { \"node\": \"./descendant::TextIdentification/child::Dating/child::OriginalDate\", \"attr\": \"\"},\n" +
-"        { \"node\": \"./descendant::TextIdentification/child::Dating/child::ManuscriptDate\", \"attr\": \"\"}],\n" +
-"      \"subtype\": [\n" +
-"        { \"node\": \"./descendant::TextIdentification/child::Dating/child::Period\", \"attr\": \"\"}]\n" +
-"    }\n" +
-"  },\n" +
-"  { \"name\": \"mdi\",\n" +
-"    \"def\": {\"title\": [\n" +
-"        { \"node\": \"./descendant::fileDesc/child::titleStmt\", \"attr\": \"title\"},\n" +
-"        { \"node\": \"./descendant::metadata/child::meta\", \"attr\": \"PublicationName\"}],\n" +
-"      \"genre\": [\n" +
-"        { \"node\": \"./descendant::langUsage/child::creation\", \"attr\": \"genre\"},\n" +
-"        { \"node\": \"./descendant::metadata/child::meta\", \"attr\": \"TextType\"}],\n" +
-"      \"author\": [\n" +
-"        { \"node\": \"./descendant::fileDesc/child::titleStmt\", \"attr\": \"author\"},\n" +
-"        { \"node\": \"./descendant::metadata/child::meta\", \"attr\": \"AuthorNameOrPseudonym\"}],\n" +
-"      \"date\": [\n" +
-"        { \"node\": \"./descendant::langUsage/child::creation\", \"attr\": \"manuscript\"}],\n" +
-"      \"subtype\": [\n" +
-"        { \"node\": \"./descendant::langUsage/child::creation\", \"attr\": \"subtype\"}]}\n" +
-"  }\n" +
-"]\n" +
-"";
-  private final String[] loc_MetaMdi_Title = new String[]{
-    "./descendant::TextName", "./descendant::Edition"};
-  private final String[] loc_MetaMdi_Genre = new String[]{
-    "./descendant::TextClassification/child::Genre"};
-  private final String[] loc_MetaMdi_Author = new String[]{
-    "./descendant::TextSource/child::Author"};
-  private final String[] loc_MetaMdi_Date = new String[]{
-    "./descendant::TextIdentification/child::Dating/child::Date",
-    "./descendant::TextIdentification/child::Dating/child::OriginalDate",
-    "./descendant::TextIdentification/child::Dating/child::ManuscriptDate"};
-  private final String[] loc_MetaMdi_SubType = new String[]{
-    "./descendant::TextIdentification/child::Dating/child::Period"};
-  // ============ PSDX and TEI metadata ================================
-  private final String[] loc_MetaPsdx_Title = new String[]{
-    "./descendant::fileDesc/child::titleStmt/@title",
-    "./descendant::metadata/child::meta[@id='PublicationName]"};
-  private final String[] loc_MetaPsdx_Genre = new String[]{
-    "./descendant::langUsage/child::creation/@genre",
-    "./descendant::metadata/child::meta[@id='TextType]"};
-  private final String[] loc_MetaPsdx_Author = new String[]{
-    "./descendant::fileDesc/child::titleStmt/@author",
-    "./descendant::metadata/child::meta[@id='AuthorNameOrPseudonym]"};
-  private final String[] loc_MetaPsdx_Date = new String[]{
-    "./descendant::langUsage/child::creation/@manuscript"};
-  private final String[] loc_MetaPsdx_SubType = new String[]{
-    "./descendant::langUsage/child::creation/@subtype"};
+
   // =============== local constants ===========================================
   // in .NET: String strRuDef = "declare namespace ru = 'clitype:CorpusStudio.RuXqExt.RU?asm=CorpusStudio';\r\n";
   private static final String strRuDef = "declare namespace ru = 'java:nl.ru.crpx.xq.Extensions';\r\n";
@@ -151,11 +93,20 @@ public class Parse {
   JSONArray arMetaInfo = null;      // THe information in loc_sMetaInfo
   // ========== Class initialisation ===========================================
   public Parse(CorpusResearchProject objPrj, ErrHandle objEh) {
+    FileUtil fuThis = new FileUtil();
+    Class clsThis = Parse.class;
     try {
       // Set the correct CRP and error handle
       this.crpThis = objPrj;
       this.errHandle = objEh;
-      this.arMetaInfo = new JSONArray(this.loc_sMetaInfo);
+      // Read the JSON from a local file
+      InputStream is = FileIO.getProjectDirectory(CrpxProcessor.class, "nl/ru/xmltools/metaelement.json.txt");
+      if (is==null) {
+        // Provide an error message
+        errHandle.DoError("nl.ru.xmltools.Parse: cannot find file [metaelement.json.txt]");
+      } else {
+        this.arMetaInfo = Json.readArray(is);
+      }
       // Initialize the DOM handling
       dfactory = DocumentBuilderFactory.newInstance();
       dbuilder = dfactory.newDocumentBuilder();
@@ -750,21 +701,20 @@ public class Parse {
       
       // Preferably use the MDI
       if (oCrpFile.ndxMdi != null) {
-        oDef = this.arMetaInfo.getJSONObject(1).getJSONObject("def");
+        oDef = this.arMetaInfo.getJSONObject(0).getJSONObject("def");
         oBack.put("title", getMetaElement(oDef.getJSONArray("title"), oCrpFile.ndxMdi));
         oBack.put("genre", getMetaElement(oDef.getJSONArray("genre"), oCrpFile.ndxMdi));
         oBack.put("author", getMetaElement(oDef.getJSONArray("author"), oCrpFile.ndxMdi));
         oBack.put("date", getMetaElement(oDef.getJSONArray("date"), oCrpFile.ndxMdi));
         oBack.put("subtype", getMetaElement(oDef.getJSONArray("subtype"), oCrpFile.ndxMdi));
       } else if (oCrpFile.ndxHeader != null) {
-        oDef = this.arMetaInfo.getJSONObject(0).getJSONObject("def");
+        oDef = this.arMetaInfo.getJSONObject(1).getJSONObject("def");
         oBack.put("title", getMetaElement(oDef.getJSONArray("title"), oCrpFile.ndxHeader));
         oBack.put("genre", getMetaElement(oDef.getJSONArray("genre"), oCrpFile.ndxHeader));
         oBack.put("author", getMetaElement(oDef.getJSONArray("author"), oCrpFile.ndxHeader));
         oBack.put("date", getMetaElement(oDef.getJSONArray("date"), oCrpFile.ndxHeader));
         oBack.put("subtype", getMetaElement(oDef.getJSONArray("subtype"), oCrpFile.ndxHeader));
       }
-      // TODO: Read the header information
       
       // Make sure to close the Random-Access-Reader for this file
       oCrpFile.close();
@@ -775,14 +725,48 @@ public class Parse {
       return oBack;
     }
   }
+  /**
+   * getMetaElement
+   *    Get the meta element requested in the [arDefList], which is 
+   *    a list of places that may be visited in turn
+   *    The first place that has a non-empty value is returned
+   * 
+   * @param arDefList
+   * @param ndxTop
+   * @return          - String value of the requested meta element
+   */
   private String getMetaElement(JSONArray arDefList, XmlNode ndxTop) {
     String sBack = "";
     int i;
     
     try {
+      // Validate
+      if (arDefList.length() == 0 || ndxTop == null) return sBack;
       // Follow all possibilities
       for (i=0;i<arDefList.length();i++) {
-        
+        JSONObject oThis = arDefList.getJSONObject(i);
+        // Get the Node and Attribute values
+        String sPath = oThis.getString("node");
+        String sAttr = oThis.getString("attr");
+        // Now try to get to the indicated node within [ndxTop]
+        XmlNode ndThis = ndxTop.SelectSingleNode(sPath);
+        if (ndThis != null)  {
+          // Action depends on the value of 'attr'
+          if (sAttr.isEmpty()) {
+            // Get inner value of this node
+            sBack = ndThis.getNodeValue();
+          } else {
+            // Attribute is specified: get its value
+            sBack = ndThis.getAttributeValue(sAttr);
+          }
+          // Trim the result so that preceding and following \s are removed
+          sBack = sBack.trim();
+          // Check if this value means anything
+          if (!sBack.isEmpty() && ! sBack.equals("-")) {
+            // Okay, we found a meaningful value -- return it
+            break;
+          }
+        }
       }
       return sBack;
     } catch (Exception ex) {
