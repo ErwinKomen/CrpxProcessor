@@ -580,6 +580,11 @@ public class XmlForestPsdxIndex extends XmlForest {
   }
   
   @Override
+  public int GetSize() {
+    return loc_xrdRaFile.size();
+  }
+  
+  @Override
   public void close() {
     // Close the underlying index reader
     if (bUseRa && loc_xrdRaFile != null) loc_xrdRaFile.close();

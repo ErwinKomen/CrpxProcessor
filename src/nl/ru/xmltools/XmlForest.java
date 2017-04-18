@@ -185,6 +185,7 @@ public abstract class XmlForest {
   public abstract String GetContext();
   public abstract String GetSyntax(ByRef<XmlNode> ndxForest);
   public abstract String GetPde(ByRef<XmlNode> ndxForest);
+  public abstract int GetSize();
   public abstract void close();
   
   // Public methods for all

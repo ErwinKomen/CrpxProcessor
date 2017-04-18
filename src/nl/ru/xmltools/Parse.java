@@ -715,6 +715,8 @@ public class Parse {
         oBack.put("date", getMetaElement(oDef.getJSONArray("date"), oCrpFile.ndxHeader));
         oBack.put("subtype", getMetaElement(oDef.getJSONArray("subtype"), oCrpFile.ndxHeader));
       }
+      // Add the SIZE (length in terms of lines
+      oBack.put("size", objProcType.GetSize());
       
       // Make sure to close the Random-Access-Reader for this file
       oCrpFile.close();

@@ -475,6 +475,12 @@ public class XmlForestPsdxLine extends XmlForest {
   }
   
   @Override
+  public int GetSize() {
+    // Size cannot really be determined
+    return 0;
+  }
+  
+  @Override
   public void close() {
     // Close the underlying index reader
     // if (bUseRa && loc_xrdRaFile != null) loc_xrdRaFile.close();
