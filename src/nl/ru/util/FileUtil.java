@@ -798,6 +798,9 @@ public class FileUtil {
         // Getting here means we have no success
       return sBack;
     } catch(Exception e) {
+      Logger.getLogger(FileUtil.class.getName()).log(Level.SEVERE, 
+                        "findFileInDirectory problem at dir [{0}], file [{1}]", 
+                        new Object[]{sDir, sFile});
       e.printStackTrace();
       return "";
     }

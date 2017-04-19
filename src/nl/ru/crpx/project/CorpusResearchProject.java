@@ -1702,6 +1702,10 @@ public class CorpusResearchProject {
                 break;
               case "definition":
                 iIdx = this.getListDefId(iItemId);
+                // Double check what we get
+                if (iIdx<0) {
+                  return errHandle.DoError("doChange: cannot handle getListDefId=-1 for iItemId="+iItemId, CorpusResearchProject.class);
+                }
                 JSONObject oItemDef = this.getListDefItem(iIdx);
                 if (oItemDef.has(sItemKey)) {
                   if (!oItemDef.getString(sItemKey).equals(sValue)) {oItemDef.put(sItemKey, sValue); bChanged = true;} 
