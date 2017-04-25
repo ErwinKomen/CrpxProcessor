@@ -662,6 +662,108 @@ public class Parse {
   }
   
   /**
+   * getSurfaceText
+   *    Get the surface text in JSON format
+   * 
+   * @param sFileName
+   * @param iStart
+   * @param iPageSize
+   * @return 
+   */
+  public JSONObject getSurfaceText(String sFileName, int iStart, int iPageSize) {
+    ByRef<XmlNode> ndxForest;     // Forest we are working on
+    ByRef<XmlNode> ndxHeader;     // Header of this file
+    ByRef<XmlNode> ndxMdi;        // Access to corresponding .imdi or .cmdi file
+    XmlForest objProcType = null; // Access to the XmlForest object allocated to me
+    CrpFile oCrpFile;
+    JSONArray arLine = new JSONArray();
+    JSONObject oBack = new JSONObject();
+
+    try {
+      // Validate
+      if (this.crpThis == null || sFileName.isEmpty()) return oBack;
+      File fThis = new File(sFileName);
+      if (!fThis.exists()) return oBack;
+      
+      // Create a CrpFile for this project/file combination
+      oCrpFile = new CrpFile(this.crpThis, fThis, this.crpThis.getSaxProc(), null);
+      // Initialisations
+      objProcType = oCrpFile.objProcType;
+      ndxForest = new ByRef(null); 
+      ndxHeader = new ByRef(null);
+      ndxMdi = new ByRef(null);
+      
+      // NOTE: we are not using [iStart] and [iPageSize] yet (here)
+      
+      // (a) Read the first sentence (psdx: <forest>) as well as the header (psdx: <teiHeader>)
+      if (!objProcType.FirstForest(ndxForest, ndxHeader, ndxMdi, fThis.getAbsolutePath())) {
+        objProcType.close();
+        errHandle.DoError("getSurfaceText could not process first forest of " + fThis.getName());
+        return oBack;
+      }
+      // Walk through all the sentence elements (<forest> or <s>)
+      while (ndxForest.argValue != null) {
+        List<String> lSeg = new ArrayList<>();
+        List<XmlNode> ndxList = null; // List of word nodes (folia)
+        JSONObject oLine = new JSONObject();
+        XmlNode ndxOrg = null;        // Helper node
+        String sSeg = "";             // Surface text of this sentence
+        String sId = "";              // ID of this sentence
+        int i;                        // Loop counter
+        
+        // Retrieve all the words in this sentence
+        switch(crpThis.intProjType) {
+          case ProjPsdx:
+            // Try find the 'org' segment
+            ndxOrg = ndxForest.argValue.SelectSingleNode("./child::div[@lang='org']/child::seg");
+            // Check the reply
+            if (ndxOrg != null) {
+              // The node has been found, so return the innertext
+              sSeg = ndxOrg.getNodeValue().trim();
+            }
+            break;
+          case ProjFolia:
+            // Assuming there is no 'org' segment -- try to get the list of words
+            // But only take words of the right @class (if that exists)
+            ndxList = ndxForest.argValue.SelectNodes("./descendant::w[not(@class) or @class='Vern' or @class='Punct']/child::t");
+            for (i=0;i<ndxList.size();i++) {
+              // The actual word (or punctuation) is the inner text
+              lSeg.add(ndxList.get(i).getNodeValue().trim());
+            }
+            // Combine into segment
+            sSeg = StringUtil.join(lSeg.toArray(), " ");
+            break;
+        }
+        // Get the ID of the forest
+        sId = objProcType.getSentenceId(ndxForest);
+        // Put the information in the object
+        oLine.put("id", sId);
+        oLine.put("text", sSeg);
+        // Add the object to the array
+        arLine.put(oLine);
+        // Get to the next sentence
+        if (!objProcType.NextForest(ndxForest)) {
+          objProcType.close();
+          errHandle.DoError("getSurfaceText could not process next forest of " + fThis.getName());
+          return oBack;
+        }
+      }
+      // Create the object
+      oBack.put("count", arLine.length());
+      oBack.put("line", arLine);
+      
+      // CLose the [objProcType]
+      objProcType.close(); 
+      // Return the surface text as a JSON object
+      return oBack;
+    } catch (Exception ex) {
+      if (objProcType != null) { objProcType.close(); }
+      errHandle.DoError("Parse/getSurfaceText problem with [" + sFileName + "]: ", ex, Parse.class);
+      return oBack;
+    }
+  }
+  
+  /**
    * getMetaInfo
    *    Get the metadata information for [sFileName]
    * 

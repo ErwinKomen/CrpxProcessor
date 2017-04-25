@@ -3,6 +3,7 @@ package nl.ru.crpx.dataobject;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
+import nl.ru.util.json.JSONObject;
 
 /**
  * Represents hierarchical data that can be serialized to XML or JSON.
@@ -199,6 +200,21 @@ public abstract class DataObject {
       response.put("content", objContent);
       response.put("status", objStatus);
       return response;
+    }
+    
+    public static boolean isErrorObject(DataObject doThis) {
+      // Validate
+      if (doThis == null) return false;
+      JSONObject oThis = new JSONObject(doThis.toString());
+      // Does this have a status?
+      if (oThis.has("status")) {
+        JSONObject oStatus = oThis.getJSONObject("status");
+        if (oStatus.has("code")) {
+          String sCode = oStatus.getString("code");
+          return (sCode.equals("error"));
+        }
+      }
+      return false;
     }
 
     public static DataObject from(String value) {

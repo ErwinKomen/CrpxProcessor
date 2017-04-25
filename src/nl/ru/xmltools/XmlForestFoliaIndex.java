@@ -224,6 +224,23 @@ public class XmlForestFoliaIndex extends XmlForest {
   }
 
   @Override
+  public String getSentenceId(ByRef<XmlNode> ndxForest) {
+    String sBack = "";  // Returned value
+    
+    try {
+      // Check if there is a @forestId attribute
+      sBack = ndxForest.argValue.getAttributeValue(loc_xq_Folia_Id);
+      // sBack = ndxForest.argValue.getAttributeValue("xml:id");
+      // Return what we found
+      return sBack;
+    } catch (RuntimeException ex) {
+      // Warn user
+      objErr.DoError("XmlForest/getSentenceId", ex);
+      // Return failure
+      return sBack;
+    }
+  }
+  @Override
   // ----------------------------------------------------------------------------------------------------------
   // Name :  GetForestId
   // Goal :  Get the ID of the forest [ndxThis]

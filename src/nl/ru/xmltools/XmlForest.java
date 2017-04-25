@@ -110,7 +110,7 @@ public abstract class XmlForest {
   protected static final QName loc_xq_forestId = new QName("", "", "forestId");  
   protected static final QName loc_xq_Location = new QName("", "", "Location");  
   protected static final QName loc_xq_TextId = new QName("", "", "TextId");  
-  protected static final QName loc_xq_Folia_Id = new QName("", "", "xml:id");  
+  protected static final QName loc_xq_Folia_Id = new QName("xml", "http://www.w3.org/XML/1998/namespace", "id");  
   protected static final String loc_path_PsdxSent = "./descendant-or-self::forest[1]";
   protected static final String loc_path_PsdxHeader = "./descendant-or-self::teiHeader[1]";
   protected static final String loc_path_FoliaSent = "./descendant-or-self::s[1]";
@@ -178,6 +178,7 @@ public abstract class XmlForest {
   // Methods that are overridden by the classes that extend XmlForest:
   public abstract boolean FirstForest(ByRef<XmlNode> ndxForest, ByRef<XmlNode> ndxHeader, ByRef<XmlNode> ndxMdi, String strFile);
   public abstract boolean GetForestId(ByRef<XmlNode> ndxForest, ByRef<Integer> intForestId);
+  public abstract String getSentenceId(ByRef<XmlNode> ndxForest);
   public abstract boolean NextForest(ByRef<XmlNode> ndxForest);
   public abstract boolean OneForest(ByRef<XmlNode> ndxForest, String sSentId);
   public abstract boolean IsEnd();

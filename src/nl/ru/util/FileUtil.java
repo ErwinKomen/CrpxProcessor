@@ -18,6 +18,8 @@ package nl.ru.util;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -28,6 +30,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystems;
 import java.nio.file.FileVisitOption;
@@ -833,7 +836,38 @@ public class FileUtil {
     }
 
   }
+  /**
+   * decompressGzipString -- 
+   *    Decompress a .gz file into a String.
+   * 
+   * See: http://www.journaldev.com/966/java-gzip-example-compress-and-decompress-file-in-gzip-format-in-java
+   * 
+   * @param gzipFile
+   * @return String version of the file
+   */
+  public static String decompressGzipString(String gzipFile) {
+    try {
+      FileInputStream fis = new FileInputStream(gzipFile);
+      ByteArrayOutputStream bos;
+      try (GZIPInputStream gis = new GZIPInputStream(fis)) {
+        bos = new ByteArrayOutputStream();
+        byte[] buffer = new byte[1024];
+        int len;
+        while((len = gis.read(buffer)) != -1){
+          bos.write(buffer, 0, len);
+        } 
+        //close resources
+        bos.close();
+      }
+      // Convert byte output into string
+      return bos.toString(defaultEncoding);
+    } catch (IOException e) {
+      e.printStackTrace();
+      return "";
+    }
 
+  }
+  
   /**
    * compressGzipFile --
    *    Compress a file into a .gz file
@@ -845,18 +879,45 @@ public class FileUtil {
    */
   public static void compressGzipFile(String file, String gzipFile) {
     try {
-      FileInputStream fis = new FileInputStream(file);
-      FileOutputStream fos = new FileOutputStream(gzipFile);
-      GZIPOutputStream gzipOS = new GZIPOutputStream(fos);
-      byte[] buffer = new byte[1024];
-      int len;
-      while((len=fis.read(buffer)) != -1){
-          gzipOS.write(buffer, 0, len);
+      try (FileInputStream fis = new FileInputStream(file); 
+           FileOutputStream fos = new FileOutputStream(gzipFile)) {
+        GZIPOutputStream gzipOS = new GZIPOutputStream(fos);
+        byte[] buffer = new byte[1024];
+        int len;
+        while((len=fis.read(buffer)) != -1){
+            gzipOS.write(buffer, 0, len);
+        }
+        //close resources
+        gzipOS.close();
       }
-      //close resources
-      gzipOS.close();
-      fos.close();
-      fis.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  /**
+   * compressGzipFile --
+   *    Compress a file into a .gz file
+   * 
+   * See: http://www.journaldev.com/966/java-gzip-example-compress-and-decompress-file-in-gzip-format-in-java
+   * 
+   * @param sInput
+   * @param gzipFile 
+   */
+  public static void compressGzipString(String sInput, String gzipFile) {
+    try {
+      try (InputStream fis = new ByteArrayInputStream(sInput.getBytes(StandardCharsets.UTF_8)); 
+           FileOutputStream fos = new FileOutputStream(gzipFile); 
+           GZIPOutputStream gzipOS = new GZIPOutputStream(fos)) {
+        byte[] buffer = new byte[1024];
+        int len;
+        
+        // Loop through buffer
+        while((len=fis.read(buffer)) != -1){
+            gzipOS.write(buffer, 0, len);
+        }
+        //close resources
+      }
     } catch (IOException e) {
       e.printStackTrace();
     }
