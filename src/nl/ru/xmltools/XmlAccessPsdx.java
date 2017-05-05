@@ -277,7 +277,7 @@ public class XmlAccessPsdx extends XmlAccess {
       if (!readSent(sLocs)) return null;
       
       // Return the topmost <eTree>
-      return ndxSent.SelectSingleNode("./descendant::eTree[1]");
+      return ndxSent.SelectSingleNode("./descendant::eTree[@Label != 'CODE'][1]");
 
     } catch (Exception ex) {
       logger.error("getOffsetNode failed", ex);

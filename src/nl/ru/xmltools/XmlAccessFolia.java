@@ -280,7 +280,7 @@ public class XmlAccessFolia extends XmlAccess {
       if (!readSent(sLocs)) return null;
       
       // Return the topmost <eTree>
-      return ndxSent.SelectSingleNode("./descendant::su[1]");
+      return ndxSent.SelectSingleNode("./descendant::su[@class != 'CODE'][1]");
 
     } catch (Exception ex) {
       logger.error("getOffsetNode failed", ex);
