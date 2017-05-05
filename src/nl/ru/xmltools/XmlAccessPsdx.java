@@ -270,6 +270,20 @@ public class XmlAccessPsdx extends XmlAccess {
       return null;
     }
   }
+  @Override
+  public XmlNode getTopNode(String sLocs) {
+    try {
+      // Read the indicated sentence
+      if (!readSent(sLocs)) return null;
+      
+      // Return the topmost <eTree>
+      return ndxSent.SelectSingleNode("./descendant::eTree[1]");
+
+    } catch (Exception ex) {
+      logger.error("getOffsetNode failed", ex);
+      return null;
+    }
+  }
   /**
    * getHitContext
    *    Given the sentence in [ndxSentence] get a JSON representation of 
