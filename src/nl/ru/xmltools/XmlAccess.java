@@ -77,6 +77,7 @@ public abstract class XmlAccess {
   // Methods that are overridden by the classes that extend XmlForest:
   public abstract JSONObject getHitLine(String sLngName, String sLocs, String sLocw);
   public abstract DataObject getHitSyntax(String sLngName, String sLocs, String sLocw);
+  public abstract DataObject getHitTree(String sLngName, String sLocs, String sLocw);
   public abstract DataObject getHitSvg(String sLngName, String sLocs, String sLocw);
   public abstract JSONObject getHitContext(String sLngName, String sLocs, String sLocw, int iPrecNum, int iFollNum);
   public abstract boolean hasAncestor(XmlNode ndThis, String sType, String sValue);

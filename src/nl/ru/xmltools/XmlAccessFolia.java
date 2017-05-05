@@ -195,6 +195,68 @@ public class XmlAccessFolia extends XmlAccess {
     }    
   }
   
+  @Override
+  public DataObject getHitTree(String sLngName, String sLocs, String sLocw) {
+    XmlNode ndxTop;         // Top constituent
+    XmlNode ndxHit;         // The target constituent from sLocs
+    String sConvType = "";  // Kind of additional ru:conv()
+    DataObjectMapElement oBack = new DataObjectMapElement();
+    
+    try {
+      // Make sure the indicated sentence is read
+      if (!readSent(sLocs)) { logger.error("getHitTree: could not read Sentence ["+sLocs+"]"); return null; }
+      // Validate
+      if (ndxSent == null) { logger.error("getHitTree: ndxSent is empty"); return null; }
+      // Possible corrections depending on language
+      switch(sLngName) {
+        case "eng_hist":
+          // Convert OE symbols
+          sConvType = "OE";
+          break;
+      }
+      // Get the hit constituent
+      ndxHit = this.ndxSent.SelectSingleNode("./descendant::su[@xml:id='" + sLocw + "']");
+      // DEBUGGING: XmlNode ndxTmp = this.ndxSent.SelectSingleNode("./descendant::su[@class='SMAIN']");
+      if (ndxHit==null)  { logger.error("getHitTree: ndxHit is empty"); return null; }
+      // Get constituent nodes of the whole sentence: everything under <syntax>
+      ndxTop = ndxHit.SelectSingleNode("./ancestor-or-self::su[parent::syntax]");
+      if (ndxTop == null)  { logger.error("getHitTree: ndxTop is empty"); return null; }
+      // Process this information
+      DataObjectMapElement oAll = new DataObjectMapElement();
+      oAll.put("main", ndxTop.getAttributeValue(loc_xq_pos));
+      DataObjectList arAll = new DataObjectList("all");
+      // Get the top's children
+      List<XmlNode> arConst = ndxTop.SelectNodes("./child::su[(@class != 'CODE')]");
+      for (int i=0;i<arConst.size();i++) {
+        DataObjectMapElement oOneConst = new DataObjectMapElement();
+        oOneConst.put("pos", arConst.get(i).getAttributeValue(loc_xq_pos));
+        oOneConst.put("txt", RuBase.RuNodeText(crpThis, arConst.get(i).getNode(), sConvType).trim());
+        arAll.add(oOneConst);
+      }
+      oAll.put("children", arAll);
+      // Process the "hit" syntax information
+      DataObjectMapElement oHit = new DataObjectMapElement();
+      oHit.put("main", ndxHit.getAttributeValue(loc_xq_pos));
+      DataObjectList arHit = new DataObjectList("hit");
+      // Get the top's children
+      arConst = ndxHit.SelectNodes("./child::su[(@class != 'CODE')]");
+      for (int i=0;i<arConst.size();i++) {
+        DataObjectMapElement oOneConst = new DataObjectMapElement();
+        oOneConst.put("pos", arConst.get(i).getAttributeValue(loc_xq_pos));
+        oOneConst.put("txt", RuBase.RuNodeText(crpThis, arConst.get(i).getNode(), sConvType).trim());
+        arHit.add(oOneConst);
+      }
+      oHit.put("children", arHit);
+      // Prepare the object to be returned
+      oBack.put("all", oAll);
+      oBack.put("hit", oHit);
+      return oBack;
+    } catch (Exception ex) {
+      logger.error("getHitTree failed", ex);
+      return null;
+    }        
+  }
+  
   /**
    * getHitSvg
    *    Given the sentence in [ndxSentence] get a JSON representation of 
