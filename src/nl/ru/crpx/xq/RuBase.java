@@ -47,9 +47,21 @@ public class RuBase /* extends Job */ {
   private String strRuLexFile;              // Location of the ru:lex file
   private XPath xpath;
   private XPathCompiler xpComp;             // My own xpath compiler (Xdm, saxon)
+  private XPathCompiler loc_xpComp;
+  // ---------------------------------------------------------------------------
+  // NOTE: these two fields are static. They are used by Extensions
   static Processor objSaxon;                // The processor above the document builder
   static DocumentBuilder objSaxDoc;         // Internal copy of the document-builder to be used
+  // NOTE: these two are the private variants, determined by the calling CRP
+  private Processor loc_objSaxon = null;
+  private DocumentBuilder loc_objSaxDoc = null;
   // ===================== local constant stuff ================================
+  private XPathSelector loc_ru_xpeNodeText_Psdx;   // Search expression for ProjPsdx
+  private XPathSelector loc_ru_xpeNodeText_Folia;
+  private XPathSelector loc_ru_xpeNodeText_Alp;
+  private XPathSelector loc_ru_xpeNodeText_Negra;
+
+  // ===================== static constant stuff ===============================
   private static ErrHandle errHandle;
   private static XPathSelector ru_xpeNodeText_Psdx;   // Search expression for ProjPsdx
   private static XPathSelector ru_xpeNodeText_Folia;  // Search expression for ProjFolia
@@ -106,23 +118,34 @@ public class RuBase /* extends Job */ {
   private final String RU_OUT = "-Out.csv";
   private final String RU_DISTRI = "-Distri";
   private final String RU_TIMBL = "-Timbl";
-
+  private XPathContext cont = null;
 // </editor-fold>
 
   // =========================== instantiate the class =========================
   public RuBase(CorpusResearchProject objPrj) {
     try {
+      // Get context
+      this.cont = objPrj.getSaxProc().getUnderlyingConfiguration().getConversionContext();
       // this.xpath = XPathFactory.newInstance(NamespaceConstant.OBJECT_MODEL_SAXON).newXPath();
       this.xpath = XPathFactory.newInstance().newXPath();
       // Take over the Processor that has already been made
       this.objSaxon = objPrj.getSaxProc();
+      this.loc_objSaxon = objPrj.getSaxProc();
       // Every new project gets its own documentbuilder (??)
       this.objSaxDoc = this.objSaxon.newDocumentBuilder();
+      this.loc_objSaxDoc = this.loc_objSaxon.newDocumentBuilder();
       errHandle = new ErrHandle(RuBase.class);
       // Only reset the caller list if it has not yet been initialized
       if (!bInit) {
-         lCrpCaller = new ArrayList<>();
-        // Set up the compiler
+        lCrpCaller = new ArrayList<>();
+        // Set up a compiler for the INSTANCE part
+        this.loc_xpComp = this.loc_objSaxon.newXPathCompiler();
+        loc_ru_xpeNodeText_Psdx = loc_xpComp.compile("./descendant-or-self::eLeaf[@Type = 'Vern' or @Type = 'Punct']").load();
+        loc_ru_xpeNodeText_Folia = loc_xpComp.compile("./descendant-or-self::wref[count(ancestor::su[@class='CODE'])=0]").load();
+        loc_ru_xpeNodeText_Alp = loc_xpComp.compile("./descendant-or-self::node[count(@word)>0]").load();
+        loc_ru_xpeNodeText_Negra = loc_xpComp.compile("./descendant-or-self::t").load();
+        
+        // Set up the compiler for the STATIC part
         this.xpComp = this.objSaxon.newXPathCompiler();
         // Create search expressions for NodeText
         ru_xpeNodeText_Psdx = xpComp.compile("./descendant-or-self::eLeaf[@Type = 'Vern' or @Type = 'Punct']").load();
@@ -521,7 +544,8 @@ public class RuBase /* extends Job */ {
       return "";
     }
   }
-  public static String RuNodeText(CorpusResearchProject crpThis, XdmNode ndStart, String strType) {
+  // This is the NON-STATIC variant of the function
+  public String RuNodeText(CorpusResearchProject crpThis, XdmNode ndStart, String strType) {
     String sBack;           // Resulting string
     XPathSelector selectXp; // The actual selector we are using
     StringBuilder sBuild;   // Resulting string that is being built
@@ -538,7 +562,8 @@ public class RuBase /* extends Job */ {
           switch(ndStart.getNodeName().getLocalName()) {
             case "eTree": case "forest": case "eLeaf":
               // Make a list of all <eLeaf> nodes
-              selectXp = ru_xpeNodeText_Psdx;
+              // selectXp = ru_xpeNodeText_Psdx;
+              selectXp = this.loc_ru_xpeNodeText_Psdx;
               selectXp.setContextItem(ndStart);
               // Go through all the items
               for (XdmItem item : selectXp) {
@@ -557,7 +582,8 @@ public class RuBase /* extends Job */ {
           // Retrieve the list of words from the current node
           List<String> lSuId = getWordList(ndStart);
           // Make a list of all the <wref> nodes under me
-          selectXp = ru_xpeNodeText_Folia;
+          // selectXp = ru_xpeNodeText_Folia;
+          selectXp = this.loc_ru_xpeNodeText_Folia;
           selectXp.setContextItem(ndStart);
           // Go through all the items
           for (XdmItem item : selectXp) {
@@ -578,7 +604,7 @@ public class RuBase /* extends Job */ {
           break;
         case ProjAlp:
           // Make a list of all end nodes; Alpino only uses <node> tags
-          selectXp = ru_xpeNodeText_Alp;
+          selectXp = this.loc_ru_xpeNodeText_Alp;
           selectXp.setContextItem(ndStart);
           // Go through all the items
           for (XdmItem item : selectXp) {
@@ -588,7 +614,7 @@ public class RuBase /* extends Job */ {
           break;
         case ProjNegra:
           // Make a list of all end nodes; Negra has them under <terminals> as <t> items
-          selectXp = ru_xpeNodeText_Negra;
+          selectXp = this.loc_ru_xpeNodeText_Negra;
           selectXp.setContextItem(ndStart);
           // Go through all the items
           for (XdmItem item : selectXp) {

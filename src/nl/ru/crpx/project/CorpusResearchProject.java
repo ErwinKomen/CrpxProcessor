@@ -770,6 +770,7 @@ public class CorpusResearchProject {
   }
   
   // ===================== Get and Set methods =================================
+  public XPath getXPath() { return this.xpath;}
   public String getLocation() { return this.Location;}
   public String getName() { return this.Name;}
   public String getSource() { return this.Source;}

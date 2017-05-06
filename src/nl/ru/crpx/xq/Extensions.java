@@ -44,8 +44,8 @@ public class Extensions extends RuBase {
   private static final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(Extensions.class);
   // ============== Variables associated with the *class* "Extensions" =========
   private static PatternStore objStore;
-  private static RuBase objBase;
-  private static final XdmValue loc_EmptyString = new XdmAtomicValue("");
+  // private static RuBase objBase;
+  // private static final XdmValue loc_EmptyString = new XdmAtomicValue("");
   // ============== Variables local to me ======================================
   // private static CorpusResearchProject prjThis;
   private static ErrHandle errHandle;

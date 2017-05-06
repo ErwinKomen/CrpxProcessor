@@ -12,7 +12,7 @@ import nl.ru.crpx.dataobject.DataObjectList;
 import nl.ru.crpx.dataobject.DataObjectMapElement;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.xq.English;
-import nl.ru.crpx.xq.RuBase;
+// import nl.ru.crpx.xq.RuBase;
 import nl.ru.util.ByRef;
 import nl.ru.util.json.JSONObject;
 
@@ -32,8 +32,14 @@ public class XmlAccessPsdx extends XmlAccess {
   protected static final QName loc_xq_TextId = new QName("", "", "TextId");  
   protected static final QName loc_xq_Text = new QName("", "", "Text");  
   protected static final QName loc_xq_pos = new QName("", "", "Label");  
+  protected static final QName loc_xq_feat_type = new QName("", "", "type");  
+  protected static final QName loc_xq_feat_name = new QName("", "", "name");  
+  protected static final QName loc_xq_feat_val = new QName("", "", "value");  
   protected static final String loc_path_PsdxSent = "./descendant-or-self::forest[1]";
   protected static final String loc_path_PsdxHeader = "./descendant-or-self::teiHeader[1]";
+  protected static final String loc_path_PsdxFeat = "./child::f/child::fs";
+  protected static final String loc_path_PsdxParentF = "./parent::f";
+  protected static final String loc_path_PsdxChild = "./child::eTree[(@Label != 'CODE')]";
 
   // ==========================================================================================================
   // Class instantiation
@@ -165,7 +171,7 @@ public class XmlAccessPsdx extends XmlAccess {
       for (int i=0;i<arConst.size();i++) {
         DataObjectMapElement oOneConst = new DataObjectMapElement();
         oOneConst.put("pos", arConst.get(i).getAttributeValue(loc_xq_pos));
-        oOneConst.put("txt", RuBase.RuNodeText(crpThis, arConst.get(i).getNode(), sConvType).trim());
+        oOneConst.put("txt", objBase.RuNodeText(crpThis, arConst.get(i).getNode(), sConvType).trim());
         arAll.add(oOneConst);
       }
       oAll.put("children", arAll);
@@ -178,7 +184,7 @@ public class XmlAccessPsdx extends XmlAccess {
       for (int i=0;i<arConst.size();i++) {
         DataObjectMapElement oOneConst = new DataObjectMapElement();
         oOneConst.put("pos", arConst.get(i).getAttributeValue(loc_xq_pos));
-        oOneConst.put("txt", RuBase.RuNodeText(crpThis, arConst.get(i).getNode(), sConvType).trim());
+        oOneConst.put("txt", objBase.RuNodeText(crpThis, arConst.get(i).getNode(), sConvType).trim());
         arHit.add(oOneConst);
       }
       oHit.put("children", arHit);
@@ -241,40 +247,82 @@ public class XmlAccessPsdx extends XmlAccess {
       // Get constituent nodes of the whole sentence
       ndxTop = ndxHit.SelectSingleNode("./ancestor-or-self::eTree[parent::forest]");
       if (ndxTop == null) return null;
-      // Process this information
-      DataObjectMapElement oAll = new DataObjectMapElement();
-      oAll.put("main", ndxTop.getAttributeValue(loc_xq_pos));
-      DataObjectList arAll = new DataObjectList("all");
-      // Get the top's children
-      List<XmlNode> arConst = ndxTop.SelectNodes("./child::eTree[(@Label != 'CODE')]");
-      for (int i=0;i<arConst.size();i++) {
-        DataObjectMapElement oOneConst = new DataObjectMapElement();
-        oOneConst.put("pos", arConst.get(i).getAttributeValue(loc_xq_pos));
-        oOneConst.put("txt", RuBase.RuNodeText(crpThis, arConst.get(i).getNode(), sConvType).trim());
-        arAll.add(oOneConst);
-      }
-      oAll.put("children", arAll);
-      // Process the "hit" syntax information
-      DataObjectMapElement oHit = new DataObjectMapElement();
-      oHit.put("main", ndxHit.getAttributeValue(loc_xq_pos));
-      DataObjectList arHit = new DataObjectList("hit");
-      // Get the top's children
-      arConst = ndxHit.SelectNodes("./child::eTree[(@Label != 'CODE')]");
-      for (int i=0;i<arConst.size();i++) {
-        DataObjectMapElement oOneConst = new DataObjectMapElement();
-        oOneConst.put("pos", arConst.get(i).getAttributeValue(loc_xq_pos));
-        oOneConst.put("txt", RuBase.RuNodeText(crpThis, arConst.get(i).getNode(), sConvType).trim());
-        arHit.add(oOneConst);
-      }
-      oHit.put("children", arHit);
       // Prepare the object to be returned
-      oBack.put("all", oAll);
-      oBack.put("hit", oHit);
+      oBack.put("all", getTreeNode(ndxTop, sConvType));
+      oBack.put("hit", getTreeNode(ndxHit, sConvType));
       return oBack;
     } catch (Exception ex) {
       logger.error("getHitTree failed", ex);
       return null;
     }    
+  }
+  
+  /**
+   * getTreeNode
+   *    Convert xml node ndxThis into a tree node 
+   *    THis is a recursive function
+   * 
+   * @param ndxThis
+   * @param sConvType
+   * @return 
+   */
+  private DataObjectMapElement getTreeNode(XmlNode ndxThis, String sConvType) {
+    DataObjectMapElement oBack = new DataObjectMapElement();
+    DataObjectList lChild = new DataObjectList("child");
+
+    try {
+      // Add the details of this node to the oBack
+      oBack.put("pos", ndxThis.getAttributeValue(loc_xq_pos));
+      oBack.put("f", getTreeNodeFeatures(ndxThis));
+      // Get the top's children, excluding CODE
+      List<XmlNode> arConst = ndxThis.SelectNodes(loc_path_PsdxChild);
+      // Are there any children?
+      if (arConst.isEmpty()) {
+        oBack.put("txt", objBase.RuNodeText(crpThis, ndxThis.getNode(), sConvType).trim());
+      } else {
+        // Walk the children
+        for (int i=0;i<arConst.size();i++) {
+          XmlNode ndxChild = arConst.get(i);
+          lChild.add(getTreeNode(ndxChild, sConvType));
+        }
+        // Add the list of children
+        oBack.put("child", lChild);
+      }
+      
+      return oBack;
+    } catch (Exception ex) {
+      logger.error("getTreeNode failed", ex);
+      return null;
+    }
+  }
+  
+  /**
+   * getTreeNodeFeatures
+   *    Get the list of feature key-values for this node
+   * 
+   * @param ndxThis
+   * @return 
+   */
+  DataObject getTreeNodeFeatures(XmlNode ndxThis) {
+    DataObjectMapElement oBack = new DataObjectMapElement();
+    
+    try {
+      List<XmlNode> lFeats = ndxThis.SelectNodes(loc_path_PsdxFeat);
+      for (int i=0;i<lFeats.size();i++) {
+        // Get this feature
+        XmlNode ndxFeat = lFeats.get(i);
+        // Get feature type, key and value
+        String sType = ndxFeat.SelectSingleNode(loc_path_PsdxParentF).getAttributeValue(loc_xq_feat_type);
+        String sKey = ndxFeat.getAttributeValue(loc_xq_feat_name);
+        if (!sType.isEmpty()) sKey = sType + "." + sKey;
+        String sValue = ndxFeat.getAttributeValue(loc_xq_feat_val);
+        oBack.put(sKey, sValue);
+      }
+      return oBack;
+    } catch (Exception ex) {
+      logger.error("getTreeNodeFeatures failed", ex);
+      return null;
+    }
   }
 
   

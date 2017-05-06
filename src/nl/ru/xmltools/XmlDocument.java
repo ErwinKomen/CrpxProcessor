@@ -17,6 +17,7 @@ import net.sf.saxon.s9api.XPathExecutable;
 import net.sf.saxon.s9api.XPathSelector;
 import net.sf.saxon.s9api.XdmItem;
 import net.sf.saxon.s9api.XdmNode;
+import nl.ru.crpx.project.CorpusResearchProject;
 import org.apache.log4j.Logger;
 
 /**
@@ -38,6 +39,19 @@ public class XmlDocument {
     Attribute, Comment, Document, Element, EndElement
   }
   // Instantiation of the class
+  public XmlDocument(CorpusResearchProject crpThis) {
+    try {
+      // Set my processor (same for all threads)
+      this.oProc = crpThis.getSaxProc();
+      // Set the internal document builder
+      this.builder = this.oProc.newDocumentBuilder(); //  oSaxDoc;
+      // Create an xpath compiler
+      xpath = oProc.newXPathCompiler();
+      this.sText = "";
+    } catch (RuntimeException ex) {
+      logger.error("XmlDocument class instantiation failed", ex);
+    }
+  }
   public XmlDocument(DocumentBuilder oSaxDoc, Processor objProc) {
     try {
       // Set the internal document builder
