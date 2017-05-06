@@ -37,8 +37,8 @@ public class XmlAccessPsdx extends XmlAccess {
   protected static final QName loc_xq_feat_val = new QName("", "", "value");  
   protected static final String loc_path_PsdxSent = "./descendant-or-self::forest[1]";
   protected static final String loc_path_PsdxHeader = "./descendant-or-self::teiHeader[1]";
-  protected static final String loc_path_PsdxFeat = "./child::f/child::fs";
-  protected static final String loc_path_PsdxParentF = "./parent::f";
+  protected static final String loc_path_PsdxFeat = "./child::fs/child::f";
+  protected static final String loc_path_PsdxParentF = "./parent::fs";
   protected static final String loc_path_PsdxChild = "./child::eTree[(@Label != 'CODE')]";
 
   // ==========================================================================================================
