@@ -33,6 +33,7 @@ public class XmlAccessFolia extends XmlAccess {
   protected static final QName loc_xq_Text = new QName("", "", "t");            // Text attribute of <wref> node
   protected static final QName loc_xq_id = new QName("xml", "http://www.w3.org/XML/1998/namespace", "id");
   protected static final QName loc_xq_pos = new QName("", "", "class");  
+  protected static final QName loc_xq_feat_syntax = new QName("", "", "class");  
   protected static final QName loc_xq_feat_name = new QName("", "", "subset");  
   protected static final QName loc_xq_feat_val = new QName("", "", "class");  
   protected static final QName loc_xq_TextType = new QName("", "", "class");
@@ -227,7 +228,8 @@ public class XmlAccessFolia extends XmlAccess {
       // DEBUGGING: XmlNode ndxTmp = this.ndxSent.SelectSingleNode("./descendant::su[@class='SMAIN']");
       if (ndxHit==null)  { logger.error("getHitTree: ndxHit is empty"); return null; }
       // Get constituent nodes of the whole sentence: everything under <syntax>
-      ndxTop = ndxHit.SelectSingleNode("./ancestor-or-self::su[parent::syntax]");
+      // ndxTop = ndxHit.SelectSingleNode("./ancestor-or-self::su[parent::syntax]");
+      ndxTop = ndxHit.SelectSingleNode("./ancestor-or-self::syntax");
       if (ndxTop == null)  { logger.error("getHitTree: ndxTop is empty"); return null; }
       // Prepare the object to be returned
       oBack.put("all", getTreeNode(ndxTop, sConvType));
@@ -251,10 +253,19 @@ public class XmlAccessFolia extends XmlAccess {
   private DataObjectMapElement getTreeNode(XmlNode ndxThis, String sConvType) {
     DataObjectMapElement oBack = new DataObjectMapElement();
     DataObjectList lChild = new DataObjectList("child");
+    String sPos = "";
 
     try {
       // Add the details of this node to the oBack
-      oBack.put("pos", ndxThis.getAttributeValue(loc_xq_pos));
+      switch (ndxThis.getNodeName().toString()) {
+        case "syntax":
+          sPos = ndxThis.SelectSingleNode("./ancestor::s").getAttributeValue("xml:id");
+          break;
+        case "su":
+          sPos = ndxThis.getAttributeValue(loc_xq_pos);
+          break;
+      }
+      oBack.put("pos",sPos);
       oBack.put("f", getTreeNodeFeatures(ndxThis));
       // oBack.put("txt", objBase.RuNodeText(crpThis, ndxThis.getNode(), sConvType).trim());
       // Get the top's children, excluding CODE
@@ -301,17 +312,37 @@ public class XmlAccessFolia extends XmlAccess {
    */
   DataObject getTreeNodeFeatures(XmlNode ndxThis) {
     DataObjectMapElement oBack = new DataObjectMapElement();
+    List<XmlNode> lFeats = null;
+    XmlNode ndxFeat = null;
+    String sKey = "";
+    String sValue = "";
     
     try {
-      List<XmlNode> lFeats = ndxThis.SelectNodes(loc_path_FoliaFeat);
-      for (int i=0;i<lFeats.size();i++) {
-        // Get this feature
-        XmlNode ndxFeat = lFeats.get(i);
-        // Get feature key and value
-        String sKey = ndxFeat.getAttributeValue(loc_xq_feat_name);
-        String sValue = ndxFeat.getAttributeValue(loc_xq_feat_val);
-        oBack.put(sKey, sValue);
+      switch (ndxThis.getNodeName().toString()) {
+        case "syntax":
+          lFeats = ndxThis.SelectNodes("./ancestor::s[1]/child::t");
+          for (int i=0;i<lFeats.size();i++) {
+            // Get this <t> node
+            ndxFeat = lFeats.get(i);
+            // The feature 'key' is the 'class' name
+            sKey = ndxFeat.getAttributeValue(loc_xq_feat_syntax);
+            sValue = ndxFeat.getNodeValue();
+            oBack.put(sKey, sValue);
+          }
+          break;
+        case "su":
+          lFeats = ndxThis.SelectNodes(loc_path_FoliaFeat);
+          for (int i=0;i<lFeats.size();i++) {
+            // Get this feature
+            ndxFeat = lFeats.get(i);
+            // Get feature key and value
+            sKey = ndxFeat.getAttributeValue(loc_xq_feat_name);
+            sValue = ndxFeat.getAttributeValue(loc_xq_feat_val);
+            oBack.put(sKey, sValue);
+          }
+          break;
       }
+      
       return oBack;
     } catch (Exception ex) {
       logger.error("getTreeNodeFeatures failed", ex);

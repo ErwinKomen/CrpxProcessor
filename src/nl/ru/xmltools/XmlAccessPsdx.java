@@ -37,6 +37,7 @@ public class XmlAccessPsdx extends XmlAccess {
   protected static final QName loc_xq_feat_type = new QName("", "", "type");  
   protected static final QName loc_xq_feat_name = new QName("", "", "name");  
   protected static final QName loc_xq_feat_val = new QName("", "", "value");  
+  protected static final QName loc_xq_feat_forest = new QName("", "", "lang");  
   protected static final String loc_path_PsdxSent = "./descendant-or-self::forest[1]";
   protected static final String loc_path_PsdxHeader = "./descendant-or-self::teiHeader[1]";
   protected static final String loc_path_PsdxFeat = "./child::fs/child::f";
@@ -332,19 +333,40 @@ public class XmlAccessPsdx extends XmlAccess {
    */
   DataObject getTreeNodeFeatures(XmlNode ndxThis) {
     DataObjectMapElement oBack = new DataObjectMapElement();
+    List<XmlNode> lFeats = null;
+    XmlNode ndxFeat = null;
+    String sKey = "";
+    String sValue = "";
     
     try {
-      List<XmlNode> lFeats = ndxThis.SelectNodes(loc_path_PsdxFeat);
-      for (int i=0;i<lFeats.size();i++) {
-        // Get this feature
-        XmlNode ndxFeat = lFeats.get(i);
-        // Get feature type, key and value
-        String sType = ndxFeat.SelectSingleNode(loc_path_PsdxParentF).getAttributeValue(loc_xq_feat_type);
-        String sKey = ndxFeat.getAttributeValue(loc_xq_feat_name);
-        if (!sType.isEmpty()) sKey = sType + "." + sKey;
-        String sValue = ndxFeat.getAttributeValue(loc_xq_feat_val);
-        oBack.put(sKey, sValue);
-      }
+      // Add the details of this node to the oBack
+      switch (ndxThis.getNodeName().toString()) {
+        case "forest":
+          lFeats = ndxThis.SelectNodes("./child::div");
+          for (int i=0;i<lFeats.size();i++) {
+            // Get this <div> node
+            ndxFeat = lFeats.get(i);
+            // Feature 'key' is the @lang property of the div
+            sKey = ndxFeat.getAttributeValue(loc_xq_feat_forest);
+            // Feature 'value' is the <seg> content
+            sValue = ndxFeat.SelectSingleNode("./child::seg").getNodeValue();
+            oBack.put(sKey, sValue);
+          }
+          break;
+        default:
+          lFeats = ndxThis.SelectNodes(loc_path_PsdxFeat);
+          for (int i=0;i<lFeats.size();i++) {
+            // Get this feature
+            ndxFeat = lFeats.get(i);
+            // Get feature type, key and value
+            String sType = ndxFeat.SelectSingleNode(loc_path_PsdxParentF).getAttributeValue(loc_xq_feat_type);
+            sKey = ndxFeat.getAttributeValue(loc_xq_feat_name);
+            if (!sType.isEmpty()) sKey = sType + "." + sKey;
+            sValue = ndxFeat.getAttributeValue(loc_xq_feat_val);
+            oBack.put(sKey, sValue);
+          }
+          break;
+      }      
       return oBack;
     } catch (Exception ex) {
       logger.error("getTreeNodeFeatures failed", ex);
