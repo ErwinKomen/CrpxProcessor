@@ -32,6 +32,7 @@ public class XmlAccessPsdx extends XmlAccess {
   protected static final QName loc_xq_Location = new QName("", "", "Location");  
   protected static final QName loc_xq_TextId = new QName("", "", "TextId");  
   protected static final QName loc_xq_Text = new QName("", "", "Text");  
+  protected static final QName loc_xq_TextType = new QName("", "", "Type");  
   protected static final QName loc_xq_pos = new QName("", "", "Label");  
   protected static final QName loc_xq_feat_type = new QName("", "", "type");  
   protected static final QName loc_xq_feat_name = new QName("", "", "name");  
@@ -41,6 +42,7 @@ public class XmlAccessPsdx extends XmlAccess {
   protected static final String loc_path_PsdxFeat = "./child::fs/child::f";
   protected static final String loc_path_PsdxParentF = "./parent::fs";
   protected static final String loc_path_PsdxChild = "./child::eTree[(@Label != 'CODE')]";
+  protected static final String loc_path_PsdxLeaf = "./child::eLeaf";
 
   // ==========================================================================================================
   // Class instantiation
@@ -279,10 +281,18 @@ public class XmlAccessPsdx extends XmlAccess {
       List<XmlNode> arConst = ndxThis.SelectNodes(loc_path_PsdxChild);
       // Are there any children?
       if (arConst.isEmpty()) {
-        // There are no children, so this is an end-node: get the TEXT of this end-node
-        String sText = ndxThis.getAttributeValue(loc_xq_Text);
-        if (!sConvType.isEmpty()) sText = RuBase.RuConv(sText, sConvType);
+        // There are no children, so this is an end-eTree-node
+        String sText = "";
+        String sType = "";
+        // The text is in the one-and-only <eLeaf> child
+        XmlNode ndxLeaf = ndxThis.SelectSingleNode(loc_path_PsdxLeaf);
+        if (ndxLeaf != null) {
+          sText = ndxLeaf.getAttributeValue(loc_xq_Text);
+          if (!sConvType.isEmpty()) sText = RuBase.RuConv(sText, sConvType);
+          sType = ndxLeaf.getAttributeValue(loc_xq_TextType);
+        }
         oBack.put("txt", sText);
+        oBack.put("type", sType);
         // oBack.put("txt", objBase.RuNodeText(crpThis, ndxThis.getNode(), sConvType).trim());
       } else {
         // Walk the children
