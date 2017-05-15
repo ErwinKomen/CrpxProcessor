@@ -247,8 +247,8 @@ public class XmlAccessPsdx extends XmlAccess {
       // Get the hit constituent
       ndxHit = this.ndxSent.SelectSingleNode("./descendant::eTree[@Id=" + sLocw + "]");
       if (ndxHit==null) return null;
-      // Get constituent nodes of the whole sentence
-      ndxTop = ndxHit.SelectSingleNode("./ancestor-or-self::eTree[parent::forest]");
+      // Get constituent nodes of the whole sentence: INCLUDING THE FOREST
+      ndxTop = ndxHit.SelectSingleNode("./ancestor-or-self::forest");
       if (ndxTop == null) return null;
       // Prepare the object to be returned
       oBack.put("all", getTreeNode(ndxTop, sConvType));
@@ -265,17 +265,29 @@ public class XmlAccessPsdx extends XmlAccess {
    *    Convert xml node ndxThis into a tree node 
    *    THis is a recursive function
    * 
-   * @param ndxThis
+   * @param ndxThis     - Node, which may be <eTree> or <forest>
    * @param sConvType
    * @return 
    */
   private DataObjectMapElement getTreeNode(XmlNode ndxThis, String sConvType) {
     DataObjectMapElement oBack = new DataObjectMapElement();
     DataObjectList lChild = new DataObjectList("child");
+    String sPos = "";
 
     try {
       // Add the details of this node to the oBack
-      oBack.put("pos", ndxThis.getAttributeValue(loc_xq_pos));
+      switch (ndxThis.getNodeName().toString()) {
+        case "forest":
+          sPos = ndxThis.getAttributeValue(loc_xq_Location);
+          break;
+        case "eTree":
+          sPos = ndxThis.getAttributeValue(loc_xq_pos);
+          break;
+        case "eLeaf":
+          sPos = "ERROR: leaf";
+          break;
+      }
+      oBack.put("pos",sPos);
       oBack.put("f", getTreeNodeFeatures(ndxThis));
       // Get the top's children, excluding CODE
       List<XmlNode> arConst = ndxThis.SelectNodes(loc_path_PsdxChild);

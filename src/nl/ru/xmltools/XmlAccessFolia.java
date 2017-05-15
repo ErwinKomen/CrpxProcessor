@@ -31,13 +31,17 @@ public class XmlAccessFolia extends XmlAccess {
   // protected static final QName loc_xq_Location = new QName("", "", "id");  
   protected static final QName loc_xq_TextId = new QName("", "", "TextId");  
   protected static final QName loc_xq_Text = new QName("", "", "t");            // Text attribute of <wref> node
+  protected static final QName loc_xq_id = new QName("xml", "http://www.w3.org/XML/1998/namespace", "id");
   protected static final QName loc_xq_pos = new QName("", "", "class");  
   protected static final QName loc_xq_feat_name = new QName("", "", "subset");  
   protected static final QName loc_xq_feat_val = new QName("", "", "class");  
+  protected static final QName loc_xq_TextType = new QName("", "", "class");
   protected static final String loc_path_FoliaSent = "./descendant-or-self::s[1]";
   protected static final String loc_path_FoliaHeader = "./descendant-or-self::metadata[1]";
   protected static final String loc_path_FoliaFeat = "./child::feat";
   protected static final String loc_path_FoliaChild = "./child::su[@class != 'CODE']";
+  protected static final String loc_path_FoliaLeaf = "./child::wref";
+  protected static final String loc_path_FoliaWord = "./ancestor::s[1]/child::w";
 
   // ==========================================================================================================
   // Class instantiation
@@ -257,10 +261,20 @@ public class XmlAccessFolia extends XmlAccess {
       List<XmlNode> arConst = ndxThis.SelectNodes(loc_path_FoliaChild);
       // Are there any children?
       if (arConst.isEmpty()) {
-        // There are no children, so this is an end-node: get the TEXT of this end-node
-        String sText = ndxThis.getAttributeValue(loc_xq_Text);
-        if (!sConvType.isEmpty()) sText = RuBase.RuConv(sText, sConvType);
+        // There are no children, so this is an end-eTree-node
+        String sText = "";
+        String sType = "";
+        // The text is in the one-and-only <wref> child
+        XmlNode ndxWref = ndxThis.SelectSingleNode(loc_path_FoliaLeaf);
+        String sId = ndxWref.getAttributeValue("id");
+        XmlNode ndxLeaf = ndxThis.SelectSingleNode(loc_path_FoliaWord+"[@xml:id = '"+sId+"']");
+        if (ndxLeaf != null) {
+          sText = ndxLeaf.SelectSingleNode("./child::t").getNodeValue();
+          if (!sConvType.isEmpty()) sText = RuBase.RuConv(sText, sConvType);
+          sType = ndxLeaf.getAttributeValue(loc_xq_TextType);
+        }
         oBack.put("txt", sText);
+        oBack.put("type", sType);
       } else {
         // Walk the children
         for (int i=0;i<arConst.size();i++) {
