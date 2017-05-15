@@ -352,6 +352,18 @@ public class XmlAccessPsdx extends XmlAccess {
             sValue = ndxFeat.SelectSingleNode("./child::seg").getNodeValue();
             oBack.put(sKey, sValue);
           }
+          // Also add any other sentence-level features
+          lFeats = ndxThis.SelectNodes(loc_path_PsdxFeat);
+          for (int i=0;i<lFeats.size();i++) {
+            // Get this feature
+            ndxFeat = lFeats.get(i);
+            // Get feature type, key and value
+            String sType = ndxFeat.SelectSingleNode(loc_path_PsdxParentF).getAttributeValue(loc_xq_feat_type);
+            sKey = ndxFeat.getAttributeValue(loc_xq_feat_name);
+            if (!sType.isEmpty()) sKey = sType + "." + sKey;
+            sValue = ndxFeat.getAttributeValue(loc_xq_feat_val);
+            oBack.put(sKey, sValue);
+          }
           break;
         default:
           lFeats = ndxThis.SelectNodes(loc_path_PsdxFeat);
