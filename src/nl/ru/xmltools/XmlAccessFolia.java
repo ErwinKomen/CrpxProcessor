@@ -252,15 +252,24 @@ public class XmlAccessFolia extends XmlAccess {
       // Add the details of this node to the oBack
       oBack.put("pos", ndxThis.getAttributeValue(loc_xq_pos));
       oBack.put("f", getTreeNodeFeatures(ndxThis));
-      oBack.put("txt", objBase.RuNodeText(crpThis, ndxThis.getNode(), sConvType).trim());
+      // oBack.put("txt", objBase.RuNodeText(crpThis, ndxThis.getNode(), sConvType).trim());
       // Get the top's children, excluding CODE
       List<XmlNode> arConst = ndxThis.SelectNodes(loc_path_FoliaChild);
-      for (int i=0;i<arConst.size();i++) {
-        XmlNode ndxChild = arConst.get(i);
-        lChild.add(getTreeNode(ndxChild, sConvType));
+      // Are there any children?
+      if (arConst.isEmpty()) {
+        // There are no children, so this is an end-node: get the TEXT of this end-node
+        String sText = ndxThis.getAttributeValue(loc_xq_Text);
+        if (!sConvType.isEmpty()) sText = RuBase.RuConv(sText, sConvType);
+        oBack.put("txt", sText);
+      } else {
+        // Walk the children
+        for (int i=0;i<arConst.size();i++) {
+          XmlNode ndxChild = arConst.get(i);
+          lChild.add(getTreeNode(ndxChild, sConvType));
+        }
+        // Add the list of children
+        oBack.put("child", lChild);
       }
-      // Add the list of children
-      oBack.put("child", lChild);
       
       return oBack;
     } catch (Exception ex) {

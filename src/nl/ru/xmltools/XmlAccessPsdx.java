@@ -12,6 +12,7 @@ import nl.ru.crpx.dataobject.DataObjectList;
 import nl.ru.crpx.dataobject.DataObjectMapElement;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.xq.English;
+import nl.ru.crpx.xq.RuBase;
 // import nl.ru.crpx.xq.RuBase;
 import nl.ru.util.ByRef;
 import nl.ru.util.json.JSONObject;
@@ -278,7 +279,11 @@ public class XmlAccessPsdx extends XmlAccess {
       List<XmlNode> arConst = ndxThis.SelectNodes(loc_path_PsdxChild);
       // Are there any children?
       if (arConst.isEmpty()) {
-        oBack.put("txt", objBase.RuNodeText(crpThis, ndxThis.getNode(), sConvType).trim());
+        // There are no children, so this is an end-node: get the TEXT of this end-node
+        String sText = ndxThis.getAttributeValue(loc_xq_Text);
+        if (!sConvType.isEmpty()) sText = RuBase.RuConv(sText, sConvType);
+        oBack.put("txt", sText);
+        // oBack.put("txt", objBase.RuNodeText(crpThis, ndxThis.getNode(), sConvType).trim());
       } else {
         // Walk the children
         for (int i=0;i<arConst.size();i++) {

@@ -135,15 +135,15 @@ public class RuBase /* extends Job */ {
       this.objSaxDoc = this.objSaxon.newDocumentBuilder();
       this.loc_objSaxDoc = this.loc_objSaxon.newDocumentBuilder();
       errHandle = new ErrHandle(RuBase.class);
+      // Set up a compiler for the INSTANCE part
+      this.loc_xpComp = this.loc_objSaxon.newXPathCompiler();
+      loc_ru_xpeNodeText_Psdx = loc_xpComp.compile("./descendant-or-self::eLeaf[@Type = 'Vern' or @Type = 'Punct']").load();
+      loc_ru_xpeNodeText_Folia = loc_xpComp.compile("./descendant-or-self::wref[count(ancestor::su[@class='CODE'])=0]").load();
+      loc_ru_xpeNodeText_Alp = loc_xpComp.compile("./descendant-or-self::node[count(@word)>0]").load();
+      loc_ru_xpeNodeText_Negra = loc_xpComp.compile("./descendant-or-self::t").load();
       // Only reset the caller list if it has not yet been initialized
       if (!bInit) {
         lCrpCaller = new ArrayList<>();
-        // Set up a compiler for the INSTANCE part
-        this.loc_xpComp = this.loc_objSaxon.newXPathCompiler();
-        loc_ru_xpeNodeText_Psdx = loc_xpComp.compile("./descendant-or-self::eLeaf[@Type = 'Vern' or @Type = 'Punct']").load();
-        loc_ru_xpeNodeText_Folia = loc_xpComp.compile("./descendant-or-self::wref[count(ancestor::su[@class='CODE'])=0]").load();
-        loc_ru_xpeNodeText_Alp = loc_xpComp.compile("./descendant-or-self::node[count(@word)>0]").load();
-        loc_ru_xpeNodeText_Negra = loc_xpComp.compile("./descendant-or-self::t").load();
         
         // Set up the compiler for the STATIC part
         this.xpComp = this.objSaxon.newXPathCompiler();
@@ -388,7 +388,7 @@ public class RuBase /* extends Job */ {
   // 21-04-2014  ERK Created for .NET 
   // 30/apr/2015 ERK Ported to Java
   // ----------------------------------------------------------------------------------------------------------
-  static String RuConv(String strIn, String strType) {
+  public static String RuConv(String strIn, String strType) {
     String strOut = strIn;  // What we return
     String[] arType;        // Array of types
     
@@ -562,6 +562,9 @@ public class RuBase /* extends Job */ {
           switch(ndStart.getNodeName().getLocalName()) {
             case "eTree": case "forest": case "eLeaf":
               // Make a list of all <eLeaf> nodes
+              if (this == null || this.loc_ru_xpeNodeText_Psdx == null) {
+                int iStopHere = 1;
+              }
               // selectXp = ru_xpeNodeText_Psdx;
               selectXp = this.loc_ru_xpeNodeText_Psdx;
               selectXp.setContextItem(ndStart);
