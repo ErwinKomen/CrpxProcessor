@@ -81,7 +81,8 @@ public class XmlDocument {
       sXmlText = sXmlText.trim();
       if (!sXmlText.startsWith("<") || !sXmlText.endsWith(">")) {
         // It seems this is no XML, so don't load it
-        logger.error("LoadXml: attempt to load non-xml");
+        logger.error("LoadXml: attempt to load non-xml. Content:");
+        logger.error(sXmlText.substring(0, 80));
         return false;
       }
       // Load the string as an XdmNode

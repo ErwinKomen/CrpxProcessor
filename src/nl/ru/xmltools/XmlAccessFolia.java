@@ -592,6 +592,12 @@ public class XmlAccessFolia extends XmlAccess {
         } else {
           sSentLine = objXmlRdr.getOneLine(sSentId);
         }
+        // If we don't get anything, then return false
+        sSentLine = sSentLine.trim();
+        if (sSentLine.isEmpty()) {
+          logger.error("readSent: empty line for sentence id ["+sSentId+"]");
+          return false;
+        }
         // Convert this into an XmlNode
         pdxDoc.LoadXml(sSentLine);
         // Get the root node
