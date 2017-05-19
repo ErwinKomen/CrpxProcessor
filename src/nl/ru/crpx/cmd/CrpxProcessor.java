@@ -360,6 +360,7 @@ public class CrpxProcessor {
         switch (name) {
           case "resultsType": value = "XML"; break;
           case "waitfortotal": value= "no"; break;
+          /* NOT NEEDED FOR ANYTHING
           case "tmpdir": 
             // Create temporary file
             File fTmp = File.createTempFile("tmp", ".txt");
@@ -367,6 +368,7 @@ public class CrpxProcessor {
             String sPath = fTmp.getAbsolutePath();
             value = sPath.substring(0,sPath.lastIndexOf(File.separator));
             // value = Files.createTempDirectory("tmpdir").toString(); // System.getProperty("tmpdir");
+          */
         }
         // Check if it has some kind of value
         if (value.length() == 0) continue;
