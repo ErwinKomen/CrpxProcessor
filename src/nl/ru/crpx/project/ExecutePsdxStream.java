@@ -961,41 +961,61 @@ public class ExecutePsdxStream extends ExecuteXml {
               CrpFile oCrpFile = RuBase.getCrpFile(rThis.intCrpFileId);
               if (oCrpFile==null) {
                 logger.debug("monitorRunXqF job " + rThis.getJobId() + " CrpFile=null");
-              } 
-              if (oCrpFile.flThis == null)
+              } else if (oCrpFile.flThis == null)
                 logger.debug("monitorRunXqF job " + rThis.getJobId() + " CrpFile.flThis=null");
             }
             // =========================================
             
             // Note that it has finished for others too
             CrpFile oCrpFile = RuBase.getCrpFile(rThis.intCrpFileId);
-            setProgress(jobCaller, "", oCrpFile.flThis.getName(), 
-                    -1, arCount.length(), -1);
-            // Double check status
-            String sStat = rThis.getJobStatus();
-            if (sStat.equals("error") || sStat.equals("interrupt") || jobCaller.getJobStatus().equals("interrupt")) {
-              // Pass on the error upwards to the job caller
-              jobCaller.setJobErrors(rThis.getJobErrors());
-              jobCaller.setJobStatus("error");
-              // Get job id
+            // Make sure this CrpFile still exists
+            if (oCrpFile == null) {
+              // Since there is no alive CrpFile anymore, 
+              //   we need to get rid of this RunXqF job...
               String sJobId = rThis.getJobId();
-              // Not used: String sJobQ = rThis.getJobQuery();
-              // Remove this job
+              errHandle.DoError("MonitorRunXqF: empty CrpFile in RunXqF job: "+sJobId);
+
+              // Double check status
+              String sStat = rThis.getJobStatus();
+              if (sStat.equals("error") || sStat.equals("interrupt") || jobCaller.getJobStatus().equals("interrupt")) {
+                // Pass on the error upwards to the job caller
+                jobCaller.setJobErrors(rThis.getJobErrors());
+                jobCaller.setJobStatus("error");
+              }
+              // Okay, remove the RunXqF job
               arRunXqF.remove(rThis);
-              // Nicely close the Ra Reader attached to this
-              oCrpFile.close();
               // Release the resources from [rThis]
               rThis.close();
-              // Return with an error
-              return errHandle.DoError("MonitorRunXqF detected error in RunXqF job: "+sJobId);
             } else {
-              // We have its results, so take it away from our job list
-              arRunXqF.remove(rThis);
-              // Nicely close the Ra Reader attached to this
-              oCrpFile.close();
-              // Release the resources from [rThis]
-              rThis.close();
-              
+              // The CrpFile still exists...
+              setProgress(jobCaller, "", oCrpFile.flThis.getName(), 
+                      -1, arCount.length(), -1);
+              // Double check status
+              String sStat = rThis.getJobStatus();
+              if (sStat.equals("error") || sStat.equals("interrupt") || jobCaller.getJobStatus().equals("interrupt")) {
+                // Pass on the error upwards to the job caller
+                jobCaller.setJobErrors(rThis.getJobErrors());
+                jobCaller.setJobStatus("error");
+                // Get job id
+                String sJobId = rThis.getJobId();
+                // Not used: String sJobQ = rThis.getJobQuery();
+                // Remove this job
+                arRunXqF.remove(rThis);
+                // Nicely close the Ra Reader attached to this
+                oCrpFile.close();
+                // Release the resources from [rThis]
+                rThis.close();
+                // Return with an error
+                return errHandle.DoError("MonitorRunXqF detected error in RunXqF job: "+sJobId);
+              } else {
+                // We have its results, so take it away from our job list
+                arRunXqF.remove(rThis);
+                // Nicely close the Ra Reader attached to this
+                oCrpFile.close();
+                // Release the resources from [rThis]
+                rThis.close();
+
+              }
             }
           }
         }

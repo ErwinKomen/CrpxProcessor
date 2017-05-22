@@ -105,17 +105,17 @@ public class RunXqF extends RunAny {
         // Check for interrupt
         if (errHandle.bInterrupt) {
           this.jobStatus = "interrupt";
-          errHandle.DoError("JobXqF: The program has been interrupted [" + sName + "]");
+          errHandle.DoError("RunXqF: The program has been interrupted [" + sName + "]");
           parentXqJob.setJobStatus("error");
         } else {
           this.jobStatus = "finished";
-          errHandle.debug("JobXqF: performSearch: ready handling job [" + sName + "]");
+          errHandle.debug("RunXqF: performSearch: ready handling job [" + sName + "]");
         }
       } else {
         this.jobStatus = "error";
         errHandle.DoError(parentXqJob.getJobErrors());
-        errHandle.DoError("JobXqF: The queries could not be executed [" + sName + "]");
-        errHandle.debug("JobXqF errors=" + parentXqJob.getJobErrors());
+        errHandle.DoError("RunXqF: The queries could not be executed [" + sName + "]");
+        errHandle.debug("RunXqF errors=" + parentXqJob.getJobErrors());
         parentXqJob.setJobStatus("error");
       }
       
