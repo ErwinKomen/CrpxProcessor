@@ -296,17 +296,17 @@ public class SearchCache {
    * @return true iff the cache is too big.
    */
   private boolean cacheTooBig() {
-          boolean tooManySearches = maxNumberOfJobs >= 0
-                          && cachedSearches.size() > maxNumberOfJobs;
-          /*if (tooManySearches)
-                  logger.debug("Cache has too many searches (" + cachedSearches.size() + " > "
-                                  + maxNumberOfJobs + ").");*/
-          long cacheSizeMegs = cacheSizeBytes / 1000000;
-          boolean tooMuchMemory = maxSizeMegs >= 0 && cacheSizeMegs > maxSizeMegs;
-          /*if (tooMuchMemory)
-                  logger.debug("Cache takes too much memory (" + cacheSizeBytes + " > " + maxSizeBytes + ").");*/
-          boolean tooBig = tooManySearches || tooMuchMemory;
-          return tooBig;
+    boolean tooManySearches = maxNumberOfJobs >= 0
+                    && cachedSearches.size() > maxNumberOfJobs;
+    /*if (tooManySearches)
+            logger.debug("Cache has too many searches (" + cachedSearches.size() + " > "
+                            + maxNumberOfJobs + ").");*/
+    long cacheSizeMegs = cacheSizeBytes / 1000000;
+    boolean tooMuchMemory = maxSizeMegs >= 0 && cacheSizeMegs > maxSizeMegs;
+    /*if (tooMuchMemory)
+            logger.debug("Cache takes too much memory (" + cacheSizeBytes + " > " + maxSizeBytes + ").");*/
+    boolean tooBig = tooManySearches || tooMuchMemory;
+    return tooBig;
   }
 
   /**
@@ -329,7 +329,7 @@ public class SearchCache {
    * @return targeted max. size of the cache in bytes, or -1 for no limit
    */
   public long getMaxSizeBytes() {
-          return maxSizeMegs;
+    return maxSizeMegs;
   }
 
   /**
@@ -344,8 +344,8 @@ public class SearchCache {
    * @param maxSizeBytes targeted max. size of the cache in bytes, or -1 for no limit
    */
   public void setMaxSizeBytes(long maxSizeBytes) {
-          this.maxSizeMegs = maxSizeBytes;
-          removeOldSearches();
+    this.maxSizeMegs = maxSizeBytes;
+    removeOldSearches();
   }
 
   /**

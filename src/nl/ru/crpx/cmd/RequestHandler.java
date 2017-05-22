@@ -15,6 +15,7 @@ import nl.ru.crpx.dataobject.DataObject;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.search.SearchManager;
 import nl.ru.crpx.search.SearchParameters;
+import nl.ru.crpx.search.WorkQueueXqF;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.util.json.JSONObject;
 
@@ -40,6 +41,10 @@ public abstract class RequestHandler {
   /** The search manager, which executes and caches our searches */
   SearchManager searchMan;
   
+  /** The work queue to handle XqF jobs */
+  WorkQueueXqF workQueue;
+  final int loc_iThreadPoolSize = 5;     // Adapt this number if it is too much or too little
+  
   /** The servlet */
   CrpxProcessor servlet;
   
@@ -62,6 +67,9 @@ public abstract class RequestHandler {
       crpThis.setSearchManager(this.searchMan);
       // Get the current user/session ID from the system
       this.userId = System.getProperty("user.name");
+      // Set the work queue for the CRP
+      this.workQueue = new WorkQueueXqF(errHandle, this.userId, loc_iThreadPoolSize);
+      crpThis.setWorkQueue(this.workQueue);
       // Get the name of the project
       strProject = crpThis.getName();
       // Take over the calling servlet

@@ -38,6 +38,8 @@ import nl.ru.crpx.project.CorpusResearchProject.ProjType;
 import nl.ru.crpx.project.Qinfo;
 import nl.ru.crpx.project.Query;
 import nl.ru.crpx.search.Job;
+import nl.ru.crpx.search.RunAny;
+import nl.ru.crpx.search.RunXqF;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.crpx.tools.FileIO;
 import nl.ru.crpx.xq.CrpFile;
@@ -467,6 +469,136 @@ public class Parse {
   // 14-09-2010  ERK Added return of [intId]
   // 13/may/2015 ERK Re-written for JAVA
   // ----------------------------------------------------------------------------------------------------------
+  public boolean DoParseXq(RunXqF oRun, Qinfo[] arQinfo, Query qThis, XQueryEvaluator qEval, DocumentBuilder objSaxDoc, 
+          Configuration xconfig, CrpFile oCrpThis, XmlNode ndxThis, JSONArray colBackJson, boolean bReset) {
+    String strQname = "(empty)";    // Initialize the query name
+    XQueryEvaluator objQuery;
+    XdmDestination oDest;           // Query output object
+    XqErrorListener listener = null;  // Keep track of errors
+    XqErr oXq = new XqErr();
+    List<Exception> errorList;        // List of errors
+    
+    try {
+      // Validate
+      if (ndxThis == null) return false;
+      // Take over the right values
+      strQname = qThis.Name;
+      // objQuery = qThis.Qeval;
+      objQuery = qEval;
+      
+      // Debugging
+      String sFile = ndxThis.getAttributeValue(loc_xq_File);
+      
+      // Create a new DOM destination for the results
+      Document pdxDoc = dbuilder.newDocument();
+      // (1) Create error listener
+      listener = new XqErrorListener();
+      
+      // There is no need for *isolated* execution, since every Query / File
+      //   combination has its own XQueryEvaluator, and therefore its own context
+      /* synchronized (objQuery) */
+      // Set the context for the query: the node in [ndxThis]
+      objQuery.setContextItem(ndxThis);
+      // Set the dynamic context: a pointer to the CrpFile
+      DynamicQueryContext dqc = objQuery.getUnderlyingQueryContext();
+      dqc.setErrorListener(listener);
+      dqc.setParameter("crpfile", oCrpThis);
+      // Additional parameters to identify the query
+      dqc.setParameter("qfile", qThis.QueryFile);
+      dqc.setParameter("sentid", ndxThis.getAttributeValue(crpThis.getAttrLineId() /*loc_xq_forestId */));
+      // Pass on the error handler too
+      dqc.setParameter("errhandle", errHandle);
+      // If this is FoLiA, then we need to add some more to the dynamic context
+      if (oCrpThis.crpThis.intProjType == ProjType.ProjFolia) {
+        // Make a list of all <t> nodes that have a <w> parent
+        XPathSelector selectXp = ru_xpeNodeText_Folia;
+        try {
+          selectXp.setContextItem(ndxThis);
+        } catch (SaxonApiException ex) {
+          return errHandle.DoError("Runtime error while retrieving FoLiA context [" + strQname + "]: ", ex, Parse.class);
+        }
+        // Go through all the items and add them to a new list
+        List<String> lSuId = new ArrayList<>();
+        for (XdmItem item : selectXp) {
+          String sValue = ((XdmNode) item).getAttributeValue(ru_qnFoliaId);
+          // =================================
+          // NOTE: this is an ad-hoc measurement because of wrongly made .folia.xml files
+          // sValue = sValue.replace(".w.", ".");
+          // =================================
+          lSuId.add(sValue);
+        }
+        // Add this 'valid words' context variable to this line
+        dqc.setParameter("words", lSuId);
+      }
+      // Execute the query with the set context items
+      try {
+        objQuery.run(new DOMDestination(pdxDoc));
+      } catch (Exception ex) {
+        // Try to get runtime error
+        if (listener.processError(qThis.QueryFile, ex.getMessage(), arQinfo, oXq)) {
+          oXq.XqErrShow();
+          // Add the error to the error object
+          errHandle.DoError(oXq.lQerr);
+        }
+        errHandle.bInterrupt = true;
+        oRun.setJobErrors(errHandle.getErrList());
+        oRun.setJobStatus("error");
+        // And pass it on tto the Xq Job
+        oRun.getXqJob().setJobErrors(errHandle.getErrList());
+        return errHandle.DoError("Runtime error while executing [" + strQname + "]: ", ex, Parse.class);        
+      }
+      // Check for interrupt
+      if (errHandle.bInterrupt) {
+        // Check if this interrupt is due to an error
+        if (errHandle.hasErr()) {
+          // Get to the last error
+          List<JSONObject> oErrList = errHandle.getErrList();
+          String sErr = oErrList.get(0).toString();
+          // Process the error
+          if (listener.processError(qThis.QueryFile, sErr, arQinfo, oXq)) {
+            oXq.XqErrShow();
+            // Add the error to the error object
+            errHandle.DoError(oXq.lQerr);
+          }
+          oRun.setJobErrors(errHandle.getErrList());
+          oRun.setJobStatus("error");
+          // And pass it on tto the Xq Job
+          oRun.getXqJob().setJobErrors(errHandle.getErrList());
+          return errHandle.DoError("Runtime error while executing [" + strQname + "]: ", Parse.class);        
+        }
+        // If there is no real error, then just react to the interrupt
+        errHandle.debug("DoParseXq is interrupted");
+        return false;
+      }
+      /* } */
+      // Get all the <forest> results from the [pdxDoc] answer
+      NodeList ndList = pdxDoc.getElementsByTagName("forest");
+      for (int i=0; i< ndList.getLength(); i++) {
+        // Get access to that node
+        Node ndDeep = ndList.item(i);
+        NamedNodeMap attrList = ndDeep.getAttributes();
+
+        // Creeer een JSONObject
+        JSONObject jsBack = new JSONObject();
+        // Store the details needed for each hit: location, category, message
+        jsBack.put("locs", attrList.getNamedItem("forestId").getNodeValue());
+        jsBack.put("locw", attrList.getNamedItem("eTreeId").getNodeValue());
+        // The following are only added if they actually are defined
+        if (attrList.getNamedItem("Cat") != null)
+          jsBack.put("cat", attrList.getNamedItem("Cat").getNodeValue());
+        if (attrList.getNamedItem("Msg") != null)
+          jsBack.put("msg", attrList.getNamedItem("Msg").getNodeValue());
+        // Add the object to what we return
+        colBackJson.put(jsBack);
+      }
+      // Return positively if we have found anything
+      return (colBackJson.length() > 0);
+
+    } catch ( RuntimeException ex) {
+      return errHandle.DoError("Runtime error while executing [" + strQname + "]: ", ex, Parse.class);
+      // TODO: provide a visualization of the node this happens to
+    } 
+  }  
   public boolean DoParseXq(Job oJob, Qinfo[] arQinfo, Query qThis, XQueryEvaluator qEval, DocumentBuilder objSaxDoc, 
           Configuration xconfig, CrpFile oCrpThis, XmlNode ndxThis, JSONArray colBackJson, boolean bReset) {
     String strQname = "(empty)";    // Initialize the query name

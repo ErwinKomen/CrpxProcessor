@@ -36,6 +36,7 @@ import net.sf.saxon.s9api.XdmNode;
 import nl.ru.crpx.dataobject.DataFormat;
 import nl.ru.crpx.search.Job;
 import nl.ru.crpx.search.SearchManager;
+import nl.ru.crpx.search.WorkQueueXqF;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.crpx.tools.FileIO;
 import nl.ru.crpx.tools.General;
@@ -145,6 +146,7 @@ public class CorpusResearchProject {
   private XPath xpath = XPathFactory.newInstance().newXPath();
   private Map mSet = new HashMap();       // Hash table with settings
   private SearchManager searchMan;        // The manager associated with this CRP
+  private WorkQueueXqF workQueue;         // The work queue associated with this CRP
   private PrjTypeManager prjTypeManager;  // Project type manager associated with this CRP
   private String userId;                  // ID of calling user
   private ExecuteXml objEx = null;           // Execution object
@@ -1008,7 +1010,9 @@ public class CorpusResearchProject {
   public JSONObject getListMemberItem(int iValue) {return lMemberList.get(iValue); }
   // ================ Other objects ============================================
   public SearchManager getSearchManager() {return this.searchMan; }
+  public WorkQueueXqF getWorkQueue() {return this.workQueue; }
   public void setSearchManager(SearchManager oThis) {this.searchMan = oThis;}
+  public void setWorkQueue(WorkQueueXqF oThis) {this.workQueue = oThis; }
   public PrjTypeManager getPrjTypeManager() {return prjTypeManager;}
   public void setPrjTypeManager(PrjTypeManager oThis) { this.prjTypeManager = oThis;}
   public ExecuteXml getExe() { return this.objEx; }

@@ -14,6 +14,7 @@ import static nl.ru.crpx.project.CrpGlobal.getJsonString;
 import nl.ru.crpx.search.Job;
 import nl.ru.crpx.search.SearchManager;
 import nl.ru.crpx.search.SearchParameters;
+import nl.ru.crpx.search.WorkQueueXqF;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.crpx.xq.Extensions;
 import nl.ru.util.ByRef;
@@ -44,6 +45,7 @@ public class Execute extends CrpGlobal {
   protected CorpusResearchProject crpThis;// The corpus research project for this execution
   protected String userId;                // ID of the user for this execution
   protected SearchManager searchMan;      // The manager for this search
+  protected WorkQueueXqF workQueue;       // The work queue for XqF jobs
   protected SearchParameters searchPar;   // The parameters for this search
   protected Extensions ruExtensions;      // The extensions need to be initialized here
   protected int iMaxParJobs;              // Maximum number of parallel jobs per user
@@ -92,6 +94,8 @@ public class Execute extends CrpGlobal {
       iMaxParJobs = crpThis.getPrjTypeManager().getMaxParJobs();
       // Set the search manager associated with the CRP
       this.searchMan = crpThis.getSearchManager();
+      // Set the work queue to process the XqF jobs
+      this.workQueue = crpThis.getWorkQueue();
       // Create a search parameters object
       this.searchPar = new SearchParameters(this.searchMan);
       /* ===========

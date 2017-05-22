@@ -32,6 +32,7 @@ public abstract class Job implements Comparable<Job> {
   // ============== The error handler can be accessed globally =================
   public static ErrHandle errHandle;
   public CorpusResearchProject crpThis;
+  public boolean queryException = false;
   static long nextJobId = 0;                // The @id for the next job started
   long id = nextJobId++;                    // This job gets its own unique @id
   int clientsWaiting = 0;                   // Number of clients waiting for Job result
@@ -40,7 +41,7 @@ public abstract class Job implements Comparable<Job> {
    * also count as a client of that Job, and will tell that Job they're no longer interested
    * if they are cancelled themselves.
    */
-  Set<Job> waitingFor = new HashSet<Job>(); // List of jobs we are waiting for
+  Set<Job> waitingFor = null;               // List of jobs we are waiting for
   // ============== Local variables ============================================
   private SearchThread searchThread = null; // The thread used by this particular job
   private boolean performCalled = false;    // Make sure perform() is only called once
@@ -72,6 +73,8 @@ public abstract class Job implements Comparable<Job> {
   
   // ============== Class initialisation ======================================
   public Job(SearchManager searchMan, String userId, SearchParameters par) {
+    // Initialize the set of jobs we are waiting for as an empty hash-set
+    waitingFor = new HashSet<>();
     // Set my copy of the corpus research project we are dealing with
     crpThis = searchMan.getCrp();
     // initialize my own error handler
