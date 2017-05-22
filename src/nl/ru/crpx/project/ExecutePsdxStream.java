@@ -64,7 +64,7 @@ import nl.ru.xmltools.XmlResultPsdxIndex;
 public class ExecutePsdxStream extends ExecuteXml {
   // ============ Local variables for "Xq" =====================================
   List<JobXqF> arJob = new ArrayList<>(); // A list of all the current XqF jobs running
-  List<RunXqF> arXqF = new ArrayList<>(); // A list of all the current RunXqF jobs
+  List<RunXqF> arRunXqF = new ArrayList<>(); // A list of all the current RunXqF jobs
   List<String> arRes = new ArrayList<>(); // The results of each job
   JSONArray arCount = new JSONArray();    // Array with the counts per file
   JSONArray arTotal = new JSONArray();    // Array combining all the individual arXqf arrays
@@ -153,7 +153,7 @@ public class ExecutePsdxStream extends ExecuteXml {
 
       // Initialise the job array and the results array
       arJob.clear();  arRes.clear();
-      arXqF.clear();
+      arRunXqF.clear();
       // arHits.clear(); arMonitor.clear();
 
       // Indicate we are working
@@ -253,7 +253,7 @@ public class ExecutePsdxStream extends ExecuteXml {
                     oneXqF.finished() + " status=" + oneXqF.getJobStatus() );
 
             // Add the job to the list of jobs for this project/user
-            arXqF.add(oneXqF);
+            arRunXqF.add(oneXqF);
           }
           // Monitor the end of the XqF runs
           if (!monitorRunXqF(1, jobCaller)) {
@@ -925,7 +925,7 @@ public class ExecutePsdxStream extends ExecuteXml {
    * monitorRunXqF - Process and monitor RunXqF items until @iuntil are left.
    * Traverse the stack of jobs and when one is finished:
    * 1) gather its results
-   * 2) take it from the [arXqF] list
+   * 2) take it from the [arRunXqF] list
    * 
    * @param iUntil
    * @param jobCaller
@@ -934,20 +934,22 @@ public class ExecutePsdxStream extends ExecuteXml {
   private boolean monitorRunXqF(int iUntil, Job jobCaller) {
     try {
       // Loop while the number of jobs is larger than the maximum
-      while (arXqF.size() >= iUntil) {
+      while (arRunXqF.size() >= iUntil) {
         // Visit all jobs
-        for (int i = 0; i<arXqF.size(); i++ ) {
+        for (int i = 0; i<arRunXqF.size(); i++ ) {
           // Get this XqF job
-          RunXqF rThis = arXqF.get(i);
+          RunXqF rThis = arRunXqF.get(i);
           // Is it finished?
           if (rThis.finished()) {
             // It is ready, so gather its results
-            String sResultXqF = rThis.getJobResult();
+            JSONObject oJobCount= new JSONObject(rThis.getJobCount().toString());
+            JSONObject oJobList = new JSONObject(rThis.getJobList().toString());      
+            
             // Process the job results
-            arCount.put(rThis.getJobCount());
+            arCount.put(oJobCount);
             
             // Add the individual Xqf to the total
-            arTotal.put(rThis.getJobList());
+            arTotal.put(oJobList);
                         
             // ================= DEBUGGING =============
             if (oProgress==null) {
@@ -977,18 +979,24 @@ public class ExecutePsdxStream extends ExecuteXml {
               jobCaller.setJobStatus("error");
               // Get job id
               String sJobId = rThis.getJobId();
-              String sJobQ = rThis.getJobQuery();
+              // Not used: String sJobQ = rThis.getJobQuery();
               // Remove this job
-              arXqF.remove(rThis);
+              arRunXqF.remove(rThis);
               // Nicely close the Ra Reader attached to this
               oCrpFile.close();
+              // Release the resources from [rThis]
+              rThis.close();
+              // Return with an error
               return errHandle.DoError("MonitorRunXqF detected error in RunXqF job: "+sJobId);
+            } else {
+              // We have its results, so take it away from our job list
+              arRunXqF.remove(rThis);
+              // Nicely close the Ra Reader attached to this
+              oCrpFile.close();
+              // Release the resources from [rThis]
+              rThis.close();
+              
             }
-            
-            // We have its results, so take it away from our job list
-            arXqF.remove(rThis);
-            // Nicely close the Ra Reader attached to this
-            oCrpFile.close();
           }
         }
       }
@@ -1693,34 +1701,21 @@ public class ExecutePsdxStream extends ExecuteXml {
    * @return 
    */
   public boolean ExecuteQueriesFile( RunAny runXqF, int iCrpFileIdx ) {
-    int intNumForest=0;         // Forest number we are processing
-    int intLastId;              // 
-    int intHitsTotal = 0;       // Total number of hits so far
     int intOviewLine;           // The target overview line where we have to store results
-    int intCatLine;             // Where we are in the subcategorization
     boolean bDoForest = false;  // Should we process the current <forest> node?
     boolean bHasInput = false;  // Does this line have input?
     boolean bParsed = false;    // Line has been parsed
     String strForestFile;       // Name of this file
     String strSubType;          // Subtype for this file
-    String strExpPsd;           // 
-    String strExpText;          // 
-    String strTreeId;           // The @id of the Node that results from parsing
-    String strEtreeMsg;         // Message attached to the found result
     String strEtreeCat;         // Subcategorization attached to found result
-    String strEtreeDb;          // Database values attached to found result
-    String strForestId;         // String representation of the forest id
-    String sSeg;                // DEBUGGING
     boolean[] arOutExists;      // Array signalling that output on step i exists
     boolean[] arCmpExists;      // Array signalling that output on step i exists
     List<XmlNode> ndxDbList;    // All nodes for current text/forest combination
-    XmlNode ndxDbPrev;          // Previous database location
     XmlNode ndxForestBack;      // Forest inside which the resulting [eTree] resides
     ByRef<XmlNode> ndxForest;   // Forest we are working on
     ByRef<XmlNode> ndxHeader;   // Header of this file
     ByRef<XmlNode> ndxMdi;      // Access to corresponding .imdi or .cmdi file
     ByRef<XmlNode> ndxDbRes;    // Current result
-    ByRef<Integer> intForestId; // ID (numerical) of the current <forest>
     ByRef<Integer> intPtc;      // Percentage of where we are
     JSONArray colParseJson;     // Array with json results
     XmlForest objProcType;      // Access to the XmlForest object allocated to me
@@ -1730,7 +1725,6 @@ public class ExecutePsdxStream extends ExecuteXml {
     // DataObjectList arHitList;   // List with hit information per hit: file // qc // number
     JSONArray[] arDbRes;        // Array with RESULT elements
     XQueryEvaluator[] arQeval;  // Our own query evaluators
-    XmlAccess objXmlAcc = null; // Access to the XML file
     XmlResult objOneDbRes =  null;   // Reader of results
     
     // Note: this uses [objProcType, which is a 'protected' variable from [Execute]
@@ -1777,7 +1771,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       ndxForest = new ByRef(null); 
       ndxHeader = new ByRef(null);
       ndxMdi = new ByRef(null);
-      intForestId = new ByRef(-1);
+      // intForestId = new ByRef(-1);
       intPtc = new ByRef(0);
       ndxDbList = new ArrayList<>();
       colParseJson = new JSONArray();
@@ -1853,7 +1847,7 @@ public class ExecutePsdxStream extends ExecuteXml {
         // Initialize the firest elements of arOut and arCmp
         arOutExists[0] = true; arCmpExists[0] = false;
         // Reset the text and psd values
-        strExpPsd = ""; strExpText = ""; intLastId = -1;
+        // strExpPsd = ""; strExpText = ""; intLastId = -1;
         // Make this forest available to the Xquery Extensions connected with *this* thread
         oCrpFile.ndxCurrentForest = ndxForest.argValue;
         // Make the current sentence id available too
@@ -2014,7 +2008,7 @@ public class ExecutePsdxStream extends ExecuteXml {
                     
                     // Get the oview line 
                     intOviewLine = arQuery[k].OviewLine;
-                    intCatLine = -1;
+                    // intCatLine = -1;
                     if (intOviewLine >=0) {
                       // TODO: Convert the oview line to an OviewId (see modMain:3035)
                       // Do we have subcategorization?

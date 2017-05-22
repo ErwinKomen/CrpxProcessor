@@ -79,10 +79,18 @@ public class XmlDocument {
     try {
       // Do minimal validation for this text to see if it could be regarded as XML or not
       sXmlText = sXmlText.trim();
-      if (!sXmlText.startsWith("<") || !sXmlText.endsWith(">")) {
+      if (sXmlText.isEmpty()) {
+        logger.error("LoadXml: attempt to load EMPTY xml. ");
+        return false;
+      } else if (!sXmlText.startsWith("<") || !sXmlText.endsWith(">")) {
+        int iLen = sXmlText.length();
         // It seems this is no XML, so don't load it
-        logger.error("LoadXml: attempt to load non-xml. Content:");
-        logger.error(sXmlText.substring(0, 80));
+        logger.error("LoadXml: attempt to load non-xml. Length="+iLen+" Content:");
+        if (iLen<80) {
+          logger.error("["+sXmlText+"]");
+        } else {
+          logger.error("["+sXmlText.substring(0, 80)+"]");
+        }
         return false;
       }
       // Load the string as an XdmNode

@@ -126,5 +126,34 @@ public class RunXqF extends RunAny {
     }
   }
 
+  @Override
+  /**
+   * close
+   *    
+   * Close all the resources related to this job
+   */
+  public void close() {
+    try {
+      
+      // Make sure to release the file handle
+      CrpFile oCrpFile = RuBase.getCrpFile(intCrpFileId);
+      // Validation
+      if (oCrpFile != null) {
+        oCrpFile.close();
+        // Remove this eCRP from the RuBase arraylist of CRP=FILE objects
+        RuBase.removeCrpCaller(oCrpFile);
+      }
+      this.jobStatus = "closed";
+      // Finalize me
+      this.finalize();
+    } catch (Exception ex) {
+      // Show the error
+      errHandle.DoError("RunXqF: close problem", ex, RunXqF.class);
+    } catch (Throwable ex) {
+      // Show the error
+      errHandle.DoError("RunXqF: finalization problem: "+ex.getMessage());
+    }
+  }
+
   
 }

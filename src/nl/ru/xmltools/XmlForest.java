@@ -115,6 +115,8 @@ public abstract class XmlForest {
   protected static final String loc_path_PsdxHeader = "./descendant-or-self::teiHeader[1]";
   protected static final String loc_path_FoliaSent = "./descendant-or-self::s[1]";
   protected static final String loc_path_FoliaHeader = "./descendant-or-self::metadata[1]";
+  protected static final String loc_Folia_SentStart = "<s ";
+  protected static final String loc_Psdx_SentStart = "<forest ";
   // ========================================== LOCAL VARIABLE ================================================
   protected String loc_strCurrent = "";   // XML code of current forest
   protected String loc_strCombi = "";     // Combined XML context, from where current node is taken

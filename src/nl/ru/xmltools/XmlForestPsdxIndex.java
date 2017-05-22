@@ -119,6 +119,10 @@ public class XmlForestPsdxIndex extends XmlForest {
         if (intI == 0) {
           // Get the FIRST forest
           sForest = (bUseRa) ? loc_xrdRaFile.getFirstLine() : loc_xrdFile.getFirstLine();
+          // Make sure it is not empty
+          while (sForest.isEmpty() || !sForest.startsWith(loc_Psdx_SentStart)) {
+            sForest = (bUseRa) ?  loc_xrdRaFile.getNextLine() : loc_xrdFile.getNextLine();
+          }
           // TODO: what if this is empty??
           loc_pdxThis.LoadXml(sForest);
           // Get the current context

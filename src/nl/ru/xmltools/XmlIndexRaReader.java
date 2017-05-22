@@ -352,7 +352,7 @@ public class XmlIndexRaReader {
       iCurrentLine = 1;
       // Validate
       if (this.arIndex.isEmpty()) return "";
-      String sBack = getLineByIndex(iCurrentLine, oItem);      
+      String sBack = getLineByIndex(iCurrentLine, oItem).trim();      
       // Return the first line
       return sBack;
     } catch (Exception ex) {

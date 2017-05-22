@@ -41,6 +41,10 @@ public abstract class RunAny implements Runnable {
     // Initialise the query string 
     jobQuery = par.getString("query");
   }
+  
+// <editor-fold desc="Abstract methods that must be implemented">
+  public abstract void close();
+// </editor-fold>
 
 // <editor-fold desc="AboutThisJob">
   public boolean finished(){ return (this.jobStatus.equals("finished") || 
