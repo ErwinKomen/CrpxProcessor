@@ -7,8 +7,6 @@ package nl.ru.crpx.search;
  * The program and the source can be freely used and re-distributed.
  */
 import java.io.File;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.project.ExecutePsdxStream;
 import nl.ru.crpx.tools.ErrHandle;
@@ -45,6 +43,7 @@ public class RunXqF extends RunAny {
     // Then make my own initialisations
     try {
       this.jobStatus = "creating";
+      this.jobName = "xqf";
       // Set the CRP + File provided for us
       this.crpThis = prjThis;
       // Get a handle to the job above us
@@ -145,7 +144,7 @@ public class RunXqF extends RunAny {
       }
       this.jobStatus = "closed";
       // Finalize me
-      this.finalize();
+      // this.finalize();
     } catch (Exception ex) {
       // Show the error
       errHandle.DoError("RunXqF: close problem", ex, RunXqF.class);

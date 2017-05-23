@@ -8,7 +8,9 @@ package nl.ru.crpx.search;
  */
 
 
+import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.util.MemoryUtil;
 
@@ -23,6 +25,8 @@ public class WorkQueueXqF {
   private final int nThreads;         // Number of threads that may be used
   private final PoolWorker[] threads; // The pool of threads
   private final LinkedList queue;     // The queue of threads for a user
+  private List<RunAny> cache;         // Cache of TxtList jobs (and possibly others)
+  private int iMaxCacheSize = 10;      // Max number of jobs to remember
 
   // =================== Class initialisation ==================================
   public WorkQueueXqF(ErrHandle errThis, String sUserId, int nThreads) {
@@ -33,6 +37,7 @@ public class WorkQueueXqF {
     this.userId = sUserId;
     queue = new LinkedList();
     threads = new PoolWorker[nThreads];
+    cache = new ArrayList<>();
 
     for (int i=0; i<nThreads; i++) {
       threads[i] = new PoolWorker();
@@ -47,13 +52,51 @@ public class WorkQueueXqF {
    * execute
    *    Execute one runnable and then issue a 'notify'
    * 
-   * @param runnableXqF
+   * @param runnableAny
+   * @throws java.lang.InterruptedException
+   * @throws nl.ru.crpx.search.QueryException
    */
-  public void execute(RunXqF runnableXqF) throws InterruptedException, QueryException {
+  public void execute(RunAny runnableAny) throws InterruptedException, QueryException {
     synchronized(queue) {
-      queue.addLast(runnableXqF);
+      queue.addLast(runnableAny);
       queue.notify();
     }
+  }
+  
+  public RunAny getRun(int iJobId) {
+    String sJobId = Integer.toString(iJobId);
+    synchronized(cache) {
+      for (int i=0;i<cache.size();i++) {
+        RunAny runnableThis = (RunAny) cache.get(i);
+        if (sJobId.equals(runnableThis.getJobId())) {
+          // Found it
+          return runnableThis;
+        }
+      }
+    }
+    // Didn't find it
+    return null;
+  }
+  
+  public boolean removeRun(int iJobId) {
+    // Remove the job with the indicated id
+    RunAny runnableThis = getRun(iJobId);
+    return removeRun(runnableThis);
+  }
+  public boolean removeRun(RunAny runnableThis) {
+    // Remove this from the cache, but only if the cache becomes too large
+    synchronized(cache) {
+      if (cache.size() > iMaxCacheSize) {
+        for (int i=0;i<cache.size();i++) {
+          if (runnableThis.equals(cache.get(i))) {
+            // Remove it
+            cache.remove(i);
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
 
   /**
@@ -62,7 +105,7 @@ public class WorkQueueXqF {
   private class PoolWorker extends Thread {
     @Override
     public void run() {
-      RunXqF runnableXqF;
+      RunAny runnableAny;
 
       while (true) {
         synchronized(queue) {
@@ -79,15 +122,23 @@ public class WorkQueueXqF {
             }
           }
 
-          runnableXqF = (RunXqF) queue.removeFirst();
+          runnableAny = (RunAny) queue.removeFirst();
           // Show what happens
           // errHandle.debug("workQueue: starting XqF for: " + runnableXqF.fInput.getName());
+          
+          // Some jobs need to be put in the cache
+          if (runnableAny.jobName.equals("txtlist")) {
+            synchronized(cache) {
+              // Put it into the cache
+              cache.add(runnableAny);
+            }
+          }
         }
 
         // If we don't catch RuntimeException, 
         // the pool could leak threads
         try {
-          runnableXqF.run();
+          runnableAny.run();
           // Show what happens
           // errHandle.debug("workQueue: finished running XqF for: " + runnableXqF.fInput.getName());
           // ===== Debugging ========

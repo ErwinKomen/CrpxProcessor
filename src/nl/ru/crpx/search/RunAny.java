@@ -6,6 +6,7 @@
 package nl.ru.crpx.search;
 
 import java.util.List;
+import nl.ru.crpx.dataobject.DataObject;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.util.json.JSONObject;
 
@@ -32,14 +33,26 @@ public abstract class RunAny implements Runnable {
   protected JSONObject jobProgress;         // Details of where we are in this job
   protected List<String> jobMsgList;        // List of messages supplied by ru:message()
   protected String jobQuery;                // The query string associated with this job (passed on via SearchParameters)
+  protected DataObject jobBack;             // What is returned
+  protected String jobName;                 // The kind of job this is
 // </editor-fold>
   public RunAny(ErrHandle oErr, SearchParameters par) {
     this.errHandle = oErr;
     jobStatus = "";
     jobResult = "";
     userId = "";
+    jobBack = null;
     // Initialise the query string 
-    jobQuery = par.getString("query");
+    if (par.containsKey("query")) {
+      jobQuery = par.getString("query");
+    } else {
+      jobQuery = "";
+    }
+    if (par.containsKey("jobtype")) {
+      jobName = par.getString("jobtype");
+    } else {
+      jobName = "";
+    }
   }
   
 // <editor-fold desc="Abstract methods that must be implemented">
@@ -65,6 +78,7 @@ public abstract class RunAny implements Runnable {
   public String getJobResult() {return jobResult;}
   public void setJobResult(String sData) { jobResult = sData;}
   public String getJobQuery() {return jobQuery;}
+  public DataObject getJobBack() { return jobBack;}
 // </editor-fold>
   
 }
