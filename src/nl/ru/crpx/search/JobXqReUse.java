@@ -62,13 +62,18 @@ public class JobXqReUse extends Job {
 
       // Set the job status to indicate that we are working
       this.jobStatus = "working";
+      errHandle.debug("xqReUse: set status 'working'");
       
       // Locate and fetch old jobXq results
       this.setJobResult(crpThis.getResultsOneTable("results"));
+      errHandle.debug("xqReUse: [results]");
       this.setJobCount(new JSONObject(crpThis.getResultsOneTable("count")));
+      errHandle.debug("xqReUse: [count]");
       this.setJobTable(getXqTable("table"));
+      errHandle.debug("xqReUse: [table]");
       // Set the status correctly
       sStatus = "completed";
+      errHandle.debug("xqReUse: set status 'completed'");
       
       // Note finish time
       long stopTime = System.currentTimeMillis();

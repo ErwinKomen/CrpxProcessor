@@ -232,7 +232,7 @@ public class SearchManager {
     return searchParameterNames;
   }
   // ============ Find a job with a particular id -- but it needs to be a jobxq
-  public JobXq searchGetJobXq(String sJobId) {
+  public Job searchGetJobXq(String sJobId) {
     Job search = cache.getJob(Integer.parseInt(sJobId));
     // Validate what we get back
     if (search==null) { 
@@ -249,8 +249,8 @@ public class SearchManager {
       logger.debug("searchGetJobXq: job "+sJobId+" does not have 'jobclass' defined in [par]");
       return null;
     }
-    if (sJobCl.toLowerCase().equals("jobxq"))
-      return (JobXq) search;
+    if (sJobCl.toLowerCase().equals("jobxq")  || sJobCl.toLowerCase().equals("JobXqReUse"))
+      return search;
     else {
       logger.debug("searchGetJobXq: job "+sJobId+" is of class "+sJobCl);
       return null;

@@ -167,6 +167,10 @@ public class RunTxtList extends RunAny {
       if (!Files.exists(pJsonTextList)) {
         // Create an array that will hold all
         JSONArray arDir = new JSONArray();
+        // Create an array for the Genre and the Subtype items
+        JSONArray arGenre = new JSONArray();
+        JSONArray arSubtype = new JSONArray();
+        int iItemId =-1; 
         // We need to have an idea of the file extensions that are possible
         // (this is needed when sExtType or sExtFind is empty)
         List<String> lExtList = CorpusResearchProject.getTextExtList();
@@ -179,6 +183,7 @@ public class RunTxtList extends RunAny {
             // Create an object for this directory
             JSONObject oDirContent = new JSONObject();
             JSONArray arContent = new JSONArray();
+            
             int iDirCount = 0;
             oDirContent.put("count", iDirCount);
             oDirContent.put("path", pThis.toAbsolutePath().toString());
@@ -204,15 +209,27 @@ public class RunTxtList extends RunAny {
                   JSONObject oFile = new JSONObject();
                   oFile.put("name", sName);
                   oFile.put("ext", sExt);
-                  // Get the metadata information from this file
+                  // Get the metadata information from this file:
+                  //   title, genre, author, date, subtype, size
                   JSONObject oMeta = prsThis.getMetaInfo(sSubThis);
                   // Add all the metadata to [oFile]
                   Iterator keys = oMeta.keys();
                   while (keys.hasNext()) {
                     String sKey = keys.next().toString();
+                    String sValue = "";
                     switch(sKey) {
                       case "size":
                         oFile.put(sKey, oMeta.getInt(sKey));
+                        break;
+                      case "subtype":
+                        sValue = oMeta.getString(sKey);
+                        iItemId = getArrayIndex(arSubtype, sValue);
+                        oFile.put(sKey, iItemId);
+                        break;
+                      case "genre":
+                        sValue = oMeta.getString(sKey);
+                        iItemId = getArrayIndex(arGenre, sValue);
+                        oFile.put(sKey, iItemId);
                         break;
                       default:
                         oFile.put(sKey, oMeta.getString(sKey));
@@ -248,6 +265,8 @@ public class RunTxtList extends RunAny {
         JSONObject oTotal = new JSONObject();
         oTotal.put("paths", arDir.length());
         oTotal.put("texts", iTexts);
+        oTotal.put("genre", arGenre);
+        oTotal.put("subtype", arSubtype);
         oTotal.put("list", arDir);
         // Store this object into a file
         Json.write(oTotal, pJsonTextList.toFile());
@@ -261,6 +280,20 @@ public class RunTxtList extends RunAny {
       int iPaths = oTextList.getInt("paths");
       oBack.put("paths", iPaths);
       oBack.put("texts", oTextList.getInt("texts"));
+      
+      // Treat the list of genre
+      DataObjectList lGenre = new DataObjectList("genre");
+      JSONArray arGenre = oTextList.getJSONArray("genre");
+      for (int i=0;i<arGenre.length();i++ ) { lGenre.add(arGenre.getString(i)); }
+      oBack.put("genre", lGenre);
+      
+      // Treat the list of subtype
+      DataObjectList lSubtype = new DataObjectList("subtype");
+      JSONArray arSubtype = oTextList.getJSONArray("subtype");
+      for (int i=0;i<arSubtype.length();i++ ) { lSubtype.add(arSubtype.getString(i)); }
+      oBack.put("subtype", lSubtype);
+      
+      // Treat the list of file-info-objects
       DataObjectList arList = new DataObjectList("list");
       iTexts = 0;
       // Fill this list
@@ -282,9 +315,12 @@ public class RunTxtList extends RunAny {
             String sKey = keys.next().toString();
             switch (sKey) {
               case "size":
+              case "genre":
+              case "subtype":
                 oDataFile.put(sKey, oFile.getInt(sKey));
                 break;
               default:
+                // All the other keys are of type STRING
                 oDataFile.put(sKey, oFile.getString(sKey));
                 break;
             }
@@ -315,6 +351,26 @@ public class RunTxtList extends RunAny {
     } catch (Exception ex) {
       errHandle.DoError("Could not get a list of texts", ex, RunTxtList.class);
       return null;
+    }
+  }
+  
+  private int getArrayIndex(JSONArray arThis, String sValue) {
+    int i;
+    
+    try {
+      // Check if it is already in the list
+      for (i=0;i<arThis.length();i++) {
+        if (arThis.getString(i).equals(sValue)) {
+          return i;
+        }
+      }
+      // It is not in the list, so add it
+      arThis.put(sValue);
+      // REturn the index, which is the size minus one
+      return (arThis.length()-1);
+    } catch (Exception ex) {
+      errHandle.DoError("RunTxtList.getArrayIndex problem", ex, RunTxtList.class);
+      return -1;
     }
   }
 
