@@ -28,7 +28,6 @@ import nl.ru.crpx.dataobject.DataObjectMapElement;
 import nl.ru.crpx.project.CorpusResearchProject.ProjType;
 import nl.ru.crpx.search.Job;
 import nl.ru.crpx.search.JobXq;
-import nl.ru.crpx.search.JobXqF;
 import nl.ru.crpx.search.QueryException;
 import nl.ru.crpx.search.RunAny;
 import nl.ru.crpx.search.RunXqF;
@@ -63,7 +62,6 @@ import nl.ru.xmltools.XmlResultPsdxIndex;
    --------------------------------------------------------------------------- */
 public class ExecutePsdxStream extends ExecuteXml {
   // ============ Local variables for "Xq" =====================================
-  List<JobXqF> arJob = new ArrayList<>(); // A list of all the current XqF jobs running
   List<RunXqF> arRunXqF = new ArrayList<>(); // A list of all the current RunXqF jobs
   List<String> arRes = new ArrayList<>(); // The results of each job
   JSONArray arCount = new JSONArray();    // Array with the counts per file
@@ -152,7 +150,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       }
 
       // Initialise the job array and the results array
-      arJob.clear();  arRes.clear();
+      arRes.clear();
       arRunXqF.clear();
       // arHits.clear(); arMonitor.clear();
 
@@ -199,7 +197,7 @@ public class ExecutePsdxStream extends ExecuteXml {
         searchXqFpar.put("query", "{\"crp\": \"" + crpThis.getName() + "\"" +
                 ", \"file\": \"" + fInput.getName() + "\"" + "}");
         // Keep track of the old jobs and make sure not too many are running now
-        if (!monitorXqF(this.iMaxParJobs, jobCaller)) {
+        if (!monitorRunXqF(this.iMaxParJobs, jobCaller)) {
           // Check if an error has been passed on
           int iErrSize = 0;
           if (jobCaller.getJobErrors() != null ) iErrSize = jobCaller.getJobErrors().size();
@@ -257,60 +255,6 @@ public class ExecutePsdxStream extends ExecuteXml {
           }
           // Monitor the end of the XqF runs
           if (!monitorRunXqF(1, jobCaller)) {
-            return false;
-          }
-          
-        } else {
-          // OLD way using the 'standard' job distributor (search manager)
-          JobXqF search = null;
-          boolean bStarted = false;
-          while (!bStarted) {
-            try {
-              // Initiate the XqF job: 
-              search = searchMan.searchXqF(crpThis, userId, searchXqFpar, jobCaller);
-
-              bStarted = true;
-              // Check if this did not go wrong
-              if (search == null) {
-                // Return error and failure
-                return errHandle.DoError("Failed to create an XqF job");
-              }
-            } catch (QueryException ex) {
-              // Return error and failure
-              return errHandle.DoError("Failed to execute file ", ex, ExecutePsdxStream.class);
-            } catch (InterruptedException ex) {
-              // Interruption as such should not be such a problem, I think
-              errHandle.DoError("Interrupted during sleep: " + ex.getMessage());
-              // Check for our own interrupt
-              if (errHandle.bInterrupt) return false;
-              // Put started back to false, so that a new attempt can be made
-              bStarted = false;
-            }
-          }
-
-          synchronized(search) {
-            // Check for error status
-            String sStat = search.getJobStatus();
-            if (sStat.equals("error")) {
-              // Add the error-stack from the job
-              errHandle.DoError(search.getJobErrors());
-              errHandle.bInterrupt = true;
-              return errHandle.DoError("ExecuteQueries detected 'error' jobStatus");
-            }
-            // Get the @id of the job that has been created
-            String sThisJobId = search.getJobId();
-            String sNow = Job.getCurrentTimeStamp();
-            // Additional debugging to find out where the errors come from
-            logger.debug("XqFjob [" + sNow + "] " + (i+1) + "/" + lSource.size() + 
-                    " on [" + fInput.getName() + "] userid=[" + 
-                    userId + "] jobid=[" + sThisJobId + "], finished=" + 
-                    search.finished() + " status=" + search.getJobStatus() );
-
-            // Add the job to the list of jobs for this project/user
-            arJob.add(search);
-          }
-          // Monitor the end of the jobs
-          if (!monitorXqF(1, jobCaller)) {
             return false;
           }
           
@@ -1037,6 +981,7 @@ public class ExecutePsdxStream extends ExecuteXml {
    * @param jobCaller
    * @return 
    */
+  /*
   private boolean monitorXqF(int iUntil, Job jobCaller) {
     try {
       // Loop while the number of jobs is larger than the maximum
@@ -1076,13 +1021,6 @@ public class ExecutePsdxStream extends ExecuteXml {
             CrpFile oCrpFile = RuBase.getCrpFile(jThis.intCrpFileId);
             setProgress(jobCaller, "", oCrpFile.flThis.getName(), 
                     -1, arCount.length(), -1);
-            /*
-            synchronized(oProgress) {
-              oProgress.put("finish",RuBase.getCrpFile(jThis.intCrpFileId).flThis.getName());
-              oProgress.put("ready", arCount.length());
-              jobCaller.setJobProgress(oProgress);
-            }
-            */
             
             // Double check status
             String sStat = jThis.getJobStatus();
@@ -1117,7 +1055,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       // Return failure
       return errHandle.DoError("monitorXqF failure", ex, ExecutePsdxStream.class);
     }
-  }
+  }*/
 // </editor-fold>
   
   /**
@@ -1161,553 +1099,8 @@ public class ExecutePsdxStream extends ExecuteXml {
   }
   
 // <editor-fold desc="Part 2: XqF">
+
   /** 
-   * ExecuteQueriesFile - Execute all the queries in [arQuery] on one file
-   * 
-   * Assumptions: the file does indeed need to be treated.
-   *              the file is in a 'local' place (local HD)
-   * 
-   * Note: communication with extended functions ("Extensions") goes
-   *       via the [oCrpFile] object
-   * 
-   * @param jobCaller
-   * @param iCrpFileIdx
-   * @return 
-   */
-  public boolean ExecuteQueriesFile( Job jobCaller, int iCrpFileIdx ) {
-    int intNumForest=0;         // Forest number we are processing
-    int intLastId;              // 
-    int intHitsTotal = 0;       // Total number of hits so far
-    int intOviewLine;           // The target overview line where we have to store results
-    int intCatLine;             // Where we are in the subcategorization
-    boolean bDoForest = false;  // Should we process the current <forest> node?
-    boolean bHasInput = false;  // Does this line have input?
-    boolean bParsed = false;    // Line has been parsed
-    String strForestFile;       // Name of this file
-    String strSubType;          // Subtype for this file
-    String strExpPsd;           // 
-    String strExpText;          // 
-    String strTreeId;           // The @id of the Node that results from parsing
-    String strEtreeMsg;         // Message attached to the found result
-    String strEtreeCat;         // Subcategorization attached to found result
-    String strEtreeDb;          // Database values attached to found result
-    String strForestId;         // String representation of the forest id
-    String sSeg;                // DEBUGGING
-    boolean[] arOutExists;      // Array signalling that output on step i exists
-    boolean[] arCmpExists;      // Array signalling that output on step i exists
-    List<XmlNode> ndxDbList;    // All nodes for current text/forest combination
-    XmlNode ndxDbPrev;          // Previous database location
-    XmlNode ndxForestBack;      // Forest inside which the resulting [eTree] resides
-    ByRef<XmlNode> ndxForest;   // Forest we are working on
-    ByRef<XmlNode> ndxHeader;   // Header of this file
-    ByRef<XmlNode> ndxMdi;      // Access to corresponding .imdi or .cmdi file
-    ByRef<XmlNode> ndxDbRes;    // Current result
-    ByRef<Integer> intForestId; // ID (numerical) of the current <forest>
-    ByRef<Integer> intPtc;      // Percentage of where we are
-    JSONArray colParseJson;     // Array with json results
-    XmlForest objProcType;      // Access to the XmlForest object allocated to me
-    JSONArray[] arXqf;          // An array of JSONArray results for each QC item
-    JSONArray[] arXqfL;         // A 'little' version of Xqf, excluding context, syntax, pde
-    JSONObject[] arXqfSub;      // An array of JSONObject items containing subcat-count pairs
-    // DataObjectList arHitList;   // List with hit information per hit: file // qc // number
-    JSONArray[] arDbRes;        // Array with RESULT elements
-    XQueryEvaluator[] arQeval;  // Our own query evaluators
-    XmlAccess objXmlAcc = null; // Access to the XML file
-    XmlResult objOneDbRes =  null;   // Reader of results
-    
-    // Note: this uses [objProcType, which is a 'protected' variable from [Execute]
-    try {
-      // Get the CrpFile object
-      CrpFile oCrpFile = RuBase.getCrpFile(iCrpFileIdx);
-      // Initialisation 
-      ndxDbRes = new ByRef(null);
-      // Get the file
-      File fThis = oCrpFile.flThis;
-      String fName = fThis.getName();
-      // ======= DEBUG ========
-      // errHandle.debug("XqF starts: " + fName);
-      // ======================
-      // Forest file initialisation depends on database or not
-      if (this.bIsDbase) {
-        // Start processing the database parts pointed to by [fThis]
-        objOneDbRes = new XmlResultPsdxIndex(oCrpFile.crpThis, null, errHandle);
-        // Set this particular handler to the correct database + file
-        if (!objOneDbRes.Prepare(arQuery[0].InputFile, fName)) 
-          return errHandle.DoError("Could not Prepare() database: " + arQuery[0].InputFile);
-        if (!objOneDbRes.FirstResult(ndxDbRes)) 
-          return errHandle.DoError("Could not get FirstResult() for database: " + arQuery[0].InputFile);
-        // Now get to the PSDX file with the <forest> elements
-        String sSrcDir = oCrpFile.crpThis.getSrcDir().getAbsolutePath();
-        strForestFile = FileUtil.findFileInDirectory(sSrcDir, fName);
-        // Did we get it?
-        if (strForestFile.isEmpty()) {
-          // In this case we take the corpus root as source
-          sSrcDir = this.sCorpusBase;
-          strForestFile = FileUtil.findFileInDirectory(sSrcDir, fName);
-          if (strForestFile.isEmpty()) {
-            // There really is a problem
-            return errHandle.DoError("ExecuteQueriesFile could not find location of " + fName);
-          }
-        }
-        // Set the input Psdx file
-        fThis = new File(strForestFile);
-      } else {
-        strForestFile = fThis.getAbsolutePath();
-      }
-      // Initialisations
-      objProcType = oCrpFile.objProcType;
-      ndxForest = new ByRef(null); 
-      ndxHeader = new ByRef(null);
-      ndxMdi = new ByRef(null);
-      intForestId = new ByRef(-1);
-      intPtc = new ByRef(0);
-      ndxDbList = new ArrayList<>();
-      colParseJson = new JSONArray();
-      // arHitList = new DataObjectList("hitlist");
-      // Initialise the Out and Cmp arrays
-      arOutExists = new boolean[arQuery.length + 2];
-      arCmpExists = new boolean[arQuery.length + 2];
-      // Initialise the array of JSONArray results and some other arrays
-      arXqf = new JSONArray[arQuery.length];
-      arXqfL = new JSONArray[arQuery.length];
-      arXqfSub = new JSONObject[arQuery.length];
-      arDbRes = new JSONArray[arQuery.length];
-      arQeval = new XQueryEvaluator[arQuery.length];
-      for (int i=0; i< arXqf.length; i++) { 
-        // Initialise the JSON array for this query
-        arXqf[i] = new JSONArray(); 
-        arXqfL[i] = new JSONArray();
-        // Set a new XQueryEvaluator for this combination of Query / File
-        arQeval[i] = arQuery[i].Exe.load();
-        // Initialise the JSONObject containing sub-cat counts per QC-item
-        arXqfSub[i] = new JSONObject();
-        // Initialize JSON array for database output
-        arDbRes[i] = new JSONArray();
-      }
-      
-      // Validate existence of file
-      if (!fThis.exists()) { 
-        errHandle.DoError("File not found: " + strForestFile); 
-        return false; }
-      
-      // === Debugging: Get the name of this file
-      // String sCurrentFile = this.sFile;
-      
-      // Start walking through the file...
-      // (a) Read the first sentence (psdx: <forest>) as well as the header (psdx: <teiHeader>)
-      if (!objProcType.FirstForest(ndxForest, ndxHeader, ndxMdi, strForestFile)) 
-        return errHandle.DoError("ExecuteQueriesFile could not process firest forest of " + fName);
-      
-      // This is when we can also read the textid
-      String sTextId = objProcType.getCurrentTxtId();
-
-      // Store the [ndxHeader] in the CrpFile object
-      oCrpFile.ndxHeader = ndxHeader.argValue;
-      // Also keep track of the MDI and the CurrentForest
-      oCrpFile.ndxMdi = ndxMdi.argValue;
-      oCrpFile.ndxCurrentForest = ndxForest.argValue;
-      
-      // Now calculate the sub type
-      oCrpFile.currentPeriod = getSubType(oCrpFile, ndxHeader.argValue);
-      strSubType = oCrpFile.currentPeriod;
-      
-      // If this is database, then the first <forest> element should be the one
-      //   referred to from the current [ndxDbRes] element
-      if (this.bIsDbase) {
-        // Get the sentence identifier from the current [ndxDbRes]
-        String sSentId = ndxDbRes.argValue.getAttributeValue(loc_xq_ForestId);
-        // Load this sentence into the [ndxForest] element
-        if (!objProcType.OneForest(ndxForest, sSentId)) 
-          return errHandle.DoError("ExecuteQueriesFile could not get OneForest");
-      }
-      // Loop through the file in chunks of sentences (<forest>, <s>)
-      while (ndxForest.argValue != null && (!this.bIsDbase || ndxDbRes.argValue != null )) {
-        // Get the sentence id of ndxForest
-        String sSentId = ndxForest.argValue.getAttributeValue(crpThis.getAttrLineId());
-        // if (!objProcType.GetForestId(ndxForest, intForestId)) return errHandle.DoError("Could not obtain @forestId");
-        // Get a percentage of where we are
-        if (!objProcType.Percentage(intPtc)) 
-          return errHandle.DoError("Could not find out where we are");
-        
-       
-        // TODO: convey the status to a global status gathering object for this Execute object??
-        
-        // Initialize the firest elements of arOut and arCmp
-        arOutExists[0] = true; arCmpExists[0] = false;
-        // Reset the text and psd values
-        strExpPsd = ""; strExpText = ""; intLastId = -1;
-        // Make this forest available to the Xquery Extensions connected with *this* thread
-        oCrpFile.ndxCurrentForest = ndxForest.argValue;
-        // Make the current sentence id available too
-        oCrpFile.currentSentId = sSentId;  // String.valueOf(intForestId);
-        // Check for start of section if this is a database?
-        if (this.bIsDbase) {
-          // Validate
-          if (objOneDbRes == null) 
-            return false;
-          
-          // String strNextFile = "";  // points to the next file
-          
-          // TODO: implement. See modMain.vb [2890-2920]
-          
-          // Get the CURRENT database result
-          objOneDbRes.CurrentResult(ndxDbRes);
-          // Get a whole collection of results that have the same sentence
-          if (ndxDbRes.argValue == null) {
-            bDoForest = false;
-          } else {
-            // Initialize the list of db results
-            ndxDbList.clear();
-            while (ndxDbRes.argValue != null && 
-                    ndxDbRes.argValue.getAttributeValue(loc_xq_ForestId).equals(sSentId)) {
-              // Add this item to the list
-              ndxDbList.add(ndxDbRes.argValue);
-              // Advance to the next node
-              if (!objOneDbRes.NextResult(ndxDbRes)) 
-                return errHandle.DoError("Could not get next Dbase result");
-            }
-            // Determine whether this forest should be done
-            bDoForest = (ndxDbList.size() > 0);
-          }
-        } else {
-          // Always process
-          bDoForest = true;
-          // Check if this <forest> node contains a start-of-section marker
-          if (ndxForest.argValue.getNodeName().getLocalName().equals("forest")) {
-            // Try get tyhe "Section" attribute
-            String attrS = ndxForest.argValue.getAttributeValue(loc_xq_Section);
-            if (attrS != null) {
-              // Clear the stack for colRuStack
-              // TODO: implement
-            }
-          }
-        }
-        // Should this forest be processed? (modMain 2937)
-        if (bDoForest) {
-          // String sForestLoc = ndxForest.argValue.getAttributeValue(loc_xq_Location);
-          String sForestLoc = objProcType.getCurrentLoc();
-          // Yes, start processing this <forest> for all queries in [arQuery]
-          for (int k=0;k<this.arQuery.length;k++) {
-            // Make the QC line number available
-            oCrpFile.QCcurrentLine = k+1;
-            // Make sure there is no interrupt
-            if (errHandle.bInterrupt) 
-              return errHandle.DoError("ExecuteQueriesFile interrupt #1");
-            // Get the input node for the current query
-            int iInputLine = arQuery[k].InputLine;
-            bHasInput = (arQuery[k].InputCmp) ? arCmpExists[iInputLine] : arOutExists[iInputLine];
-            // Okay, is there any input?
-            if (!bHasInput) {
-              // There is neither output nor complement, since there is no input
-              arOutExists[k+1] = false;
-              // Signal that there is no complement
-              if (arQuery[k].Cmp) arCmpExists[k+1] = false;
-            } else {
-              // Reset the parse results
-              colParseJson = new JSONArray();
-              // Parsing depends on Dbase too
-              if (this.bIsDbase && ndxDbList.size() > 0) {
-                // Parse all the <Result> elements within this forestId
-                bParsed = false;
-                for (int m=0;m<ndxDbList.size(); m++) {
-                  /*
-                  // ============ DEBUG ============
-                  XmlNode ndxTest = ndxDbList.get(m).SelectSingleNode("//Result/child::Feature[@Name='VfLemma']");
-                  errHandle.debug("Test value = " + ndxTest.getAttributeValue(loc_xq_Value));
-                  // ===============================
-                  */
-                  
-                  // Perform a parse that only resets the collection when m==0
-                  if (this.objParseXq.DoParseXq(jobCaller, arQinfo, arQuery[k],arQeval[k],this.objSaxDoc, this.xconfig, oCrpFile,
-                        ndxDbList.get(m), colParseJson, (m==0))) bParsed = true;
-                }
-              } else {
-                // Parse this forest
-                bParsed = this.objParseXq.DoParseXq(jobCaller, arQinfo,arQuery[k], arQeval[k], this.objSaxDoc, this.xconfig, oCrpFile, 
-                        ndxForest.argValue, colParseJson, true);
-              }
-              // Check for interrupt
-              if (errHandle.bInterrupt) {
-                return errHandle.DoError("ExecuteQueriesFile interrupt #2");
-              }
-                
-              
-              // Now is the time to execute stack movement for colRuStack
-              // TODO: RuStackExecute()
-              
-              // Do we have result(s)?
-              if (!bParsed) {
-                // Make sure the output of this line (=k+1) is signalled as empty
-                arOutExists[k+1] = false;
-                // Signal that the complement node is *not* empty 
-                //   (since it is the complement of the output)
-                if (arQuery[k].Cmp) arCmpExists[k+1] = true;
-              } else {
-                // Check how many results there are for this sentence/forest
-                int intInstances = colParseJson.length();
-                // ======== DEBUG =========
-                if (intInstances > 1) {
-                  int iWatch = intInstances;
-                }
-                // ========================
-                // Validate
-                if (intInstances == 0) {
-                  // There is no output, so there must be a complement
-                  arOutExists[k+1] = false;
-                  // Signal that there is no complement
-                  if (arQuery[k].Cmp) arCmpExists[k+1] = true;
-                } else {
-                  // Signal that this output DOES exist
-                  arOutExists[k+1] = true;
-                  // Signal that there is no complement
-                  if (arQuery[k].Cmp) arCmpExists[k+1] = false;
-                  // Determine the sentence node (the <forest>) within the current file
-                  // For the stream-processing, this is the current forest
-                  //
-                  // NOTE: for other processing this forest may not be the same as [ndxForest]
-                  //       since the Query may result in an <eTree> node that is located
-                  //       in another <forest> in the document
-                  ndxForestBack = ndxForest.argValue;
-                  // Check if the result is usable
-                  if (ndxForestBack == null) 
-                    return false;
-                  // If a database should be created, then we need to do some more
-                  if (arQuery[k].DbFeatSize>0) {
-                    // Get the context
-                    
-                    // Get the syntax of this line
-                    
-                    
-                  }
-                  // Walk all the results that come from the parsing
-                  // Note: there may be multiple *hits* within one <forest>, each
-                  //       returning its own <eTree> node (that's the general idea)
-                  for (int L = 0; L < intInstances; L++) {
-                    // Consider this result
-                    JSONObject oThisRes = (JSONObject) colParseJson.getJSONObject(L);
-                    
-                    // Determine possible subcategorisation of *this* result
-                    strEtreeCat = (oThisRes.has("cat")) ? oThisRes.getString("cat") : "";
-                    // Process the sub-category
-                    if (!strEtreeCat.isEmpty()) {
-                      // Keep track of counts for this subcat
-                      arXqfSub[k].increment(strEtreeCat);
-                    }
-                    
-                    // Get the oview line 
-                    intOviewLine = arQuery[k].OviewLine;
-                    intCatLine = -1;
-                    if (intOviewLine >=0) {
-                      // TODO: Convert the oview line to an OviewId (see modMain:3035)
-                      // Do we have subcategorization?
-                      if (!strEtreeCat.isEmpty()) {
-
-                        // TODO: calculate correct numbers for the sub-categorization...
-                      }
-                    }
-                    // The 'little' version of arXqf only needs limited info
-                    JSONObject oThisLittle = new JSONObject(oThisRes.toString());
-                    arXqfL[k].put(oThisLittle);
-                    
-                    // Check if a database output is required
-                    if (arQuery[k].DbFeatSize>0) {
-                      // A database output is required, so we need to add context, syntax and pde
-                      oThisRes.put("con", objProcType.GetContext());
-                      oThisRes.put("eng",  objProcType.GetPde(ndxForest));
-                      oThisRes.put("syn",  objProcType.GetSyntax(ndxForest));
-                      oThisRes.put("locl", sForestLoc);
-                    }
-                    
-                    // Store the computed output for this hit into the array
-                    arXqf[k].put(oThisRes);
-                    
-                  }
-                }
-              }
-            }
-          }
-        }
-        // Go to the next forest chunk -- this depends on Dbase or not
-        if (this.bIsDbase) {
-          // Get the current database result
-          objOneDbRes.CurrentResult(ndxDbRes);
-          // Check on the result
-          if (ndxDbRes.argValue == null) {
-            // We are through with the database results
-            ndxForest.argValue = null;
-          } else {
-            // Okay, continue...
-            // Get the sentence identifier from the current [ndxDbRes]
-            sSentId = ndxDbRes.argValue.getAttributeValue(crpThis.getAttrLineId());
-            // Load this sentence into the [ndxForest] element
-            if (!objProcType.OneForest(ndxForest, sSentId)) 
-              return errHandle.DoError("ExecuteQueriesFile could not get OneForest");
-          }
-          /*
-          String sResId =ndxDbRes.argValue.getAttributeValue(loc_xq_ResId); 
-          String sCurrentForestId = ndxForest.argValue.getAttributeValue(crpThis.getAttrLineId());
-          errHandle.debug("Dbase [" + sResId + "] [" + fName + "] from " + sCurrentForestId + " to " + sSentId );
-          // =========================
-          */
-        } else {
-          if (!objProcType.NextForest(ndxForest)) 
-            return errHandle.DoError("Could not read <forest>");
-        }
-      }
-      
-      // The actual search is ready -- now do additional bookkeeping stuff
-      
-      // TODO: combine the results of the queries
-      JSONObject oHitInfo = new JSONObject();
-      oHitInfo.put("file", fName);
-      JSONObject oCombi;
-      JSONArray arCombi = new JSONArray();
-      for (int k=0;k<arQuery.length;k++) {
-        oCombi = new JSONObject();
-        oCombi.put("qc", k+1);
-        oCombi.put("count", arXqf[k].length());
-        oCombi.put("results", arXqfL[k]);
-        // gather the results-per-subcategory
-        JSONArray arPerCat = new JSONArray();
-        if (arXqfSub[k].length()>0) {
-          Iterator keys = arXqfSub[k].keys();
-          while (keys.hasNext()) {
-            String sCatName = keys.next().toString();
-            int iCatCount = arXqfSub[k].getInt(sCatName);
-            JSONObject oPerCat = new JSONObject();
-            oPerCat.put("cat", sCatName);
-            oPerCat.put("count", iCatCount);
-            // Walk the results for this QC, looking for those with cat=sCatName
-            JSONArray arCatRes = new JSONArray();
-            for (int j=0;j<arXqf[k].length(); j++) {
-              JSONObject oThis = arXqf[k].getJSONObject(j);
-              if (oThis.getString("cat").equals(sCatName)) {
-                // Add this object
-                JSONObject oAdd = new JSONObject();
-                oAdd.put("locs", oThis.getString("locs"));
-                oAdd.put("locw", oThis.getString("locw"));
-                oAdd.put("msg", oThis.getString("msg"));
-                /*
-                // Possibly copy database features
-                // ***** NO ***** this is not needed
-                if (oThis.has("locl")) oAdd.put("locl", oThis.getString("locl"));
-                if (oThis.has("con")) oAdd.put("con", oThis.getString("con"));
-                if (oThis.has("syn")) oAdd.put("syn", oThis.getString("syn"));
-                if (oThis.has("eng")) oAdd.put("eng", oThis.getString("eng"));
-                        */
-                arCatRes.put(oAdd);
-              }
-            }
-            oPerCat.put("results", arCatRes);
-            // Add this element to percat
-            arPerCat.put(oPerCat);
-          }
-        }
-        oCombi.put("percat", arPerCat);
-        arCombi.put(oCombi);
-      }
-      oHitInfo.put("hits", arCombi);
-
-      // Original handling: keep the results available in the XqF job
-      //   jobCaller.setJobResult(oHitInfo.toString());
-      // New handling: store the results in a separate file
-      // N.B: the path to this file must contain the project's name
-      String sDir = this.crpThis.getHitsDir();
-      File fResultDir = new File(sDir);
-      if (!fResultDir.exists()) { fResultDir.mkdir(); }
-      String sLoc = sDir + "/" + fThis.getName() + ".hits";
-      File fResultXqF = new File(FileUtil.nameNormalize(sLoc));
-      // Write the results to a file (give number of spaces to "toString" for 'pretty-print')
-      FileUtil.writeFile(fResultXqF, oHitInfo.toString());
-      // Store the filename, so that the calling JobXq knows where the results are
-      jobCaller.setJobResult(fResultXqF.getAbsolutePath());
-      
-      // Get the lexicon results for this XqF into a JSON object
-      JSONObject oLexInfo = new JSONObject();
-      oLexInfo.put("file", fName);
-      boolean bHaveLexInfo = false;
-      // oLexInfo.put("subtype", oCrpFile.currentPeriod);   // Dit doen of niet?  
-      JSONObject oLexCombi;
-      JSONArray arLexCombi = new JSONArray();
-      for (int k=0;k<oCrpFile.lstLexDict.size();k++) {
-        // Do we have entries for this QC?
-        oLexCombi = new JSONObject();
-        LexDict ldThis = oCrpFile.lstLexDict.get(k);
-        oLexCombi.put("QC", ldThis.QC);
-        JSONArray arLexDict = new JSONArray();
-        for (int m=0;m<ldThis.lDict.size();m++) {
-          JSONObject oLexEl = new JSONObject();
-          oLexEl.put("word", ldThis.getWord(m));
-          oLexEl.put("pos", ldThis.getPos(m));
-          oLexEl.put("freq", ldThis.getFreq(m));
-          // Add this element to the current dictionary
-          arLexDict.put(oLexEl);
-        }
-        oLexCombi.put("dict", arLexDict);
-        if (arLexDict.length()>0) bHaveLexInfo = true;
-        // Add this dictionary to the others
-        arLexCombi.put(oLexCombi);
-      }
-      oLexInfo.put("lexdicts", arLexCombi);      
-      
-      // Do we have lex info?
-      if (bHaveLexInfo) {
-        // Store the lexicon results for this XqF in a separate file
-        sLoc = this.crpThis.getLexName(fName);
-        File fLexDictXqF = new File(FileUtil.nameNormalize(sLoc));
-        FileUtil.writeFile(fLexDictXqF, oLexInfo.toString());
-      }
-      
-      // Pass on the number of hits for this XqF job
-      JSONArray arHitsCount = new JSONArray();
-      JSONObject oCount;
-      for (int k=0;k<arQuery.length;k++) {
-        oCount = new JSONObject();
-        oCount.put("qc", k+1);                  // Number of this QC line
-        oCount.put("count", arXqf[k].length());
-        // oCount.put("name", arQuery[k].Descr);   // Name of this QC line
-        oCount.put("sub", arXqfSub[k]);
-        arHitsCount.put(oCount);
-      }
-      oCount = new JSONObject();
-      oCount.put("file", fThis.getName());
-      oCount.put("hits", arHitsCount);
-      oCount.put("message", oCrpFile.lstMessage);
-      jobCaller.setJobCount(oCount);
-      
-      // Keep the 'message' results
-      jobCaller.setJobMessage(oCrpFile.lstMessage);
-      
-      // Pass on the arXqf information for this XqF job in job.getJobList
-      JSONObject oTotal = new JSONObject();
-      oTotal.put("file", fThis.getName());
-      oTotal.put("textid", sTextId);
-      oTotal.put("subtype", strSubType);
-      JSONArray arTotalHits = new JSONArray();
-      for (int k=0;k<arQuery.length;k++) {
-        JSONObject oTotalHit = new JSONObject();
-        oTotalHit.put("qc", k+1);
-        oTotalHit.put("result", arQuery[k].Descr);
-        oTotalHit.put("qchits", arXqf[k]);
-        arTotalHits.put(oTotalHit);
-      }
-      oTotal.put("hits", arTotalHits);
-      jobCaller.setJobList(oTotal);
-
-      // ======= DEBUG ========
-      // errHandle.debug("XqF finish: " + fName);
-      // ======================
-
-      // Return positively
-      return true;
-    } catch (RuntimeException ex) {
-      // Warn user
-      errHandle.DoError("ExecutePsdxStream/ExecuteQueriesFile runtime error: ", ex);
-      // Return failure
-      return false;
-    } 
-  }
-    /** 
    * ExecuteQueriesFile - Execute all the queries in [arQuery] on one file
    * 
    * Assumptions: the file does indeed need to be treated.
@@ -2089,9 +1482,10 @@ public class ExecutePsdxStream extends ExecuteXml {
       
       // The actual search is ready -- now do additional bookkeeping stuff
       
-      // TODO: combine the results of the queries
+      // Combine the results of the queries
       JSONObject oHitInfo = new JSONObject();
       oHitInfo.put("file", fName);
+      int iHitsInThisFile = 0;    // Assume there are no hits in this file
       JSONObject oCombi;
       JSONArray arCombi = new JSONArray();
       for (int k=0;k<arQuery.length;k++) {
@@ -2099,6 +1493,8 @@ public class ExecutePsdxStream extends ExecuteXml {
         oCombi.put("qc", k+1);
         oCombi.put("count", arXqf[k].length());
         oCombi.put("results", arXqfL[k]);
+        // Keep track of the overall count
+        iHitsInThisFile += arXqf[k].length();
         // gather the results-per-subcategory
         JSONArray arPerCat = new JSONArray();
         if (arXqfSub[k].length()>0) {
@@ -2140,55 +1536,59 @@ public class ExecutePsdxStream extends ExecuteXml {
       }
       oHitInfo.put("hits", arCombi);
 
-      // Original handling: keep the results available in the XqF job
-      //   jobCaller.setJobResult(oHitInfo.toString());
-      // New handling: store the results in a separate file
-      // N.B: the path to this file must contain the project's name
-      String sDir = this.crpThis.getHitsDir();
-      File fResultDir = new File(sDir);
-      if (!fResultDir.exists()) { fResultDir.mkdir(); }
-      String sLoc = sDir + "/" + fThis.getName() + ".hits";
-      File fResultXqF = new File(FileUtil.nameNormalize(sLoc));
-      // Write the results to a file (give number of spaces to "toString" for 'pretty-print')
-      FileUtil.writeFile(fResultXqF, oHitInfo.toString());
-      // Store the filename, so that the calling JobXq knows where the results are
-      runXqF.setJobResult(fResultXqF.getAbsolutePath());
-      
-      // Get the lexicon results for this XqF into a JSON object
-      JSONObject oLexInfo = new JSONObject();
-      oLexInfo.put("file", fName);
-      boolean bHaveLexInfo = false;
-      // oLexInfo.put("subtype", oCrpFile.currentPeriod);   // Dit doen of niet?  
-      JSONObject oLexCombi;
-      JSONArray arLexCombi = new JSONArray();
-      for (int k=0;k<oCrpFile.lstLexDict.size();k++) {
-        // Do we have entries for this QC?
-        oLexCombi = new JSONObject();
-        LexDict ldThis = oCrpFile.lstLexDict.get(k);
-        oLexCombi.put("QC", ldThis.QC);
-        JSONArray arLexDict = new JSONArray();
-        for (int m=0;m<ldThis.lDict.size();m++) {
-          JSONObject oLexEl = new JSONObject();
-          oLexEl.put("word", ldThis.getWord(m));
-          oLexEl.put("pos", ldThis.getPos(m));
-          oLexEl.put("freq", ldThis.getFreq(m));
-          // Add this element to the current dictionary
-          arLexDict.put(oLexEl);
+      // The following is only needed if there actually have been hits in this file
+      if (iHitsInThisFile>0) {
+        // Original handling: keep the results available in the XqF job
+        //   jobCaller.setJobResult(oHitInfo.toString());
+        // New handling: store the results in a separate file
+        // N.B: the path to this file must contain the project's name
+        String sDir = this.crpThis.getHitsDir();
+        File fResultDir = new File(sDir);
+        if (!fResultDir.exists()) { fResultDir.mkdir(); }
+        String sLoc = sDir + "/" + fThis.getName() + ".hits";
+        File fResultXqF = new File(FileUtil.nameNormalize(sLoc));
+        // Write the results to a file (give number of spaces to "toString" for 'pretty-print')
+        FileUtil.writeFile(fResultXqF, oHitInfo.toString());
+        // Store the filename, so that the calling JobXq knows where the results are
+        runXqF.setJobResult(fResultXqF.getAbsolutePath());
+
+        // Get the lexicon results for this XqF into a JSON object
+        JSONObject oLexInfo = new JSONObject();
+        oLexInfo.put("file", fName);
+        boolean bHaveLexInfo = false;
+        // oLexInfo.put("subtype", oCrpFile.currentPeriod);   // Dit doen of niet?  
+        JSONObject oLexCombi;
+        JSONArray arLexCombi = new JSONArray();
+        for (int k=0;k<oCrpFile.lstLexDict.size();k++) {
+          // Do we have entries for this QC?
+          oLexCombi = new JSONObject();
+          LexDict ldThis = oCrpFile.lstLexDict.get(k);
+          oLexCombi.put("QC", ldThis.QC);
+          JSONArray arLexDict = new JSONArray();
+          for (int m=0;m<ldThis.lDict.size();m++) {
+            JSONObject oLexEl = new JSONObject();
+            oLexEl.put("word", ldThis.getWord(m));
+            oLexEl.put("pos", ldThis.getPos(m));
+            oLexEl.put("freq", ldThis.getFreq(m));
+            // Add this element to the current dictionary
+            arLexDict.put(oLexEl);
+          }
+          oLexCombi.put("dict", arLexDict);
+          if (arLexDict.length()>0) bHaveLexInfo = true;
+          // Add this dictionary to the others
+          arLexCombi.put(oLexCombi);
         }
-        oLexCombi.put("dict", arLexDict);
-        if (arLexDict.length()>0) bHaveLexInfo = true;
-        // Add this dictionary to the others
-        arLexCombi.put(oLexCombi);
+        oLexInfo.put("lexdicts", arLexCombi);      
+
+        // Do we have lex info?
+        if (bHaveLexInfo) {
+          // Store the lexicon results for this XqF in a separate file
+          sLoc = this.crpThis.getLexName(fName);
+          File fLexDictXqF = new File(FileUtil.nameNormalize(sLoc));
+          FileUtil.writeFile(fLexDictXqF, oLexInfo.toString());
+        }        
       }
-      oLexInfo.put("lexdicts", arLexCombi);      
-      
-      // Do we have lex info?
-      if (bHaveLexInfo) {
-        // Store the lexicon results for this XqF in a separate file
-        sLoc = this.crpThis.getLexName(fName);
-        File fLexDictXqF = new File(FileUtil.nameNormalize(sLoc));
-        FileUtil.writeFile(fLexDictXqF, oLexInfo.toString());
-      }
+
       
       // Pass on the number of hits for this XqF job
       JSONArray arHitsCount = new JSONArray();

@@ -15,7 +15,7 @@ import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.util.MemoryUtil;
 
 /**
- * A "WorkQueueXqF" contains the queue of JobXqF threads
+ * A "WorkQueueXqF" contains the queue of RunXqF threads
  * 
  * @author Erwin R. Komen
  */

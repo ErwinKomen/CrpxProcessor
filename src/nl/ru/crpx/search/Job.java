@@ -192,9 +192,6 @@ public abstract class Job implements Comparable<Job> {
       case "JobXq":
         search = new JobXq(searchMan, userId, par);
         break;
-      case "JobXqF":
-        search = new JobXqF(searchMan, userId, par);
-        break;
       case "JobXqReUse":
         search = new JobXqReUse(searchMan, userId, par);
         break;

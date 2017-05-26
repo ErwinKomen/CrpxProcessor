@@ -366,34 +366,6 @@ public class SearchManager {
     return (JobXqReUse) search(objPrj, userId, parBasic, null, false);
   }
   
-  /** 
-   * searchXqF - perform search operation on one file for a CRP
-   * 
-   * @param objPrj    -- corpus research project being searched
-   * @param userId    -- id of the calling user
-   * @param par       -- parameters for this search
-   * @param myParent  -- the parent Xq job
-   * 
-   * @return result of the search job
-   * 
-   * @throws QueryException
-   * @throws InterruptedException 
-   */
-  public JobXqF searchXqF(CorpusResearchProject objPrj, String userId, SearchParameters par,
-          Job myParent) 
-          throws QueryException, InterruptedException {
-    // Validate interrupt
-    if (objPrj.errHandle.bInterrupt) 
-      return null;
-    // Only copy the query parameter
-    SearchParameters parBasic = par.copyWithOnly("query");
-    // Then add the "file" parameter
-    parBasic.put("crpfileid", par.getString("crpfileid"));
-    // Set the correct jobclass
-    parBasic.put("jobclass", "JobXqF");
-    return (JobXqF) search(objPrj, userId, parBasic, myParent, true);
-  }
-
   /**
    * Check if the searchParameters contain a "query" string
    *   that has an object "force" set to "true"
