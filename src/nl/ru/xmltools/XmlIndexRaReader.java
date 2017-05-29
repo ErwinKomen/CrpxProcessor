@@ -442,7 +442,7 @@ public class XmlIndexRaReader {
       // Return the indicated line
       return sBack;      
     } catch (Exception ex) {
-      ex.printStackTrace();
+      errHandle.DoError("getLineByIndex could not read next line [" + iIndex + "] of " + loc_fThis.getAbsolutePath(), ex, XmlIndexRaReader.class);
       // Return failure
       return "";
     }

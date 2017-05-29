@@ -119,32 +119,38 @@ public class XmlForestPsdxIndex extends XmlForest {
         if (intI == 0) {
           // Get the FIRST forest
           sForest = (bUseRa) ? loc_xrdRaFile.getFirstLine() : loc_xrdFile.getFirstLine();
-          // Make sure it is not empty
-          while (sForest.isEmpty() || !sForest.startsWith(loc_Psdx_SentStart)) {
+          // Make sure we get the first line that is not empty and that starts a sentence
+          while (!sForest.isEmpty() && !sForest.startsWith(loc_Psdx_SentStart)) {
             sForest = (bUseRa) ?  loc_xrdRaFile.getNextLine() : loc_xrdFile.getNextLine();
           }
-          // TODO: what if this is empty??
-          loc_pdxThis.LoadXml(sForest);
-          // Get the current context
-          ndxForest.argValue = loc_pdxThis.SelectSingleNode(loc_path_PsdxSent);
-          // Validate: do we have a result?
-          if (ndxForest.argValue == null) {
-            // This should not happen. Check what is the matter
-            String sWork = loc_pdxThis.getDoc();
-            logger.debug("XmlForest empty ndxForest.argValue: " + sWork);
+          // Did we actually get a non-empty line?
+          if (sForest.isEmpty()) {
+            // Getting an empty line means that there is no more content available...
+            int iStopHere = 1;
           } else {
-            loc_cntThis.Seg = objParse.GetSeg(ndxForest.argValue);
-            // loc_cntThis.Loc = ndxForest.argValue.Attributes("Location").Value;
-            // loc_cntThis.TxtId = ndxForest.argValue.Attributes("TextId").Value;
-            loc_cntThis.Loc = ndxForest.argValue.getAttributeValue(loc_xq_Location);
-            loc_cntThis.TxtId = ndxForest.argValue.getAttributeValue(loc_xq_TextId);
-            /*
-            // ===== DEBUG =======
-            if (loc_cntThis.Loc == null) {
-              boolean bStop = true;
+            // TODO: what if this is empty??
+            loc_pdxThis.LoadXml(sForest);
+            // Get the current context
+            ndxForest.argValue = loc_pdxThis.SelectSingleNode(loc_path_PsdxSent);
+            // Validate: do we have a result?
+            if (ndxForest.argValue == null) {
+              // This should not happen. Check what is the matter
+              String sWork = loc_pdxThis.getDoc();
+              logger.debug("XmlForest empty ndxForest.argValue: " + sWork);
+            } else {
+              loc_cntThis.Seg = objParse.GetSeg(ndxForest.argValue);
+              // loc_cntThis.Loc = ndxForest.argValue.Attributes("Location").Value;
+              // loc_cntThis.TxtId = ndxForest.argValue.Attributes("TextId").Value;
+              loc_cntThis.Loc = ndxForest.argValue.getAttributeValue(loc_xq_Location);
+              loc_cntThis.TxtId = ndxForest.argValue.getAttributeValue(loc_xq_TextId);
+              /*
+              // ===== DEBUG =======
+              if (loc_cntThis.Loc == null) {
+                boolean bStop = true;
+              }
+              // ===================
+                      */
             }
-            // ===================
-                    */
           }
         } else {
           // Fill the following context XmlDocument
