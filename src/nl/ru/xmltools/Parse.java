@@ -808,6 +808,7 @@ public class Parse {
     ByRef<XmlNode> ndxMdi;        // Access to corresponding .imdi or .cmdi file
     XmlForest objProcType = null; // Access to the XmlForest object allocated to me
     CrpFile oCrpFile;
+    boolean bDebug = false;       // Debugging
     JSONArray arLine = new JSONArray();
     JSONObject oBack = new JSONObject();
 
@@ -827,12 +828,20 @@ public class Parse {
       
       // NOTE: we are not using [iStart] and [iPageSize] yet (here)
       
+      // ================= DEBUG ==
+      if (bDebug) this.errHandle.debug("crpManager/getSurfaceText: initialized for: "+sFileName);
+      // ==========================
+      
       // (a) Read the first sentence (psdx: <forest>) as well as the header (psdx: <teiHeader>)
       if (!objProcType.FirstForest(ndxForest, ndxHeader, ndxMdi, fThis.getAbsolutePath())) {
         objProcType.close();
         errHandle.DoError("getSurfaceText could not process first forest of " + fThis.getName());
         return oBack;
       }
+      // ================= DEBUG ==
+      if (bDebug) this.errHandle.debug("crpManager/getSurfaceText: got FirstForest ");
+      // ==========================
+      
       // Walk through all the sentence elements (<forest> or <s>)
       while (ndxForest.argValue != null) {
         List<String> lSeg = new ArrayList<>();
@@ -843,6 +852,9 @@ public class Parse {
         String sId = "";              // ID of this sentence
         int i;                        // Loop counter
         
+        // ================= DEBUG ==
+        if (bDebug) this.errHandle.debug("crpManager/getSurfaceText: while ");
+        // ==========================
         // Retrieve all the words in this sentence
         switch(crpThis.intProjType) {
           case ProjPsdx:
@@ -868,6 +880,9 @@ public class Parse {
         }
         // Get the ID of the forest
         sId = objProcType.getSentenceId(ndxForest);
+        // ================= DEBUG ==
+        if (bDebug) this.errHandle.debug("crpManager/getSurfaceText: processing id: "+sId);
+        // ==========================
         // Put the information in the object
         oLine.put("id", sId);
         oLine.put("text", sSeg);
@@ -880,6 +895,9 @@ public class Parse {
           return oBack;
         }
       }
+      // ================= DEBUG ==
+      if (bDebug) this.errHandle.debug("crpManager/getSurfaceText: ready ");
+      // ==========================
       // Create the object
       oBack.put("count", arLine.length());
       oBack.put("line", arLine);
