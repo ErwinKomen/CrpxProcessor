@@ -595,7 +595,7 @@ public class XmlAccessFolia extends XmlAccess {
         // If we don't get anything, then return false
         sSentLine = sSentLine.trim();
         if (sSentLine.isEmpty()) {
-          logger.error("readSent: empty line for sentence id ["+sSentId+"]");
+          logger.error("XmlAccessFolia/readSent: empty line for sentence id ["+sSentId+"]");
           return false;
         }
         // Convert this into an XmlNode
