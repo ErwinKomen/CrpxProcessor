@@ -1291,6 +1291,57 @@ public class Extensions extends RuBase {
   }
 // </editor-fold>
 
+// <editor-fold defaultstate="collapsed" desc="ru:wordsmatch">
+  // ------------------------------------------------------------------------------------
+  // Name:  wordsmatch
+  // Goal:  Check if the sequence of words in [sMulti] matches with the 
+  //        words starting at ndThis  //        
+  //
+  // History:
+  // 09-10-2017  ERK Created for Java
+  // ------------------------------------------------------------------------------------
+  public static boolean wordsmatch(XPathContext objXp, SequenceIterator sIt, Value valMulti) {
+    try {
+      // Get the node we are considering
+      NodeInfo node = getOneNode(objXp, "wordsmatch", sIt);
+      // Get the list of words
+      String sMulti = valMulti.getStringValue();
+      // Call the actual function with the correct parameters
+      return wordsmatch2(objXp, node, sMulti);
+    } catch (Exception ex) {
+      // Warn user
+      errHandle.DoError("Extensions/word_sequence() error", ex, Extensions.class);
+      setRtError(objXp, "wordsmatch", ex.getMessage());
+      // Return failure
+      return false;
+    }
+  }
+  public static boolean wordsmatch2(XPathContext objXp, NodeInfo node, String sMulti) {
+    boolean bResult = false;  // The result we are going to return
+    XdmNode ndSax;    // Myself, if I am a proper node
+    int nodeKind;     // The kind of object getting passed as argument
+    
+    try {
+      // Validate
+      if (node == null) return false;
+      nodeKind = node.getNodeKind();
+      if (nodeKind != Type.ELEMENT) return false;
+      // Get the XdmNode representation of the node
+      ndSax = objSaxDoc.wrap(node);    
+      // Now call the function in [RuBase]
+      bResult = RuWordsMatch(objXp, ndSax, sMulti);
+      // Return the result
+      return bResult;
+    } catch (Exception ex) {
+      // Warn user
+      errHandle.DoError("Extensions/word_sequence() error", ex, Extensions.class);
+      setRtError(objXp, "wordsmatch", ex.getMessage());
+      // Return failure
+      return false;
+    }
+  }
+// </editor-fold>
+  
 // <editor-fold defaultstate="collapsed" desc="Private functions">
   private static boolean hasStringValue(XdmValue varText) {
     String strType = varText.getClass().getName();

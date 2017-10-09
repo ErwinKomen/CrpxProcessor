@@ -74,6 +74,14 @@ public class RuBase /* extends Job */ {
   private static XPathSelector ru_xpeWords_Negra;     // Search expression for ProjNegra
   private static XPathSelector ru_xpeWords_Alp;       // Search expression for ProjAlp  
   
+  private static XPathSelector ru_xpeCurrentWord_Psdx;
+  private static XPathSelector ru_xpeCurrentWord_Folia;
+  private static XPathSelector ru_xpeCurrentWord_Alp;
+  
+  private static XPathSelector ru_xpeFollowingWords_Psdx;
+  private static XPathSelector ru_xpeFollowingWords_Folia;
+  private static XPathSelector ru_xpeFollowingWords_Alp;
+  
   private static XPathSelector ru_xpPreceding_Psdx;   // List of preceding nodes for ProjPsdx
   private static XPathSelector ru_xpPreceding_Folia;  // List of preceding nodes for ProjFolia
   private static XPathSelector ru_xpPreceding_Alp;    // List of preceding nodes for ProjAlp
@@ -159,23 +167,30 @@ public class RuBase /* extends Job */ {
         ru_xpeWords_Folia2 = xpComp.compile("./ancestor::s/child::w[not(@class) or @class='Vern']").load();
         ru_xpeWords_Alp = xpComp.compile("./descendant-or-self::node[count(@word)>0]").load();
         ru_xpeWords_Negra = xpComp.compile("./descendant-or-self::t").load();
+        // Create search expressions for RuWordsMatch()
+        ru_xpeCurrentWord_Psdx = xpComp.compile("./child::eLeaf[@Type = 'Vern' or @Type = 'Punct']/@Text").load();
+        ru_xpeCurrentWord_Folia = xpComp.compile("./child::wref[not(starts-with(@t, '*'))]/@t").load();
+        ru_xpeCurrentWord_Alp = xpComp.compile("./child::node[@word]/@word").load();
+        ru_xpeFollowingWords_Psdx = xpComp.compile("./following::eLeaf[@Type = 'Vern' or @Type = 'Punct']/@Text").load();
+        ru_xpeFollowingWords_Folia = xpComp.compile("./following::wref[not(starts-with(@t, '*'))]/@t").load();
+        ru_xpeFollowingWords_Alp = xpComp.compile("./following::node[@word]/@word").load();
         // Create search expressions for RuRelates()
-        // (1) PRECEDING
-        ru_xpPreceding_Psdx = xpComp.compile("./following::eTree").load();
-        ru_xpPreceding_Folia = xpComp.compile("./following::su").load();
-        ru_xpPreceding_Alp = xpComp.compile("./following::node").load();
-        // (2) FOLLOWING
+        // (1) FOLLOWING
+        ru_xpFollowing_Psdx = xpComp.compile("./following::eTree").load();
+        ru_xpFollowing_Folia = xpComp.compile("./following::su").load();
+        ru_xpFollowing_Alp = xpComp.compile("./following::node").load();
+        // (2) PRECEDING
         ru_xpPreceding_Psdx = xpComp.compile("./preceding::eTree").load();
         ru_xpPreceding_Folia = xpComp.compile("./preceding::su").load();
         ru_xpPreceding_Alp = xpComp.compile("./preceding::node").load();        
         // (3) DESCENDANT
-        ru_xpPreceding_Psdx = xpComp.compile("./descendant::eTree").load();
-        ru_xpPreceding_Folia = xpComp.compile("./descendant::su").load();
-        ru_xpPreceding_Alp = xpComp.compile("./descendant::node").load();        
+        ru_xpDescendant_Psdx = xpComp.compile("./descendant::eTree").load();
+        ru_xpDescendant_Folia = xpComp.compile("./descendant::su").load();
+        ru_xpDescendant_Alp = xpComp.compile("./descendant::node").load();        
         // (4) SIBLING
-        ru_xpPreceding_Psdx = xpComp.compile("./preceding-sibling::eTree | ./following-sibling::eTree").load();
-        ru_xpPreceding_Folia = xpComp.compile("./preceding-sibling::su | ./following-sibling::su").load();
-        ru_xpPreceding_Alp = xpComp.compile("./preceding-sibling::node | ./following-sibling::node").load();        
+        ru_xpSibling_Psdx = xpComp.compile("./preceding-sibling::eTree | ./following-sibling::eTree").load();
+        ru_xpSibling_Folia = xpComp.compile("./preceding-sibling::su | ./following-sibling::su").load();
+        ru_xpSibling_Alp = xpComp.compile("./preceding-sibling::node | ./following-sibling::node").load();        
         // Indicate we are initialized
         bInit = true;
       }
@@ -876,6 +891,92 @@ public class RuBase /* extends Job */ {
       errHandle.DoError("RuBase/RuWords error", ex, RuBase.class);
       // Return failure
       return -1;
+    }
+  }
+  
+  // ------------------------------------------------------------------------------------
+  // Name:  RuWordsMatch
+  // Goal:  Check if the sequence of words in [sMulti] matches with the 
+  //        words starting at ndThis       
+  //
+  // History:
+  // 09-10-2017  ERK Created for Java
+  // ------------------------------------------------------------------------------------
+  static boolean RuWordsMatch(XPathContext objXp, XdmNode ndStart, String sMulti) {
+    boolean bBack = false;  // Resulting match
+    XPathSelector selectXp; // The actual selector we are using
+    String[] arWords;       // Keep the words here
+    int iWordIdx = 0;       // Word index
+    CorpusResearchProject crpThis;
+    
+    try {
+      // Validate
+      if (ndStart == null) return false;
+      // Determine which CRP this is
+      CrpFile oCF = getCrpFile(objXp);
+      crpThis = oCF.crpThis;
+      
+      // Convert the string into a list of words
+      arWords = sMulti.split("\\s+");
+      
+      // Match the FIRST word with the CURRENT node
+      selectXp = null;
+      // Action depends on the kind of xml project we have
+      switch(crpThis.intProjType) {
+        case ProjPsdx: selectXp = ru_xpeCurrentWord_Psdx; break;
+        case ProjFolia: selectXp = ru_xpeCurrentWord_Folia; break;
+        case ProjAlp: selectXp = ru_xpeCurrentWord_Alp; break;
+      }
+      // Satisfy Netbeans (which doesn't recognize this in the 'default' part of a switch)
+      if (selectXp == null) {
+          errHandle.DoError("RuWordsMatch: cannot process type " + crpThis.getProjectType(), RuBase.class);
+          return false;
+      }
+      // Apply the context item
+      selectXp.setContextItem(ndStart);
+      XdmItem ndCurrent = selectXp.evaluateSingle();
+      
+      // Do we have any result?
+      if (ndCurrent != null && arWords[iWordIdx++].equals(ndCurrent.getStringValue()) ) {
+        // We may have a match
+        bBack = true;
+        // Default value for Xq selector
+        selectXp = null;
+        // Action depends on the kind of xml project we have
+        switch(crpThis.intProjType) {
+          case ProjPsdx: selectXp = ru_xpeFollowingWords_Psdx; break;
+          case ProjFolia: selectXp = ru_xpeFollowingWords_Folia; break;
+          case ProjAlp: selectXp = ru_xpeFollowingWords_Alp; break;
+        }
+        // Satisfy Netbeans (which doesn't recognize this in the 'default' part of a switch)
+        if (selectXp == null) {
+            errHandle.DoError("RuWordsMatch: cannot process type " + crpThis.getProjectType(), RuBase.class);
+            return false;
+        }
+        // Apply the context item
+        selectXp.setContextItem(ndStart);
+        // Go through all the items
+        for (XdmItem ndThis : selectXp) {
+          // Make sure we do not go further than the length of [arWords]
+          if (iWordIdx >= arWords.length) {
+            break;
+          }
+          // Check if the next word matches this one
+          XdmNode ndNext = (XdmNode) ndThis;
+          if (!ndNext.getStringValue().equals(arWords[iWordIdx++])) {
+            bBack = false;
+            break;
+          }
+        }
+        
+      }
+      // Return what we found
+      return bBack;
+    } catch (Exception ex) {
+      // Warn user
+      errHandle.DoError("RuBase/RuWordsMatch error", ex, RuBase.class);
+      // Return failure
+      return false;
     }
   }
 
