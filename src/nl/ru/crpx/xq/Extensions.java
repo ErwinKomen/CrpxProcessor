@@ -1251,6 +1251,54 @@ public class Extensions extends RuBase {
   }
 // </editor-fold>  
   
+// <editor-fold defaultstate="collapsed" desc="ru:word">
+  // ------------------------------------------------------------------------------------
+  // Name:  word
+  // Goal:  Get the word (if exists) of node [sIt]        
+  //
+  // History:
+  // 09-10-2017  ERK Created for Java
+  // ------------------------------------------------------------------------------------
+  public static String word(XPathContext objXp, SequenceIterator sIt) {
+    try {
+      // Get the node we are considering
+      NodeInfo node = getOneNode(objXp, "word", sIt);
+      // Call the actual function with the correct parameters
+      return get_current_word(objXp, node);
+    } catch (Exception ex) {
+      // Warn user
+      errHandle.DoError("Extensions/word() error", ex, Extensions.class);
+      setRtError(objXp, "word", ex.getMessage());
+      // Return failure
+      return "";
+    }
+  }
+  public static String get_current_word(XPathContext objXp, NodeInfo node) {
+    String sResult;  // The result we are going to return
+    XdmNode ndSax;    // Myself, if I am a proper node
+    int nodeKind;     // The kind of object getting passed as argument
+    
+    try {
+      // Validate
+      if (node == null) return "";
+      nodeKind = node.getNodeKind();
+      if (nodeKind != Type.ELEMENT) return "";
+      // Get the XdmNode representation of the node
+      ndSax = objSaxDoc.wrap(node);    
+      // Now call the function in [RuBase]
+      sResult = RuCurrentWord(objXp, ndSax);
+      // Return the result
+      return sResult;
+    } catch (Exception ex) {
+      // Warn user
+      errHandle.DoError("Extensions/get_current_word() error", ex, Extensions.class);
+      setRtError(objXp, "word", ex.getMessage());
+      // Return failure
+      return "";
+    }
+  }
+// </editor-fold>
+  
 // <editor-fold defaultstate="collapsed" desc="ru:words">
   // ----------------------------------------------------------------------------------------------------------
   // Name :  words
@@ -1317,7 +1365,7 @@ public class Extensions extends RuBase {
     }
   }
   public static boolean wordsmatch2(XPathContext objXp, NodeInfo node, String sMulti) {
-    boolean bResult = false;  // The result we are going to return
+    boolean bResult;  // The result we are going to return
     XdmNode ndSax;    // Myself, if I am a proper node
     int nodeKind;     // The kind of object getting passed as argument
     

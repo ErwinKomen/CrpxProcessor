@@ -980,6 +980,55 @@ public class RuBase /* extends Job */ {
     }
   }
 
+  // ------------------------------------------------------------------------------------
+  // Name:  RuCurrentWord
+  // Goal:  Get the word under [ndStart]       
+  //
+  // History:
+  // 09-10-2017  ERK Created for Java
+  // ------------------------------------------------------------------------------------
+  static String RuCurrentWord(XPathContext objXp, XdmNode ndStart) {
+    String sBack = "";  // Resulting match
+    XPathSelector selectXp; // The actual selector we are using
+    CorpusResearchProject crpThis;
+    
+    try {
+      // Validate
+      if (ndStart == null) return sBack;
+      // Determine which CRP this is
+      CrpFile oCF = getCrpFile(objXp);
+      crpThis = oCF.crpThis;
+      
+      // Match the FIRST word with the CURRENT node
+      selectXp = null;
+      // Action depends on the kind of xml project we have
+      switch(crpThis.intProjType) {
+        case ProjPsdx: selectXp = ru_xpeCurrentWord_Psdx; break;
+        case ProjFolia: selectXp = ru_xpeCurrentWord_Folia; break;
+        case ProjAlp: selectXp = ru_xpeCurrentWord_Alp; break;
+      }
+      // Satisfy Netbeans (which doesn't recognize this in the 'default' part of a switch)
+      if (selectXp == null) {
+          errHandle.DoError("RuCurrentWord: cannot process type " + crpThis.getProjectType(), RuBase.class);
+          return sBack;
+      }
+      // Apply the context item
+      selectXp.setContextItem(ndStart);
+      XdmItem ndCurrent = selectXp.evaluateSingle();
+      
+      if (ndCurrent != null) {
+        sBack = ndCurrent.getStringValue();
+      }
+      // Return what we found
+      return sBack;
+    } catch (Exception ex) {
+      // Warn user
+      errHandle.DoError("RuBase/RuCurrentWord error", ex, RuBase.class);
+      // Return failure
+      return "";
+    }
+  }
+  
 // </editor-fold>
 // <editor-fold defaultstate="collapsed" desc="Support functions for Extensions">
 
