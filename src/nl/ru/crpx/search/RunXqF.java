@@ -108,7 +108,7 @@ public class RunXqF extends RunAny {
           parentXqJob.setJobStatus("error");
         } else {
           this.jobStatus = "finished";
-          errHandle.debug("RunXqF: performSearch: ready handling job [" + sName + "]");
+          errHandle.debug("RunXqF: performSearch: ready handling job [" + sName + "] id="+this.getJobId());
         }
       } else {
         this.jobStatus = "error";
@@ -133,18 +133,19 @@ public class RunXqF extends RunAny {
    */
   public void close() {
     try {
-      
-      // Make sure to release the file handle
-      CrpFile oCrpFile = RuBase.getCrpFile(intCrpFileId);
-      // Validation
-      if (oCrpFile != null) {
-        oCrpFile.close();
-        // Remove this eCRP from the RuBase arraylist of CRP=FILE objects
-        RuBase.removeCrpCaller(oCrpFile);
+      if (!this.is_closed()) {
+        // Make sure to release the file handle
+        CrpFile oCrpFile = RuBase.getCrpFile(intCrpFileId);
+        // Validation
+        if (oCrpFile != null) {
+          oCrpFile.close();
+          // Remove this eCRP from the RuBase arraylist of CRP=FILE objects
+          RuBase.removeCrpCaller(oCrpFile);
+        }
+        this.jobStatus = "closed";
+        // Finalize me
+        // this.finalize();
       }
-      this.jobStatus = "closed";
-      // Finalize me
-      // this.finalize();
     } catch (Exception ex) {
       // Show the error
       errHandle.DoError("RunXqF: close problem", ex, RunXqF.class);
@@ -152,6 +153,10 @@ public class RunXqF extends RunAny {
       // Show the error
       errHandle.DoError("RunXqF: finalization problem: "+ex.getMessage());
     }
+  }
+  
+  public boolean is_closed() {
+    return (this.jobStatus.equals("closed"));
   }
 
   

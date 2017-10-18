@@ -119,8 +119,12 @@ public class XmlForestFoliaIndex extends XmlForest {
           // Get the FIRST forest
           sForest = (bUseRa) ? loc_xrdRaFile.getFirstLine() : loc_xrdFile.getFirstLine();
           // Make sure it is not empty
-          while (sForest.isEmpty() || !sForest.startsWith(loc_Folia_SentStart)) {
+          while (!loc_xrdRaFile.is_closed() && ( sForest.isEmpty() || !sForest.startsWith(loc_Folia_SentStart))) {
             sForest = (bUseRa) ?  loc_xrdRaFile.getNextLine() : loc_xrdFile.getNextLine();
+          }
+          // Double check for closure
+          if (loc_xrdRaFile.is_closed()) {
+            return false;
           }
           // TODO: what if this is empty??
           loc_pdxThis.LoadXml(sForest);

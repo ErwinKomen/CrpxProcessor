@@ -196,30 +196,37 @@ public class ExecutePsdxStream extends ExecuteXml {
         // Give it a different name, like "xqf"
         searchXqFpar.put("query", "{\"crp\": \"" + crpThis.getName() + "\"" +
                 ", \"file\": \"" + fInput.getName() + "\"" + "}");
-        // Keep track of the old jobs and make sure not too many are running now
-        if (!monitorRunXqF(this.iMaxParJobs, jobCaller)) {
-          // Check if an error has been passed on
-          int iErrSize = 0;
-          if (jobCaller.getJobErrors() != null ) iErrSize = jobCaller.getJobErrors().size();
-          if (jobCaller.getJobStatus().equals("error") && iErrSize>0) {
-            errHandle.debug("ExecuteQueries checkpoint #1 (react on existing error)");
-            // An error has already been produced, so just leave
-            return false;
-          } else {
-            errHandle.debug("ExecuteQueries checkpoint #2 (create JobError)");
-            // Getting here means that we are UNABLE to wait for the number of jobs
-            //  of this user to decrease below @iMaxParJobs
-            return errHandle.DoError("ExecuteQueries: unable to get below max #jobs " + 
-                    this.iMaxParJobs, ExecutePsdxStream.class);
+        
+        if (bUseWorkQueue) {
+          // Clear any jobs still in the work queue
+          this.workQueue.clear();
+        } else {
+          // Keep track of the old jobs and make sure not too many are running now
+          if (!monitorRunXqF(this.iMaxParJobs, jobCaller)) {
+            // Check if an error has been passed on
+            int iErrSize = 0;
+            if (jobCaller.getJobErrors() != null ) iErrSize = jobCaller.getJobErrors().size();
+            if (jobCaller.getJobStatus().equals("error") && iErrSize>0) {
+              errHandle.debug("ExecuteQueries checkpoint #1 (react on existing error)");
+              // An error has already been produced, so just leave
+              return false;
+            } else {
+              errHandle.debug("ExecuteQueries checkpoint #2 (create JobError)");
+              // Getting here means that we are UNABLE to wait for the number of jobs
+              //  of this user to decrease below @iMaxParJobs
+              return errHandle.DoError("ExecuteQueries: unable to get below max #jobs " + 
+                      this.iMaxParJobs, ExecutePsdxStream.class);
+            }
           }
         }
+
         // Create a job for this Crp/File treatment
         if (bUseWorkQueue) {
           // NEW way using the user-specific work-queue
           RunXqF oneXqF = new RunXqF(errHandle, jobCaller, crpThis, userId, searchXqFpar);
           // Try to run the job and deal with exceptions
           try {
-            // The job us run using the work queue
+            // The job must be executed using the work queue
             this.workQueue.execute(oneXqF);
           } catch (QueryException ex) {
             // Return error and failure
@@ -253,10 +260,19 @@ public class ExecutePsdxStream extends ExecuteXml {
             // Add the job to the list of jobs for this project/user
             arRunXqF.add(oneXqF);
           }
-          // Monitor the end of the XqF runs
-          if (!monitorRunXqF(1, jobCaller)) {
+          
+          /* ---------- MONITORRUNXQF IS NOT NEEDED ANY LONGER ----
+          // Make sure the number of XqF jobs is below the threshold
+          if (!monitorRunXqF(this.iMaxParJobs, jobCaller)) {
             return false;
           }
+          */
+          
+          
+          /* OLD: not sure why I put '1' here...
+          if (!monitorRunXqF(1, jobCaller)) {
+            return false;
+          }*/
           
         }
 
@@ -879,10 +895,10 @@ public class ExecutePsdxStream extends ExecuteXml {
     try {
       // Loop while the number of jobs is larger than the maximum
       while (arRunXqF.size() >= iUntil) {
-        // Visit all jobs
-        for (int i = 0; i<arRunXqF.size(); i++ ) {
+        for (int i = arRunXqF.size()-1; i>=0; i-- ) {
           // Get this XqF job
           RunXqF rThis = arRunXqF.get(i);
+          
           // Is it finished?
           if (rThis.finished()) {
             // It is ready, so gather its results
@@ -917,14 +933,19 @@ public class ExecutePsdxStream extends ExecuteXml {
               // Since there is no alive CrpFile anymore, 
               //   we need to get rid of this RunXqF job...
               String sJobId = rThis.getJobId();
-              errHandle.DoError("MonitorRunXqF: empty CrpFile in RunXqF job: "+sJobId);
-
-              // Double check status
               String sStat = rThis.getJobStatus();
-              if (sStat.equals("error") || sStat.equals("interrupt") || jobCaller.getJobStatus().equals("interrupt")) {
-                // Pass on the error upwards to the job caller
-                jobCaller.setJobErrors(rThis.getJobErrors());
-                jobCaller.setJobStatus("error");
+              
+              // If the job is finished, no problem
+              if (!sStat.equals("finished")) {
+                // The job is not finished, so there is a bit of a problem here
+                errHandle.DoError("MonitorRunXqF: empty CrpFile in RunXqF job: "+sJobId);
+
+                // Double check status
+                if (sStat.equals("error") || sStat.equals("interrupt") || jobCaller.getJobStatus().equals("interrupt")) {
+                  // Pass on the error upwards to the job caller
+                  jobCaller.setJobErrors(rThis.getJobErrors());
+                  jobCaller.setJobStatus("error");
+                }
               }
               // Okay, remove the RunXqF job
               arRunXqF.remove(rThis);
@@ -954,9 +975,12 @@ public class ExecutePsdxStream extends ExecuteXml {
               } else {
                 // We have its results, so take it away from our job list
                 arRunXqF.remove(rThis);
+                
+                // NOTE: closing the CrpFile is being done inside RunXqF.close()
                 // Nicely close the Ra Reader attached to this
-                oCrpFile.close();
-                // Release the resources from [rThis]
+                // oCrpFile.close();
+                
+                // Release the resources from [rThis] + close the CrpFile attached to this
                 rThis.close();
 
               }

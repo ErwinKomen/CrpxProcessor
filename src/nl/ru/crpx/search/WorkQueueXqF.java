@@ -36,7 +36,7 @@ public class WorkQueueXqF {
     this.nThreads = nThreads;
     this.userId = sUserId;
     queue = new LinkedList();
-    threads = new PoolWorker[nThreads];
+    threads = new PoolWorker[this.nThreads];
     cache = new ArrayList<>();
 
     for (int i=0; i<nThreads; i++) {
@@ -63,6 +63,17 @@ public class WorkQueueXqF {
     }
   }
   
+  /**
+   * numjobs
+   *    Return the number of jobs in the cache + in the queue
+   * 
+   * @return integer
+   */
+  public int numjobs() {
+    int iNumJobs = cache.size() + queue.size();
+    return iNumJobs;
+  }
+  
   public RunAny getRun(int iJobId) {
     String sJobId = Integer.toString(iJobId);
     synchronized(cache) {
@@ -76,6 +87,26 @@ public class WorkQueueXqF {
     }
     // Didn't find it
     return null;
+  }
+  
+  public void clear() {
+    try {
+      // First remove any jobs still present in the queue
+      synchronized(queue) {
+        queue.clear();
+      }
+      
+      // Next visit all jobs in the cache and stop+remove them
+      synchronized(cache) {
+        for (int i=cache.size()-1;i>=0;i--) {
+          cache.remove(i);
+        }
+      }
+      // All should be clear now
+    } catch (RuntimeException e) {
+      // Notify the user
+      errHandle.DoError("WorkQueueXqF.clear error", e);
+    }
   }
   
   public boolean removeRun(int iJobId) {

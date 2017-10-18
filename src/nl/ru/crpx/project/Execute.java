@@ -92,6 +92,11 @@ public class Execute extends CrpGlobal {
       ruExtensions = new Extensions(crpThis);
       // Set the maximum number of parallel XqF jobs
       iMaxParJobs = crpThis.getPrjTypeManager().getMaxParJobs();
+      
+      // ================= DEBUGGING ==============
+      errHandle.debug("Execute maxparjobs: " + iMaxParJobs);
+      // ==========================================
+      
       // Set the search manager associated with the CRP
       this.searchMan = crpThis.getSearchManager();
       // Set the work queue to process the XqF jobs

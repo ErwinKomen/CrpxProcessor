@@ -303,13 +303,24 @@ public class XmlIndexRaReader {
   public void close() {
     try {
       if (this.loc_fRa != null) {
-        errHandle.debug("Ra reader closing: " + loc_fThis.getName());
-        this.loc_fRa.close();
-        this.loc_fRa = null;
+        synchronized(this.loc_fRa) {
+          errHandle.debug("Ra reader closing: " + loc_fThis.getName());
+          this.loc_fRa.close();
+          this.loc_fRa = null;
+        }
       }
     } catch (Exception ex) {
       errHandle.DoError("close() RA reader problem " + loc_fThis.getAbsolutePath(), ex, XmlIndexRaReader.class);
     }
+  }
+  
+  /**
+   * is_closed -- indicate whether this handle is closed by looking at its value
+   * 
+   * @return boolean
+   */
+  public boolean is_closed() {
+    return (this.loc_fRa == null);
   }
   
   /**
@@ -428,15 +439,26 @@ public class XmlIndexRaReader {
    * @return 
    */
   private String getLineByIndex(int iIndex, ByRef<XmlIndexItem> oItem) {
+    byte[] bBuf = null;
+    
     try {
       // Validate
       if (this.arIndex.size() < iIndex+1) return "";
+      if (iIndex < 0) return "";
       // Validate: do we have an entry for the first line?
       oItem.argValue = this.arIndex.get(iIndex);
-      // Read the first line into a string
-      this.loc_fRa.seek(oItem.argValue.start);
-      byte[] bBuf = new byte[oItem.argValue.size];
-      this.loc_fRa.read(bBuf);
+      // Make sure we access reading while it is possible
+      if (this.loc_fRa == null) {
+        // Return nothing
+        return "";
+      } else {
+        synchronized(this.loc_fRa) {
+          // Read the first line into a string
+          this.loc_fRa.seek(oItem.argValue.start);
+          bBuf = new byte[oItem.argValue.size];
+          this.loc_fRa.read(bBuf);
+        }
+      }
       // Turn what we read into a string
       String sBack = new String(bBuf, "utf-8");
       // Return the indicated line
