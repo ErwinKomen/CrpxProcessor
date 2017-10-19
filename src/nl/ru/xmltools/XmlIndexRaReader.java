@@ -453,6 +453,13 @@ public class XmlIndexRaReader {
         return "";
       } else {
         synchronized(this.loc_fRa) {
+          // Some error occurring here--get to the root of it
+          if (this.loc_fRa == null) {
+            errHandle.debug("getLineByIndex: loc_fRa is null");
+          }
+          if (oItem.argValue == null) {
+            errHandle.debug("getLineByIndex: oItem.argValue is null");
+          }
           // Read the first line into a string
           this.loc_fRa.seek(oItem.argValue.start);
           bBuf = new byte[oItem.argValue.size];

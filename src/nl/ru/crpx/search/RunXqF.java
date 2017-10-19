@@ -25,7 +25,8 @@ public class RunXqF extends RunAny {
   public int intPrecNum;                    // Number of preceding context lines
   public int intFollNum;                    // Number of following context lines
   public int intCurrentQCline = 0;          // The current QC line we are working on
-  public int intCrpFileId;                  // The @id associated with this job
+  public int intCrpFileId;                  // The index of the CrpFile associated with this job
+  public CrpFile oCrpFile;                  // The actual CrpFile associated with this job
   public Node ndxCurrentHeader = null;      // XML header of the current XML file
   public boolean ru_bFileSaveAsk = false;   // Needed for ru:setattrib()
   public boolean bTraceXq = false;          // Trace on XQ processing
@@ -56,16 +57,17 @@ public class RunXqF extends RunAny {
       // Get the parameter
       intCrpFileId = par.getInteger("crpfileid");
       // My own copy of the CrpFile object
-      CrpFile oCrpFile = RuBase.getCrpFile(intCrpFileId);
+      // CrpFile oCrpFile = RuBase.getCrpFile(intCrpFileId);
+      this.oCrpFile = RuBase.getCrpFile(intCrpFileId);
       // Validation
-      if (oCrpFile == null) {
+      if (this.oCrpFile == null) {
         // Don't know how this is possible: the CrpFile has been closed perhaps??
         errHandle.DoError("RunXqF initialisation: cannot get copy of CrpFile id="+intCrpFileId);
         return;
       }
       // Get a handle to the input file
       // fInput = RuBase.getCrpFile(par.getInteger("crpfileid")).flThis;
-      fInput = oCrpFile.flThis;
+      fInput = this.oCrpFile.flThis;
 
       this.jobStatus = "created";
     } catch (Exception ex) {
@@ -80,6 +82,7 @@ public class RunXqF extends RunAny {
   @Override
   public void run() {
     try {
+      // Perform the search
       performSearch();
     } catch (QueryException ex) {
       // Set this in the job caller
@@ -100,7 +103,8 @@ public class RunXqF extends RunAny {
       // Get the file name
       String sName = fInput.getName();
       // Perform the queries on the selected CrpFile object
-      if (objEx.ExecuteQueriesFile(this, intCrpFileId)) {
+      // if (objEx.ExecuteQueriesFile(this, intCrpFileId)) {
+      if (objEx.ExecuteQueriesFile(this, this.oCrpFile)) {
         // Check for interrupt
         if (errHandle.bInterrupt) {
           this.jobStatus = "interrupt";
@@ -117,8 +121,7 @@ public class RunXqF extends RunAny {
         errHandle.debug("RunXqF errors=" + parentXqJob.getJobErrors());
         parentXqJob.setJobStatus("error");
       }
-      
-      
+
     } catch (Exception ex) {
       // Show the error
       errHandle.DoError("RunXqF: Could not perform search", ex, RunXqF.class);
@@ -135,7 +138,7 @@ public class RunXqF extends RunAny {
     try {
       if (!this.is_closed()) {
         // Make sure to release the file handle
-        CrpFile oCrpFile = RuBase.getCrpFile(intCrpFileId);
+        // Already have this... CrpFile oCrpFile = RuBase.getCrpFile(intCrpFileId);
         // Validation
         if (oCrpFile != null) {
           oCrpFile.close();

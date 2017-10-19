@@ -261,12 +261,12 @@ public class ExecutePsdxStream extends ExecuteXml {
             arRunXqF.add(oneXqF);
           }
           
-          /* ---------- MONITORRUNXQF IS NOT NEEDED ANY LONGER ----
+          /* ---------- MONITORRUNXQF IS NOT NEEDED ANY LONGER?? ---- */
           // Make sure the number of XqF jobs is below the threshold
           if (!monitorRunXqF(this.iMaxParJobs, jobCaller)) {
             return false;
           }
-          */
+          /* --------------------------------------------------------- */
           
           
           /* OLD: not sure why I put '1' here...
@@ -916,9 +916,11 @@ public class ExecutePsdxStream extends ExecuteXml {
               logger.debug("monitorXqF job " + rThis.getJobId() + ": oProgress is null for [" + this.userId + "]");
             } else {
               // More double checking
+              /* OLD
               if (rThis.intCrpFileId <0)
                 logger.debug("monitorRunXqF job " + rThis.getJobId() + " fileid=" + rThis.intCrpFileId);
-              CrpFile oCrpFile = RuBase.getCrpFile(rThis.intCrpFileId);
+              CrpFile oCrpFile = RuBase.getCrpFile(rThis.intCrpFileId);*/
+              CrpFile oCrpFile = rThis.oCrpFile;
               if (oCrpFile==null) {
                 logger.debug("monitorRunXqF job " + rThis.getJobId() + " CrpFile=null");
               } else if (oCrpFile.flThis == null)
@@ -927,7 +929,8 @@ public class ExecutePsdxStream extends ExecuteXml {
             // =========================================
             
             // Note that it has finished for others too
-            CrpFile oCrpFile = RuBase.getCrpFile(rThis.intCrpFileId);
+            // OLD: CrpFile oCrpFile = RuBase.getCrpFile(rThis.intCrpFileId);
+            CrpFile oCrpFile = rThis.oCrpFile;
             // Make sure this CrpFile still exists
             if (oCrpFile == null) {
               // Since there is no alive CrpFile anymore, 
@@ -973,6 +976,11 @@ public class ExecutePsdxStream extends ExecuteXml {
                 // Return with an error
                 return errHandle.DoError("MonitorRunXqF detected error in RunXqF job: "+sJobId);
               } else {
+                // Indicate what we are doing before we continue
+                errHandle.debug("MonitorRunXqF removes job "+rThis.getJobId()+ 
+                        " on file [" + oCrpFile.flThis.getName() + 
+                        "] because of state " + rThis.getJobStatus());
+                
                 // We have its results, so take it away from our job list
                 arRunXqF.remove(rThis);
                 
@@ -1134,10 +1142,11 @@ public class ExecutePsdxStream extends ExecuteXml {
    *       via the [oCrpFile] object
    * 
    * @param runXqF
-   * @param iCrpFileIdx
+   * @param oCrpFile
    * @return 
    */
-  public boolean ExecuteQueriesFile( RunAny runXqF, int iCrpFileIdx ) {
+  // public boolean ExecuteQueriesFile( RunAny runXqF, int iCrpFileIdx ) {
+  public boolean ExecuteQueriesFile( RunAny runXqF, CrpFile oCrpFile ) {
     int intOviewLine;           // The target overview line where we have to store results
     boolean bDoForest = false;  // Should we process the current <forest> node?
     boolean bHasInput = false;  // Does this line have input?
@@ -1166,8 +1175,11 @@ public class ExecutePsdxStream extends ExecuteXml {
     
     // Note: this uses [objProcType, which is a 'protected' variable from [Execute]
     try {
+      // ================== DEBUGGING =============
+      errHandle.debug("ExecuteQueriesFile on job " + runXqF.getJobId() + " status " + runXqF.getJobStatus());
+      // ==========================================
       // Get the CrpFile object
-      CrpFile oCrpFile = RuBase.getCrpFile(iCrpFileIdx);
+      // CrpFile oCrpFile = RuBase.getCrpFile(iCrpFileIdx);
       // Initialisation 
       ndxDbRes = new ByRef(null);
       // Get the file
