@@ -893,6 +893,9 @@ public class ExecutePsdxStream extends ExecuteXml {
    */
   private boolean monitorRunXqF(int iUntil, Job jobCaller) {
     try {
+      // ============= Debugging =======================
+      logger.debug("monitorRunXqF job until " + iUntil);
+      // ===============================================
       // Loop while the number of jobs is larger than the maximum
       while (arRunXqF.size() >= iUntil) {
         for (int i = arRunXqF.size()-1; i>=0; i-- ) {
