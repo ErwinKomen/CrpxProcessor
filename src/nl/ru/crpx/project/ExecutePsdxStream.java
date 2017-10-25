@@ -914,6 +914,7 @@ public class ExecutePsdxStream extends ExecuteXml {
             // Add the individual Xqf to the total
             arTotal.put(oJobList);
                         
+            // <editor-fold defaultstate="collapsed" desc="Debugging">
             // ================= DEBUGGING =============
             if (oProgress==null) {
               logger.debug("monitorXqF job " + rThis.getJobId() + ": oProgress is null for [" + this.userId + "]");
@@ -930,12 +931,13 @@ public class ExecutePsdxStream extends ExecuteXml {
                 logger.debug("monitorRunXqF job " + rThis.getJobId() + " CrpFile.flThis=null");
             }
             // =========================================
+            // </editor-fold>
             
             // Note that it has finished for others too
-            // OLD: CrpFile oCrpFile = RuBase.getCrpFile(rThis.intCrpFileId);
             CrpFile oCrpFile = rThis.oCrpFile;
             // Make sure this CrpFile still exists
             if (oCrpFile == null) {
+              // <editor-fold defaultstate="collapsed" desc="CrpFile is NULL">
               // Since there is no alive CrpFile anymore, 
               //   we need to get rid of this RunXqF job...
               String sJobId = rThis.getJobId();
@@ -957,13 +959,16 @@ public class ExecutePsdxStream extends ExecuteXml {
               arRunXqF.remove(rThis);
               // Release the resources from [rThis]
               rThis.close();
+              // </editor-fold>
             } else {
+              // <editor-fold defaultstate="collapsed" desc="CrpFile exists">
               // The CrpFile still exists...
               setProgress(jobCaller, "", oCrpFile.flThis.getName(), 
                       -1, arCount.length(), -1);
               // Double check status
               String sStat = rThis.getJobStatus();
               if (sStat.equals("error") || sStat.equals("interrupt") || jobCaller.getJobStatus().equals("interrupt")) {
+                // <editor-fold defaultstate="collapsed" desc="error or interrupt">
                 // Pass on the error upwards to the job caller
                 jobCaller.setJobErrors(rThis.getJobErrors());
                 jobCaller.setJobStatus("error");
@@ -978,7 +983,9 @@ public class ExecutePsdxStream extends ExecuteXml {
                 rThis.close();
                 // Return with an error
                 return errHandle.DoError("MonitorRunXqF detected error in RunXqF job: "+sJobId);
+                // </editor-fold>
               } else {
+                // <editor-fold defaultstate="collapsed" desc="Finish off a job">
                 // Indicate what we are doing before we continue
                 errHandle.debug("MonitorRunXqF removes job "+rThis.getJobId()+ 
                         " on file [" + oCrpFile.flThis.getName() + 
@@ -988,13 +995,11 @@ public class ExecutePsdxStream extends ExecuteXml {
                 arRunXqF.remove(rThis);
                 
                 // NOTE: closing the CrpFile is being done inside RunXqF.close()
-                // Nicely close the Ra Reader attached to this
-                // oCrpFile.close();
-                
                 // Release the resources from [rThis] + close the CrpFile attached to this
                 rThis.close();
-
+                // </editor-fold>
               }
+              // </editor-fold>
             }
           }
         }
