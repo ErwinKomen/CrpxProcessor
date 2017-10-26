@@ -328,7 +328,7 @@ public class ExecutePsdxStream extends ExecuteXml {
           // Get this hit
           JSONObject oHit = arHits.getJSONObject(j);
           // Get the 'sub' and the 'count' values of the hit
-          String sSub = oHit.getString("sub");
+          JSONObject oSub = oHit.getJSONObject("sub");
           int iCount = oHit.getInt("count");
           // Process this count
           iFound += iCount;
