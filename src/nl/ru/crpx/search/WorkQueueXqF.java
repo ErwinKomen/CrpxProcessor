@@ -9,6 +9,7 @@ package nl.ru.crpx.search;
 
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import nl.ru.crpx.tools.ErrHandle;
@@ -21,12 +22,13 @@ import nl.ru.util.MemoryUtil;
  */
 public class WorkQueueXqF {
   private ErrHandle errHandle = null;
-  private String userId = "";        // The user that 'owns' this work queue
-  private final int nThreads;         // Number of threads that may be used
-  private final PoolWorker[] threads; // The pool of threads
-  private final LinkedList queue;     // The queue of threads for a user
-  private List<RunAny> cache;         // Cache of TxtList jobs (and possibly others)
-  private int iMaxCacheSize = 10;      // Max number of jobs to remember
+  private String userId = "";             // The user that 'owns' this work queue
+  private final int nThreads;             // Number of threads that may be used
+  private final PoolWorker[] threads;     // The pool of threads
+  // private final LinkedList<RunAny> queue; // The queue of threads for a user
+  private List<RunAny> queue;             // The queue of threads for a user
+  private List<RunAny> cache;             // Cache of TxtList jobs (and possibly others)
+  private int iMaxCacheSize = 10;         // Max number of jobs to remember
 
   // =================== Class initialisation ==================================
   public WorkQueueXqF(ErrHandle errThis, String sUserId, int nThreads) {
@@ -35,7 +37,8 @@ public class WorkQueueXqF {
     errHandle.debug("WorkQueueXqF: new WQ for user: ["+sUserId+"]");
     this.nThreads = nThreads;
     this.userId = sUserId;
-    queue = new LinkedList();
+    // queue = new LinkedList<>();
+    queue = new ArrayList<>();
     threads = new PoolWorker[this.nThreads];
     cache = new ArrayList<>();
 
@@ -58,9 +61,34 @@ public class WorkQueueXqF {
    */
   public void execute(RunAny runnableAny) throws InterruptedException, QueryException {
     synchronized(queue) {
-      queue.addLast(runnableAny);
-      queue.notify();
+      // queue.addLast(runnableAny);
+      queue.add(runnableAny);
+      // Show what happens
+      errHandle.debug("workQueue/execute: adding to [queue] jobid=[" + 
+              runnableAny.getJobId()+"] (contents ["+queue.size()+"]: "+list()+")");
+      // Wake up the one thread that is waiting for me?
+      // queue.notify();
+      // Wake up *ALL* threads that are waiting for queue
+      queue.notifyAll();
     }
+  }
+  
+  /**
+   * list
+   *    Return a list of all the jobs in the queue
+   * 
+   * @return 
+   */
+  public String list() {
+    String sBack = "";
+    
+    synchronized(queue) {
+      for (RunAny runXqF : queue) {
+        sBack += "[" + runXqF.getJobId() + "] ";
+      }
+    }
+    // Return the contents
+    return sBack;
   }
   
   /**
@@ -120,6 +148,9 @@ public class WorkQueueXqF {
       if (cache.size() > iMaxCacheSize) {
         for (int i=0;i<cache.size();i++) {
           if (runnableThis.equals(cache.get(i))) {
+            // =============== DEBUGGING ===============
+            // errHandle.debug("workqueue/removeRun remove from [cache] jobid=["+runnableThis.getJobId()+"]");
+            // =========================================
             // Remove it
             cache.remove(i);
             return true;
@@ -140,6 +171,7 @@ public class WorkQueueXqF {
 
       while (true) {
         synchronized(queue) {
+          // First wait until something enters the queue
           while (queue.isEmpty()) {
             try {
               queue.wait();
@@ -150,12 +182,18 @@ public class WorkQueueXqF {
               
               // TODO: empty the queue completely? 
               //       But will that be enough??
+              errHandle.debug("Workqueue/run: some interrupt?");
             }
           }
-
-          runnableAny = (RunAny) queue.removeFirst();
+          errHandle.debug("workQueue: before remove size=" + queue.size());
+          
+          // runnableAny = (RunAny) queue.removeFirst();
+          
+          // Remove element [0], the first in line to be processed
+          runnableAny = queue.remove(0);
           // Show what happens
-          // errHandle.debug("workQueue: starting XqF for: " + runnableXqF.fInput.getName());
+          errHandle.debug("workQueue: starting XqF for jobid=[" + 
+                  runnableAny.getJobId()+"] (contents ["+queue.size()+"]: "+list()+")");
           
           // Some jobs need to be put in the cache
           if (runnableAny.jobName.equals("txtlist")) {
@@ -178,8 +216,7 @@ public class WorkQueueXqF {
           errHandle.debug("WorkQueueXqF: Free mem = " + freeMegs + " Mb (" + freeMegs / 1000 + " Gb) Threads="+nbThreads);
           // ========================
           
-        }
-        catch (RuntimeException e) {
+        } catch (RuntimeException e) {
           // Notify the user
           errHandle.DoError("WorkQueueXqF.PoolWorker.run error", e);
         }

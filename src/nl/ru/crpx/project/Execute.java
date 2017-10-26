@@ -8,6 +8,7 @@ package nl.ru.crpx.project;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import static nl.ru.crpx.project.CrpGlobal.Status;
 import static nl.ru.crpx.project.CrpGlobal.getCurrentTimeStamp;
 import static nl.ru.crpx.project.CrpGlobal.getJsonString;
@@ -46,6 +47,7 @@ public class Execute extends CrpGlobal {
   protected String userId;                // ID of the user for this execution
   protected SearchManager searchMan;      // The manager for this search
   protected WorkQueueXqF workQueue;       // The work queue for XqF jobs
+  protected ExecutorService workExecutor; // Service to hold executors
   protected SearchParameters searchPar;   // The parameters for this search
   protected Extensions ruExtensions;      // The extensions need to be initialized here
   protected int iMaxParJobs;              // Maximum number of parallel jobs per user
@@ -101,6 +103,8 @@ public class Execute extends CrpGlobal {
       this.searchMan = crpThis.getSearchManager();
       // Set the work queue to process the XqF jobs
       this.workQueue = crpThis.getWorkQueue();
+      // Method: concurrent
+      this.workExecutor = crpThis.getWorkExecutor();
       // Create a search parameters object
       this.searchPar = new SearchParameters(this.searchMan);
       /* ===========

@@ -11,6 +11,8 @@ package nl.ru.crpx.cmd;
 import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import nl.ru.crpx.dataobject.DataObject;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.search.SearchManager;
@@ -43,6 +45,7 @@ public abstract class RequestHandler {
   
   /** The work queue to handle XqF jobs */
   WorkQueueXqF workQueue;
+  ExecutorService workExecutor;
   final int loc_iThreadPoolSize = 5;     // Adapt this number if it is too much or too little
   
   /** The servlet */
@@ -70,6 +73,8 @@ public abstract class RequestHandler {
       // Set the work queue for the CRP
       this.workQueue = new WorkQueueXqF(errHandle, this.userId, loc_iThreadPoolSize);
       crpThis.setWorkQueue(this.workQueue);
+      this.workExecutor = Executors.newFixedThreadPool(loc_iThreadPoolSize);
+      crpThis.setWorkExecutor(this.workExecutor);
       // Get the name of the project
       strProject = crpThis.getName();
       // Take over the calling servlet

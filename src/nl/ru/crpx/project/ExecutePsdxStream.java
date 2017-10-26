@@ -19,6 +19,8 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import javax.xml.xpath.XPathExpressionException;
 import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.XQueryEvaluator;
@@ -114,7 +116,7 @@ public class ExecutePsdxStream extends ExecuteXml {
   public boolean ExecuteQueries(Job jobCaller)  {
     int iCrpFileId; // Index of CrpFile object
     int iPtc;       // Percentage progress
-    boolean bUseWorkQueue = true; // Use the work-queue instead of search manager
+    String sWorkQueueMethod = "workqueue";  // Options: 'traditional', 'workqueue', 'concurrent'
     
     try {
       // Reset errors
@@ -147,6 +149,18 @@ public class ExecutePsdxStream extends ExecuteXml {
       // Initialise the job array and the results array
       arRes.clear();
       arRunXqF.clear();
+      // Initialization depends on the workqueue method we use
+      switch (sWorkQueueMethod) {
+        case "traditional": break;
+        case "concurrent": 
+          // Shut down any previous jobs completely
+          this.workExecutor.shutdownNow();
+          break;
+        case "workqueue":
+          // Clear any jobs still in the work queue
+          this.workQueue.clear();
+          break;
+      }
 
       // Indicate we are working
       jobCaller.setJobStatus("working");
@@ -191,86 +205,113 @@ public class ExecutePsdxStream extends ExecuteXml {
         searchXqFpar.put("query", "{\"crp\": \"" + crpThis.getName() + "\"" +
                 ", \"file\": \"" + fInput.getName() + "\"" + "}");
         
-        if (bUseWorkQueue) {
-          // Clear any jobs still in the work queue
-          this.workQueue.clear();
-        } else {
-          // Keep track of the old jobs and make sure not too many are running now
-          if (!monitorRunXqF(this.iMaxParJobs, jobCaller)) {
-            // Check if an error has been passed on
-            int iErrSize = 0;
-            if (jobCaller.getJobErrors() != null ) iErrSize = jobCaller.getJobErrors().size();
-            if (jobCaller.getJobStatus().equals("error") && iErrSize>0) {
-              errHandle.debug("ExecuteQueries checkpoint #1 (react on existing error)");
-              // An error has already been produced, so just leave
+        // Action depends on the workqueue method we use
+        switch (sWorkQueueMethod) {
+          case "traditional":
+            // Keep track of the old jobs and make sure not too many are running now
+            if (!monitorRunXqF(this.iMaxParJobs, jobCaller)) {
+              // Check if an error has been passed on
+              int iErrSize = 0;
+              if (jobCaller.getJobErrors() != null ) iErrSize = jobCaller.getJobErrors().size();
+              if (jobCaller.getJobStatus().equals("error") && iErrSize>0) {
+                errHandle.debug("ExecuteQueries checkpoint #1 (react on existing error)");
+                // An error has already been produced, so just leave
+                return false;
+              } else {
+                errHandle.debug("ExecuteQueries checkpoint #2 (create JobError)");
+                // Getting here means that we are UNABLE to wait for the number of jobs
+                //  of this user to decrease below @iMaxParJobs
+                return errHandle.DoError("ExecuteQueries: unable to get below max #jobs " + 
+                        this.iMaxParJobs, ExecutePsdxStream.class);
+              }
+            }
+            break;
+          case "workqueue":
+            // NEW way using the user-specific work-queue
+            RunXqF oneXqF = new RunXqF(errHandle, jobCaller, crpThis, userId, searchXqFpar);
+            // Try to run the job and deal with exceptions
+            try {
+              // The job must be executed using the work queue
+              this.workQueue.execute(oneXqF);
+            } catch (QueryException ex) {
+              // Return error and failure
+              return errHandle.DoError("Failed to execute file ", ex, ExecutePsdxStream.class);
+            } catch (InterruptedException ex) {
+              // Interruption as such should not be such a problem, I think
+              errHandle.DoError("Interrupted during sleep: " + ex.getMessage());
+              // Check for our own interrupt
+              if (errHandle.bInterrupt) return false;
+            }
+
+            // Now check for its status
+            synchronized(oneXqF) {
+              // Check for error status
+              String sStat = oneXqF.getJobStatus();
+              if (sStat.equals("error")) {
+                // Add the error-stack from the job
+                errHandle.DoError(oneXqF.getJobErrors());
+                errHandle.bInterrupt = true;
+                return errHandle.DoError("ExecuteQueries detected 'error' jobStatus");
+              }
+              // Get the @id of the job that has been created
+              String sThisJobId = oneXqF.getJobId();
+              String sNow = Job.getCurrentTimeStamp();
+              // Additional debugging to find out where the errors come from
+              logger.debug("XqFjob [" + sNow + "] " + (i+1) + "/" + lSource.size() + 
+                      " on [" + fInput.getName() + "] userid=[" + 
+                      userId + "] jobid=[" + sThisJobId + "], finished=" + 
+                      oneXqF.finished() + " status=" + oneXqF.getJobStatus() );
+
+              // Add the job to the list of jobs for this project/user
+              synchronized(arRunXqF) {
+                arRunXqF.add(oneXqF);
+              }
+            }
+
+            /* ---------- MONITORRUNXQF IS NOT NEEDED ANY LONGER?? ---- */
+            // Make sure the number of XqF jobs is below the threshold
+            if (!monitorRunXqF(this.iMaxParJobs, jobCaller)) {
               return false;
-            } else {
-              errHandle.debug("ExecuteQueries checkpoint #2 (create JobError)");
-              // Getting here means that we are UNABLE to wait for the number of jobs
-              //  of this user to decrease below @iMaxParJobs
-              return errHandle.DoError("ExecuteQueries: unable to get below max #jobs " + 
-                      this.iMaxParJobs, ExecutePsdxStream.class);
             }
-          }
+            /* --------------------------------------------------------- */
+
+
+            /* OLD: not sure why I put '1' here...
+            if (!monitorRunXqF(1, jobCaller)) {
+              return false;
+            }*/
+            break;
+          case "concurrent":
+            // NEW way using the user-specific work-queue
+            RunXqF concXqF = new RunXqF(errHandle, jobCaller, crpThis, userId, searchXqFpar);
+            // Start executing this job
+            this.workExecutor.execute(concXqF);
+            break;
         }
 
-        // Create a job for this Crp/File treatment
-        if (bUseWorkQueue) {
-          // NEW way using the user-specific work-queue
-          RunXqF oneXqF = new RunXqF(errHandle, jobCaller, crpThis, userId, searchXqFpar);
-          // Try to run the job and deal with exceptions
-          try {
-            // The job must be executed using the work queue
-            this.workQueue.execute(oneXqF);
-          } catch (QueryException ex) {
-            // Return error and failure
-            return errHandle.DoError("Failed to execute file ", ex, ExecutePsdxStream.class);
-          } catch (InterruptedException ex) {
-            // Interruption as such should not be such a problem, I think
-            errHandle.DoError("Interrupted during sleep: " + ex.getMessage());
-            // Check for our own interrupt
-            if (errHandle.bInterrupt) return false;
-          }
-          
-          // Now check for its status
-          synchronized(oneXqF) {
-            // Check for error status
-            String sStat = oneXqF.getJobStatus();
-            if (sStat.equals("error")) {
-              // Add the error-stack from the job
-              errHandle.DoError(oneXqF.getJobErrors());
-              errHandle.bInterrupt = true;
-              return errHandle.DoError("ExecuteQueries detected 'error' jobStatus");
-            }
-            // Get the @id of the job that has been created
-            String sThisJobId = oneXqF.getJobId();
-            String sNow = Job.getCurrentTimeStamp();
-            // Additional debugging to find out where the errors come from
-            logger.debug("XqFjob [" + sNow + "] " + (i+1) + "/" + lSource.size() + 
-                    " on [" + fInput.getName() + "] userid=[" + 
-                    userId + "] jobid=[" + sThisJobId + "], finished=" + 
-                    oneXqF.finished() + " status=" + oneXqF.getJobStatus() );
-
-            // Add the job to the list of jobs for this project/user
-            arRunXqF.add(oneXqF);
-          }
-          
-          /* ---------- MONITORRUNXQF IS NOT NEEDED ANY LONGER?? ---- */
-          // Make sure the number of XqF jobs is below the threshold
-          if (!monitorRunXqF(this.iMaxParJobs, jobCaller)) {
-            return false;
-          }
-          /* --------------------------------------------------------- */
-          
-          
-          /* OLD: not sure why I put '1' here...
-          if (!monitorRunXqF(1, jobCaller)) {
-            return false;
-          }*/
-          
-        }
 
       }
+      
+      // Finishing the jobs depends on the workqueue method we use
+      switch (sWorkQueueMethod) {
+        case "traditional": break;
+        case "workqueue":
+          // Call monitor until the queue is empty
+          // NOTE: number '1' should be used, not zero
+          this.monitorRunXqF(1, jobCaller);
+          break;
+        case "concurrent": 
+          // Signal that we are through with it
+          this.workExecutor.shutdown();
+          // Wait for termination
+          while (!this.workExecutor.isTerminated()) {
+            // No need to do anything here
+          }
+          break;
+      }
+      // ================== DEBUG ======================
+      errHandle.debug("ExecuteQueries workqueue: " + this.workQueue.list());
+      // ===============================================
       
       // Check for interrupt
       if (errHandle.bInterrupt) {
@@ -910,6 +951,14 @@ public class ExecutePsdxStream extends ExecuteXml {
     }
   }
   
+  private int getRunXqSize() {
+    int iSize = 0;
+    synchronized(arRunXqF) {
+      iSize = arRunXqF.size();
+    }
+    return iSize;
+  }
+  
   /**
    * monitorRunXqF - Process and monitor RunXqF items until @iuntil are left.
    * Traverse the stack of jobs and when one is finished:
@@ -921,15 +970,18 @@ public class ExecutePsdxStream extends ExecuteXml {
    * @return 
    */
   private boolean monitorRunXqF(int iUntil, Job jobCaller) {
+    RunXqF rThis = null;
     try {
       // ============= Debugging =======================
       logger.debug("monitorRunXqF job until " + iUntil);
       // ===============================================
       // Loop while the number of jobs is larger than the maximum
-      while (arRunXqF.size() >= iUntil) {
-        for (int i = arRunXqF.size()-1; i>=0; i-- ) {
+      while (getRunXqSize() >= iUntil) {
+        for (int i = getRunXqSize()-1; i>=0; i-- ) {
           // Get this XqF job
-          RunXqF rThis = arRunXqF.get(i);
+          synchronized(arRunXqF) {
+            rThis = arRunXqF.get(i);
+          }
           
           // Is it finished?
           if (rThis.finished()) {
@@ -985,7 +1037,9 @@ public class ExecutePsdxStream extends ExecuteXml {
                 }
               }
               // Okay, remove the RunXqF job
-              arRunXqF.remove(rThis);
+              synchronized(arRunXqF) {
+                arRunXqF.remove(rThis);
+              }
               // Release the resources from [rThis]
               rThis.close();
               // </editor-fold>
@@ -1005,7 +1059,9 @@ public class ExecutePsdxStream extends ExecuteXml {
                 String sJobId = rThis.getJobId();
                 // Not used: String sJobQ = rThis.getJobQuery();
                 // Remove this job
-                arRunXqF.remove(rThis);
+                synchronized(arRunXqF) {
+                  arRunXqF.remove(rThis);
+                }
                 // Nicely close the Ra Reader attached to this
                 oCrpFile.close();
                 // Release the resources from [rThis]
@@ -1021,7 +1077,9 @@ public class ExecutePsdxStream extends ExecuteXml {
                         "] because of state " + rThis.getJobStatus());
                 
                 // We have its results, so take it away from our job list
-                arRunXqF.remove(rThis);
+                synchronized(arRunXqF) {
+                  arRunXqF.remove(rThis);
+                }
                 
                 // NOTE: closing the CrpFile is being done inside RunXqF.close()
                 // Release the resources from [rThis] + close the CrpFile attached to this

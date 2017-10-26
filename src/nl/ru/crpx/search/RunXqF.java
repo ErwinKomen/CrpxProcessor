@@ -82,6 +82,9 @@ public class RunXqF extends RunAny {
   @Override
   public void run() {
     try {
+      // ============== DEBUGGING =============
+      this.errHandle.debug("RunXqF/run starts jobid=["+this.getJobId()+"]");
+      // =====================================
       // Perform the search
       performSearch();
     } catch (QueryException ex) {

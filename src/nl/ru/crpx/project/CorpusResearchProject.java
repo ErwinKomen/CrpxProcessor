@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import javax.xml.parsers.*;
 import javax.xml.xpath.*;
 import net.sf.saxon.om.NodeInfo;
@@ -147,6 +148,7 @@ public class CorpusResearchProject {
   private Map mSet = new HashMap();       // Hash table with settings
   private SearchManager searchMan;        // The manager associated with this CRP
   private WorkQueueXqF workQueue;         // The work queue associated with this CRP
+  private ExecutorService workExecutor;
   private PrjTypeManager prjTypeManager;  // Project type manager associated with this CRP
   private String userId;                  // ID of calling user
   private ExecuteXml objEx = null;           // Execution object
@@ -1011,8 +1013,10 @@ public class CorpusResearchProject {
   // ================ Other objects ============================================
   public SearchManager getSearchManager() {return this.searchMan; }
   public WorkQueueXqF getWorkQueue() {return this.workQueue; }
+  public ExecutorService getWorkExecutor() { return this.workExecutor; }
   public void setSearchManager(SearchManager oThis) {this.searchMan = oThis;}
   public void setWorkQueue(WorkQueueXqF oThis) {this.workQueue = oThis; }
+  public void setWorkExecutor(ExecutorService oThis) {this.workExecutor = oThis; }
   public PrjTypeManager getPrjTypeManager() {return prjTypeManager;}
   public void setPrjTypeManager(PrjTypeManager oThis) { this.prjTypeManager = oThis;}
   public ExecuteXml getExe() { return this.objEx; }
