@@ -122,6 +122,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       // Set the job for global access within Execute > ExecuteXml > ExecutePsdxStream
       this.objSearchJob = jobCaller;
       oProgress = new JSONObject();             // NOTE: this initializes the progress
+      oProgress.put("found",0);                 // Initialize the 'found' count
       dmProgress = new DataObjectMapElement();
       dlDbase = new DataObjectList("dblist");
       // Perform general setup
@@ -150,7 +151,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       // Indicate we are working
       jobCaller.setJobStatus("working");
       // NOTE: '0' found initializes it to zero, allowing for increments
-      setProgress(jobCaller, "", "", -1, -1, lSource.size(), 0);
+      setProgress(jobCaller, "", "", -1, -1, lSource.size(), -1);
       
       // Visit all the source files stored in [lSource]
       for (int i=0;i<lSource.size(); i++) {
@@ -360,11 +361,8 @@ public class ExecutePsdxStream extends ExecuteXml {
         if (iCount>=0) oProgress.put("count", iCount);
         if (iTotal>=0) oProgress.put("total", iTotal);
         if (iReady>=0) oProgress.put("ready", iReady);
-        // Handle 'found'
-        if (iFound==0) {
-          // This initializes found to zero
-          oProgress.put("found", iFound);
-        } else if (iFound >0) {
+        // Handle 'found' -- but only if it is more than zero
+        if (iFound>0) {
           // Add to the found that is already there
           iOldFound = oProgress.getInt("found");
           oProgress.put("found", iFound + iOldFound);
