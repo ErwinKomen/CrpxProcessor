@@ -156,7 +156,7 @@ public class ExecutePsdxStream extends ExecuteXml {
 
       // Indicate we are working
       jobCaller.setJobStatus("working");
-      setProgress(jobCaller, "", "", -1, -1, lSource.size());
+      setProgress(jobCaller, "", "", -1, -1, lSource.size(), -1);
       // oProgress.put("total", lSource.size());
       
       // Visit all the source files stored in [lSource]
@@ -174,7 +174,7 @@ public class ExecutePsdxStream extends ExecuteXml {
         // Take this input file
         File fInput = new File(lSource.get(i));
         String sShort = FileIO.getFileNameWithoutExtension(lSource.get(i));
-        setProgress(jobCaller, sShort, "", i+1, -1, -1);
+        setProgress(jobCaller, sShort, "", i+1, -1, -1, -1);
         // Add the combination of File/CRP to the stack
         CrpFile oCrpFile = new CrpFile(this.crpThis, fInput, objSaxon, (JobXq) jobCaller);
         RuBase.setCrpCaller(oCrpFile);
@@ -284,16 +284,16 @@ public class ExecutePsdxStream extends ExecuteXml {
       }
       
       // Give the final progress indication
-      setProgress(jobCaller, "", lSource.get(lSource.size()-1), -1, lSource.size(), -1);
+      setProgress(jobCaller, "", lSource.get(lSource.size()-1), -1, lSource.size(), -1, -1);
       
       // Combine the results of the queries into a table
       // NOTE: this may now be obsolete because of JobTable
-      setProgress(jobCaller, "", "combining results...", -1,-1,-1);
+      setProgress(jobCaller, "", "combining results...", -1,-1,-1, -1);
       String sCombiJson = combineResults(arCount);
       jobCaller.setJobResult(sCombiJson);
       
       // Provide a dataobject table for better processing
-      setProgress(jobCaller, "", "making table...", -1,-1,-1);
+      setProgress(jobCaller, "", "making table...", -1,-1,-1, -1);
       jobCaller.setJobTable(getResultsTable(arCount));
       
       // If a DATABASE needs to be created, combine the parts that have been made already
@@ -316,6 +316,34 @@ public class ExecutePsdxStream extends ExecuteXml {
     }
   }
   
+  private int getFound(JSONArray arTrack) {
+    int iFound = 0;
+    
+    try {
+      // Walk the array
+      for (int i=0;i<arTrack.length();i++) {
+        // Get the current activity
+        JSONArray arHits = arTrack.getJSONObject(i).getJSONArray("hits");
+        for (int j=0;j<arHits.length(); j++) {
+          // Get this hit
+          JSONObject oHit = arHits.getJSONObject(j);
+          // Get the 'sub' and the 'count' values of the hit
+          String sSub = oHit.getString("sub");
+          int iCount = oHit.getInt("count");
+          // Process this count
+          iFound += iCount;
+          // TODO: process the subdivision over SUB
+
+        }
+      }
+      return iFound;
+    } catch (Exception ex) {
+      // Warn user
+      errHandle.DoError("ExecutePsdxStream/getFound error: ", ex, ExecutePsdxStream.class);
+      return -1;
+    }
+  }
+  
   /**
    * setProgress
    *    Set the elements of the [oProgress] object, and pass on the progress
@@ -327,9 +355,10 @@ public class ExecutePsdxStream extends ExecuteXml {
    * @param iCount
    * @param iTotal
    * @param iReady 
+   * @param iFound
    */
   private void setProgress(Job jobCaller, String sStart, String sFinish, 
-          int iCount, int iReady, int iTotal) {
+          int iCount, int iReady, int iTotal, int iFound) {
     try {
       // Give the final progress indication
       synchronized(oProgress) {
@@ -338,6 +367,7 @@ public class ExecutePsdxStream extends ExecuteXml {
         if (iCount>=0) oProgress.put("count", iCount);
         if (iTotal>=0) oProgress.put("total", iTotal);
         if (iReady>=0) oProgress.put("ready", iReady);
+        if (iFound>=0) oProgress.put("found", iFound);
         jobCaller.setJobProgress(oProgress);
       }
     } catch (Exception ex) {
@@ -524,7 +554,7 @@ public class ExecutePsdxStream extends ExecuteXml {
           arPwCombi[i] = null;
       }
 
-      setProgress(jobCaller, "", "extracting databases...", -1,-1,-1);
+      setProgress(jobCaller, "", "extracting databases...", -1,-1,-1, -1);
       // Start counting result id for all files
       // int iResId = 1;
       // Get to the list for all files
@@ -543,7 +573,7 @@ public class ExecutePsdxStream extends ExecuteXml {
         JSONArray arHits = oListOneFile.getJSONArray("hits");
         // Show where we are
         String sShort = FileIO.getFileNameWithoutExtension(sFileName);
-        setProgress(jobCaller, sShort, "", i+1,-1,-1);
+        setProgress(jobCaller, sShort, "", i+1,-1,-1, -1);
         // Walk the "hits" array: one item for each QC
         for (int j=0;j<arHits.length(); j++) {
           // Get this item
@@ -964,7 +994,7 @@ public class ExecutePsdxStream extends ExecuteXml {
               // <editor-fold defaultstate="collapsed" desc="CrpFile exists">
               // The CrpFile still exists...
               setProgress(jobCaller, "", oCrpFile.flThis.getName(), 
-                      -1, arCount.length(), -1);
+                      -1, arCount.length(), -1, getFound(arCount));
               // Double check status
               String sStat = rThis.getJobStatus();
               if (sStat.equals("error") || sStat.equals("interrupt") || jobCaller.getJobStatus().equals("interrupt")) {
