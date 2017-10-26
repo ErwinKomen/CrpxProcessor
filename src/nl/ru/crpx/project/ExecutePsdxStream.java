@@ -121,15 +121,9 @@ public class ExecutePsdxStream extends ExecuteXml {
       errHandle.clearErr();
       // Set the job for global access within Execute > ExecuteXml > ExecutePsdxStream
       this.objSearchJob = jobCaller;
-      oProgress = new JSONObject();
+      oProgress = new JSONObject();             // NOTE: this initializes the progress
       dmProgress = new DataObjectMapElement();
       dlDbase = new DataObjectList("dblist");
-      /* ========= Should not be here
-      // Set the XmlForest element correctly
-      this.objProcType = new XmlForest(this.crpThis,(JobXq) jobCaller, this.errHandle);
-      // Make sure 
-      this.objProcType.setProcType(ForType.PsdxPerForest);
-      ========================== */
       // Perform general setup
       if (!super.ExecuteQueriesSetUp()) {
         jobCaller.setJobErrors(errHandle.getErrList());
@@ -152,12 +146,11 @@ public class ExecutePsdxStream extends ExecuteXml {
       // Initialise the job array and the results array
       arRes.clear();
       arRunXqF.clear();
-      // arHits.clear(); arMonitor.clear();
 
       // Indicate we are working
       jobCaller.setJobStatus("working");
-      setProgress(jobCaller, "", "", -1, -1, lSource.size(), -1);
-      // oProgress.put("total", lSource.size());
+      // NOTE: '0' found initializes it to zero, allowing for increments
+      setProgress(jobCaller, "", "", -1, -1, lSource.size(), 0);
       
       // Visit all the source files stored in [lSource]
       for (int i=0;i<lSource.size(); i++) {
@@ -316,25 +309,23 @@ public class ExecutePsdxStream extends ExecuteXml {
     }
   }
   
-  private int getFound(JSONArray arTrack) {
+  private int getFound(JSONObject oFoundInfo) {
     int iFound = 0;
     
     try {
-      // Walk the array
-      for (int i=0;i<arTrack.length();i++) {
-        // Get the current activity
-        JSONArray arHits = arTrack.getJSONObject(i).getJSONArray("hits");
-        for (int j=0;j<arHits.length(); j++) {
-          // Get this hit
-          JSONObject oHit = arHits.getJSONObject(j);
-          // Get the 'sub' and the 'count' values of the hit
-          JSONObject oSub = oHit.getJSONObject("sub");
-          int iCount = oHit.getInt("count");
-          // Process this count
-          iFound += iCount;
-          // TODO: process the subdivision over SUB
+      // Get the current activity
+      JSONArray arHits = oFoundInfo.getJSONArray("hits");
+      for (int j=0;j<arHits.length(); j++) {
+        // Get this hit
+        JSONObject oHit = arHits.getJSONObject(j);
+        
+        // Get the 'count' value of the hit
+        iFound = oHit.getInt("count");
 
-        }
+        // Get the 'sub' object of the hit
+        JSONObject oSub = oHit.getJSONObject("sub");
+        // TODO: process the subdivision over SUB
+
       }
       return iFound;
     } catch (Exception ex) {
@@ -359,6 +350,8 @@ public class ExecutePsdxStream extends ExecuteXml {
    */
   private void setProgress(Job jobCaller, String sStart, String sFinish, 
           int iCount, int iReady, int iTotal, int iFound) {
+    int iOldFound = 0;
+    
     try {
       // Give the final progress indication
       synchronized(oProgress) {
@@ -367,7 +360,15 @@ public class ExecutePsdxStream extends ExecuteXml {
         if (iCount>=0) oProgress.put("count", iCount);
         if (iTotal>=0) oProgress.put("total", iTotal);
         if (iReady>=0) oProgress.put("ready", iReady);
-        if (iFound>=0) oProgress.put("found", iFound);
+        // Handle 'found'
+        if (iFound==0) {
+          // This initializes found to zero
+          oProgress.put("found", iFound);
+        } else if (iFound >0) {
+          // Add to the found that is already there
+          iOldFound = oProgress.getInt("found");
+          oProgress.put("found", iFound + iOldFound);
+        }
         jobCaller.setJobProgress(oProgress);
       }
     } catch (Exception ex) {
@@ -994,7 +995,7 @@ public class ExecutePsdxStream extends ExecuteXml {
               // <editor-fold defaultstate="collapsed" desc="CrpFile exists">
               // The CrpFile still exists...
               setProgress(jobCaller, "", oCrpFile.flThis.getName(), 
-                      -1, arCount.length(), -1, getFound(arCount));
+                      -1, arCount.length(), -1, getFound(oJobCount));
               // Double check status
               String sStat = rThis.getJobStatus();
               if (sStat.equals("error") || sStat.equals("interrupt") || jobCaller.getJobStatus().equals("interrupt")) {
