@@ -363,18 +363,12 @@ public class RuBase /* extends Job */ {
   // 03-10-2013  ERK Created for .NET
   // 29/apr/2015 ERK Implemented for Java
   // ------------------------------------------------------------------------------------
-  static boolean RuAddLex(XPathContext objXp, String strLexeme, String strPos, int intQC) {
+  static synchronized boolean RuAddLex(XPathContext objXp, String strLexeme, String strPos, int intQC) {
     // String strFile;     // Which file to use
     // String strOut;      // What we append
     LexDict ldThis;     // Reference to my lexdict
     
     try {
-      // Try initialize
-      // if (!RuInitLex()) return false;
-      // Determine file name
-      // strFile = strRuLexFile + "_QC" + intQC + ".xml";
-      // TODO:  Check if we need a preamble
-      
       // Get the LexDict object for this CrpFile combination
       ldThis = getCrpFile(objXp).getLexDictQC(intQC);
       // Validate
@@ -459,12 +453,13 @@ public class RuBase /* extends Job */ {
   // 01-11-2010  ERK Created for .NET as GetNodeText()
   // 12-02-2014  ERK Added [strType]
   // 29/apr/2015 ERK Implemented for Java
+  // 28/oct/2017 ERK Need 'synchronized' probably to get the correct info
   // ------------------------------------------------------------------------------------
   static String RuNodeText(XPathContext objXp, XdmNode ndStart) {
     // Call the generalized NodeText function
     return RuNodeText(objXp, ndStart, "");
   }
-  public static String RuNodeText(XPathContext objXp, XdmNode ndStart, String strType) {
+  public synchronized static String RuNodeText(XPathContext objXp, XdmNode ndStart, String strType) {
     String sBack;           // Resulting string
     XPathSelector selectXp; // The actual selector we are using
     StringBuilder sBuild;   // Resulting string that is being built
@@ -663,7 +658,7 @@ public class RuBase /* extends Job */ {
   // 19-02-2013  ERK Created for .NET
   // 01/sep/2015 ERK Transformed to Java
   // ------------------------------------------------------------------------------------
-  static String RuPeriodGrp(XPathContext objXp,String strDiv) {
+  static synchronized String RuPeriodGrp(XPathContext objXp,String strDiv) {
     String strGroup = "";
         
     try  {
@@ -773,7 +768,7 @@ public class RuBase /* extends Job */ {
   // 05-07-2011  ERK Created for .NET
   // 29/oct/2015 ERK Implemented for Java
   // ------------------------------------------------------------------------------------
-  static boolean RuRelates(XPathContext objXp, XdmNode ndSax1, XdmNode ndSax2, String sType) {
+  static synchronized  boolean RuRelates(XPathContext objXp, XdmNode ndSax1, XdmNode ndSax2, String sType) {
     boolean bBack = false;
     CorpusResearchProject crpThis;
 
@@ -855,7 +850,7 @@ public class RuBase /* extends Job */ {
   // 23-01-2013  ERK Created for .NET
   // 29/oct/2015 ERK Implemented for Java
   // ------------------------------------------------------------------------------------
-  static int RuWords(XPathContext objXp, XdmNode ndStart) {
+  static synchronized int RuWords(XPathContext objXp, XdmNode ndStart) {
     int iBack = 0;              // Resulting count
     XPathSelector selectXp; // The actual selector we are using
     CorpusResearchProject crpThis;
@@ -902,7 +897,7 @@ public class RuBase /* extends Job */ {
   // History:
   // 09-10-2017  ERK Created for Java
   // ------------------------------------------------------------------------------------
-  static boolean RuWordsMatch(XPathContext objXp, XdmNode ndStart, String sMulti) {
+  static synchronized boolean RuWordsMatch(XPathContext objXp, XdmNode ndStart, String sMulti) {
     boolean bBack = false;  // Resulting match
     XPathSelector selectXp; // The actual selector we are using
     String[] arWords;       // Keep the words here
@@ -984,10 +979,13 @@ public class RuBase /* extends Job */ {
   // Name:  RuCurrentWord
   // Goal:  Get the word under [ndStart]       
   //
+  // NOTE:  It is essential that this routine is SYNCHRONIZED 
+  //        Otherwise: garbage...
+  //
   // History:
   // 09-10-2017  ERK Created for Java
   // ------------------------------------------------------------------------------------
-  static String RuCurrentWord(XPathContext objXp, XdmNode ndStart) {
+  static synchronized String RuCurrentWord(XPathContext objXp, XdmNode ndStart) {
     String sBack = "";  // Resulting match
     XPathSelector selectXp; // The actual selector we are using
     CorpusResearchProject crpThis;
@@ -1040,7 +1038,7 @@ public class RuBase /* extends Job */ {
   // 18-12-2012  ERK Added capabilities to process <CrpOview> --> <Result>
   // 29/apr/2015 ERK Ported to Java
   // ------------------------------------------------------------------------------------
-  static String GetRefId(XPathContext objXp, XdmNode ndSax) {
+  static synchronized String GetRefId(XPathContext objXp, XdmNode ndSax) {
     String strRef = "";   // The ID of the second node
     String sNodeName;     // Name of the node [ndSax]
     CrpFile oCrpFile;     // Current CRP/File object
@@ -1127,7 +1125,7 @@ public class RuBase /* extends Job */ {
   // History:
   // 19/may/2015  ERK Created for Java
   // ------------------------------------------------------------------------------------
-  static CrpFile getCrpFile(XPathContext objXp) {
+  static synchronized CrpFile getCrpFile(XPathContext objXp) {
     try {
       return (CrpFile) objXp.getController().getParameter("crpfile");
     } catch (Exception ex) {
@@ -1135,7 +1133,7 @@ public class RuBase /* extends Job */ {
       return null;
     }
   }
-  static ErrHandle getErrHandle(XPathContext objXp) {
+  static synchronized ErrHandle getErrHandle(XPathContext objXp) {
     try {
       return (ErrHandle) objXp.getController().getParameter("errhandle");
     } catch (Exception ex) {

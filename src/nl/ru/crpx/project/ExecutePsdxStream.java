@@ -1548,6 +1548,10 @@ public class ExecutePsdxStream extends ExecuteXml {
                     if (!strEtreeCat.isEmpty()) {
                       // Keep track of counts for this subcat
                       arXqfSub[k].increment(strEtreeCat);
+                    } else {
+                      // Something wrong? We have an empty category
+                      int iStopHere = 1;
+                      errHandle.debug("ResEmpty: " + oThisRes.getString("locw") + ": " + oThisRes.getString("msg"));
                     }
                     
                     // Get the oview line 

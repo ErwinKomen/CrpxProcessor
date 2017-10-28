@@ -709,7 +709,9 @@ public class Extensions extends RuBase {
       arPatt = objStore.getMatchHelp(strPattern);
       // Perform pattern matching for each pattern
       for (Pattern patThis : arPatt) {
-        if (patThis.matcher(strText).matches()) return true;
+        if (patThis.matcher(strText).matches()) {
+          return true;
+        }
       }
       // No match has happened, so return false
       return false;
@@ -1374,6 +1376,8 @@ public class Extensions extends RuBase {
       if (node == null) return false;
       nodeKind = node.getNodeKind();
       if (nodeKind != Type.ELEMENT) return false;
+      // If [sMulti] is empty, there cannot be a match
+      if (sMulti.isEmpty()) return false;
       // Get the XdmNode representation of the node
       ndSax = objSaxDoc.wrap(node);    
       // Now call the function in [RuBase]
@@ -1465,13 +1469,6 @@ public class Extensions extends RuBase {
             }
           }
         }
-        // logger.debug("Id="+ ((XdmNode) objSaxDoc.wrap(node)).getAttributeValue(new QName("", "", "Id")));
-        // This doesn't seem to ripple through fast enough...
-        /*
-        synchronized(errCaller) {
-          errCaller.DoError(sMsg, sFname, objXp);
-          errCaller.bInterrupt = true;
-        } */
         // Local error
         errHandle.DoError(sMsg , sFname,objXp);
         // DO NOT interrupt this static handler: errHandle.bInterrupt = true;
