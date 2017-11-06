@@ -467,7 +467,12 @@ public class XmlAccessFolia extends XmlAccess {
       QName qAttrLoc = crpThis.getAttrLineId();
       // Get the hit context of the target line
       JSONObject oBack = getHitLine(sLngName, sLocs, sLocw);
-      String sPre = " [" + ndxSent.getAttributeValue(qAttrLoc) + "] " + oBack.getString("pre");
+      String sPre = "";
+      if (iPrecNum < 0) {
+        sPre = oBack.getString("pre");
+      } else {
+        sPre = " [" + ndxSent.getAttributeValue(qAttrLoc) + "] " + oBack.getString("pre");
+      }
       String sFol = oBack.getString("fol");
       String sHit = oBack.getString("hit");
       // Get the preceding sentences
