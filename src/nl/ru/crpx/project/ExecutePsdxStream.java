@@ -19,9 +19,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import javax.xml.xpath.XPathExpressionException;
 import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.XQueryEvaluator;
 import nl.ru.crpx.dataobject.DataObject;
@@ -45,7 +42,6 @@ import nl.ru.util.StringUtil;
 import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
 import nl.ru.xmltools.Parse;
-import nl.ru.xmltools.XmlAccess;
 import nl.ru.xmltools.XmlForest;
 import nl.ru.xmltools.XmlIndexItem;
 import nl.ru.xmltools.XmlNode;
@@ -337,9 +333,11 @@ public class ExecutePsdxStream extends ExecuteXml {
 
       // Also provide the job count results (which are perhaps less interesting)
       // NOTE: unclear whether this should be kept - superfluous?
+      /*
       JSONObject oCount = new JSONObject();
       oCount.put("counts", arCount);
       jobCaller.setJobCount(oCount);
+      */
       
       // Return positively
       return true;
@@ -1098,91 +1096,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       return errHandle.DoError("monitorRunXqF failure", ex, ExecutePsdxStream.class);
     }    
   }
-  /**
-   * monitorXqF - Process and monitor jobs of XqF type until @iuntil are left.
-   * Traverse the stack of jobs and when one is finished:
-   * 1) gather its results
-   * 2) take it from the [arJob] list
-   * 
-   * @param iUntil
-   * @param jobCaller
-   * @return 
-   */
-  /*
-  private boolean monitorXqF(int iUntil, Job jobCaller) {
-    try {
-      // Loop while the number of jobs is larger than the maximum
-      while (arJob.size() >= iUntil) {
-        // Visit all jobs
-        for (int i = 0; i<arJob.size(); i++ ) {
-          // Get this XqF job
-          JobXqF jThis = arJob.get(i);
-          // Is it finished?
-          if (jThis.finished()) {
-            // It is ready, so gather its results
-            String sResultXqF = jThis.getJobResult();
-            // Process the job results
-            // arRes.add(sResultXqF);
-            arCount.put(jThis.getJobCount());
-            
-            // Add the individual Xqf to the total
-            arTotal.put(jThis.getJobList());
-                        
-            // ================= DEBUGGING =============
-            if (oProgress==null) {
-              logger.debug("monitorXqF job " + jThis.getJobId() + ": oProgress is null for [" + this.userId + "]");
-            } else {
-              // More double checking
-              if (jThis.intCrpFileId <0)
-                logger.debug("monitorXqF job " + jThis.getJobId() + " fileid=" + jThis.intCrpFileId);
-              CrpFile oCrpFile = RuBase.getCrpFile(jThis.intCrpFileId);
-              if (oCrpFile==null) {
-                logger.debug("monitorXqF job " + jThis.getJobId() + " CrpFile=null");
-              } 
-              if (oCrpFile.flThis == null)
-                logger.debug("monitorXqF job " + jThis.getJobId() + " CrpFile.flThis=null");
-            }
-            // =========================================
-            
-            // Note that it has finished for others too
-            CrpFile oCrpFile = RuBase.getCrpFile(jThis.intCrpFileId);
-            setProgress(jobCaller, "", oCrpFile.flThis.getName(), 
-                    -1, arCount.length(), -1);
-            
-            // Double check status
-            String sStat = jThis.getJobStatus();
-            if (sStat.equals("error") || sStat.equals("interrupt") || jobCaller.getJobStatus().equals("interrupt")) {
-              // Pass on the error upwards to the job caller
-              jobCaller.setJobErrors(jThis.getJobErrors());
-              jobCaller.setJobStatus("error");
-              // Get job id
-              String sJobId = jThis.getJobId();
-              String sJobQ = jThis.getJobQuery();
-              // Remove this job
-              arJob.remove(jThis);
-              // The job must also be removed to clear room
-              jThis.changeClientsWaiting(-1);
-              // Nicely close the Ra Reader attached to this
-              oCrpFile.close();
-              return errHandle.DoError("MonitorXqF detected error in job: "+sJobId);
-            }
-            
-            // We have its results, so take it away from our job list
-            arJob.remove(jThis);
-            // The job must also be removed to clear room
-            jThis.changeClientsWaiting(-1);
-            // Nicely close the Ra Reader attached to this
-            oCrpFile.close();
-          }
-        }
-      }
-      // Return success
-      return true;
-    } catch (Exception ex) {
-      // Return failure
-      return errHandle.DoError("monitorXqF failure", ex, ExecutePsdxStream.class);
-    }
-  }*/
+
 // </editor-fold>
   
   /**
@@ -1673,9 +1587,7 @@ public class ExecutePsdxStream extends ExecuteXml {
 
       // The following is only needed if there actually have been hits in this file
       if (iHitsInThisFile>0) {
-        // Original handling: keep the results available in the XqF job
-        //   jobCaller.setJobResult(oHitInfo.toString());
-        // New handling: store the results in a separate file
+        // Store the results in a separate file
         // N.B: the path to this file must contain the project's name
         String sDir = this.crpThis.getHitsDir();
         File fResultDir = new File(sDir);

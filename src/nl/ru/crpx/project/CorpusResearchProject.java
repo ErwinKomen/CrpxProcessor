@@ -687,6 +687,8 @@ public class CorpusResearchProject {
         // =============================
         // Get the counting results
         //   NOTE: an integer inside [toString()] provides pretty-printing
+        //   NOTE: this information is probably superfluous -- skipping
+        /*
         JSONObject objCount = new JSONObject();
         objCount.put("count", jobCaller.getJobCount());
         String sCount = objCount.toString(1);
@@ -694,6 +696,7 @@ public class CorpusResearchProject {
         FileUtil.writeFile(fCountOut, sCount);
         // Show where this is written
         logger.debug("Counts are in: " + fCountOut.getAbsolutePath());
+        */
         // =============================
         // Get the table results
         String sTable = jobCaller.getJobTable().toString(DataFormat.JSON);

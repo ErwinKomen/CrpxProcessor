@@ -641,10 +641,14 @@ public class DbStore {
       this.loc_sOrder = (bAscending) ? "ASC" : "DESC";
       // Keep the sort field
       this.loc_sSortField = sSortField;
-      // Create an index
-      stmt.execute("CREATE INDEX IF NOT EXISTS Res_"+sSortField+" ON RESULT("+sSortField+")");
-      // Make sure it is created
-      conThis.commit();
+      try {
+        // Create an index
+        stmt.execute("CREATE INDEX IF NOT EXISTS Res_"+sSortField+" ON RESULT("+sSortField+")");
+        // Make sure it is created - but do not complain if it goes wrong here
+        conThis.commit();
+      } catch (Exception exCon) {
+        int iOkay = 1;
+      }
       // Return positively
       return true;
     } catch (Exception ex) {
@@ -663,6 +667,8 @@ public class DbStore {
    */
   public JSONArray getResults(int iStart, int iCount) {
     JSONArray arBack = new JSONArray();
+    ResultSet resThis = null;
+    String sSql;
     
     try {
       // Validate
@@ -673,11 +679,20 @@ public class DbStore {
       stmt = conThis.createStatement();
       // Create the SQL query
       // Note: the [iStart] indicates the first
-      String sSql = "SELECT * FROM RESULT "+
+      sSql = "SELECT * FROM RESULT "+
               "ORDER BY "+this.loc_sSortField+" "+this.loc_sOrder+
               " LIMIT "+iCount+" OFFSET "+iStart+
               ";";
-      ResultSet resThis = stmt.executeQuery(sSql);
+      try {
+        resThis = stmt.executeQuery(sSql);
+      } catch (Exception exExe) {
+        // Adapt the SQL, taking the ordering out
+        sSql = "SELECT * FROM RESULT "+
+                " LIMIT "+iCount+" OFFSET "+iStart+
+                ";";
+        resThis = stmt.executeQuery(sSql);
+      }
+    
       // Walk the result set
       while (resThis.next()) {
         JSONObject oResult = new JSONObject();
