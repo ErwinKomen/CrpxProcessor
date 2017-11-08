@@ -251,7 +251,7 @@ public class ExecuteXml extends Execute {
    * @param sAuthor
    * @param sDate
    * @param lstFtInfo
-   * @param oXqf
+   * @param oXqf      - Container object of one hit that holds several parts
    * @param iResId
    * @param oResult   - Return the results for this line
    * @return 
@@ -262,6 +262,9 @@ public class ExecuteXml extends Execute {
           List<JSONObject> lstFtInfo, JSONObject oXqf, int iResId,
           ByRef<JSONObject> oResult) {
     StringBuilder bThis = new StringBuilder();
+    String sPre = ""; // Sentence context: preceding words
+    String sHit = ""; // Sentence context: hit
+    String sFol = ""; // Sentence context: following words
     
     try {
       String sSearch = (oXqf.has("locl")) ? oXqf.getString("locl") : "";
@@ -270,6 +273,16 @@ public class ExecuteXml extends Execute {
       String sSyntax = (oXqf.has("syn")) ? StringUtil.escapeXmlChars(oXqf.getString("syn")) : "";
       String sEnglish = (oXqf.has("eng")) ? StringUtil.escapeXmlChars(oXqf.getString("eng")) : "";
       String sMsg = (oXqf.has("msg")) ? oXqf.getString("msg") : "";
+      
+      // Try deriving the context from [oXqf]
+      if (oXqf.has("phf")) {
+        JSONObject oSentCont = oXqf.getJSONObject("phf");
+        if (oSentCont.has("pre") && oSentCont.has("hit") && oSentCont.has("fol")) {
+          sPre = StringUtil.escapeXmlChars(oSentCont.getString("pre"));
+          sHit = StringUtil.escapeXmlChars(oSentCont.getString("hit"));
+          sFol = StringUtil.escapeXmlChars(oSentCont.getString("fol"));
+        }
+      }
       
       // Store results so far
       oResult.argValue = new JSONObject();
@@ -295,6 +308,9 @@ public class ExecuteXml extends Execute {
         "Genre=\"" + StringUtil.escapeXmlChars(sGenre) + "\" " +
         "Author=\"" + StringUtil.escapeXmlChars(sAuthor) + "\" " +
         "Date=\"" + StringUtil.escapeXmlChars(sDate) + "\" " +
+        "Pre=\"" + sPre + "\" " +
+        "Hit=\"" + sHit + "\" " +
+        "Fol=\"" + sFol + "\" " +
         "Period=\"" + StringUtil.escapeXmlChars(sSubType) + "\">\n");
       // Add underlying nodes: Text, Psd, Pde
       bThis.append("  <Text>").append(sContext).append("</Text>\n" );

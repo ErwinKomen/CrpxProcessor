@@ -87,14 +87,16 @@ public class DbStore {
           " CAT            CHAR(100),"+
           " LOCS           CHAR(200),"+
           " LOCW           CHAR(200),"+
-          " NOTES          TEXT NOT NULL,"+
+          " PRE            TEXT NOT NULL,"+
+          " HIT            TEXT NOT NULL,"+
+          " FOL            TEXT NOT NULL,"+
           " SUBTYPE        CHAR(200),"+
           " TITLE          TEXT NOT NULL,"+
-          " GENRE          TEXT NOT NULL,"+
+          " GENRE          CHAR(200),"+
           " AUTHOR         TEXT NOT NULL";
   private final String loc_sqlInsertResult = 
           "INSERT INTO RESULT (RESID, FILE, TEXTID, DATE, CAT, "+
-          "LOCS, LOCW, NOTES, SUBTYPE, TITLE, GENRE, AUTHOR) ";
+          "LOCS, LOCW, PRE, HIT, FOL, SUBTYPE, TITLE, GENRE, AUTHOR) ";
   private final String loc_sqlCreateIndices = 
           "CREATE INDEX subtype_index ON RESULT (SUBTYPE); "+
           "CREATE INDEX title_index ON RESULT (TITLE); "+
@@ -305,6 +307,9 @@ public class DbStore {
           oResult.put("Genre", ndxThis.getAttributeValue("Genre"));
           oResult.put("Author", ndxThis.getAttributeValue("Author"));
           oResult.put("Date", ndxThis.getAttributeValue("Date"));
+          oResult.put("Pre", ndxThis.getAttributeValue("Pre"));
+          oResult.put("Hit", ndxThis.getAttributeValue("Hit"));
+          oResult.put("Fol", ndxThis.getAttributeValue("Fol"));
           oResult.put("ResId", Integer.parseInt(ndxThis.getAttributeValue("ResId")));
           // Determine the features for this result
           List<XmlNode> lFeatValue = ndxThis.SelectNodes("./child::Feature");
@@ -318,9 +323,9 @@ public class DbStore {
           if (bDoFeatNames) {
             // Prepare a string for the values
             String sSql = "INSERT INTO RESULT (RESID, FILE, TEXTID, DATE, CAT, "+
-                "LOCS, LOCW, NOTES, SUBTYPE, TITLE, GENRE, AUTHOR,"+
+                "LOCS, LOCW, PRE, HIT, FOL, SUBTYPE, TITLE, GENRE, AUTHOR,"+
                 StringUtil.join(this.loc_lFeatName, ", ")+
-                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"+
+                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"+
                 new String(new char[this.loc_lFeatName.size()]).replace("\0", ", ?")+
                 ")";
             // Prepare an insert statement
@@ -527,16 +532,19 @@ public class DbStore {
       // Get all the other relevant values
       String sFile = oResult.getString("File");
       String sTextId = oResult.getString("TextId");
-      String sSearch =  oResult.getString("Search");
+      // String sSearch =  oResult.getString("Search");
       String sCat =  oResult.getString("Cat");
       String sLocS =  oResult.getString("Locs");
       String sLocW =  oResult.getString("Locw");
-      String sNotes =  oResult.getString("Notes");
+      // String sNotes =  oResult.getString("Notes");
       String sSubType =  oResult.getString("SubType");
       String sTitle =  oResult.getString("Title");
       String sGenre =  oResult.getString("Genre");
       String sAuthor =  oResult.getString("Author");
       String sDate =  oResult.getString("Date");
+      String sPre =  oResult.getString("Pre");
+      String sHit =  oResult.getString("Hit");
+      String sFol =  oResult.getString("Fol");
       // Do NOT calculate values for Text, Psd and Pde -- these are not determined anyway
       
       this.loc_psInsertResult.setInt(1, iResId);
@@ -546,14 +554,16 @@ public class DbStore {
       this.loc_psInsertResult.setString(5, sCat);
       this.loc_psInsertResult.setString(6, sLocS);
       this.loc_psInsertResult.setString(7, sLocW);
-      this.loc_psInsertResult.setString(8, sNotes);
-      this.loc_psInsertResult.setString(9, sSubType);
-      this.loc_psInsertResult.setString(10, sTitle);
-      this.loc_psInsertResult.setString(11, sGenre);
-      this.loc_psInsertResult.setString(12, sAuthor);
+      this.loc_psInsertResult.setString(8, sPre);
+      this.loc_psInsertResult.setString(9, sHit);
+      this.loc_psInsertResult.setString(10, sFol);
+      this.loc_psInsertResult.setString(11, sSubType);
+      this.loc_psInsertResult.setString(12, sTitle);
+      this.loc_psInsertResult.setString(13, sGenre);
+      this.loc_psInsertResult.setString(14, sAuthor);
       // Add the feature values
       for (int i=0;i<this.loc_lFeatName.size();i++ ) {
-        int iNum = 12+i+1;  // The number of the element to be set
+        int iNum = 14+i+1;  // The number of the element to be set
         // Get the feature 
         String sFeatValue = oResult.getString(this.loc_lFeatName.get(i));
         this.loc_psInsertResult.setString(iNum, sFeatValue);
@@ -686,15 +696,17 @@ public class DbStore {
         oResult.put("ResId", resThis.getInt("RESID"));
         oResult.put("File", resThis.getString("FILE"));
         oResult.put("TextId", resThis.getString("TEXTID"));
-        oResult.put("Search", resThis.getString("SEARCH"));
         oResult.put("Cat", resThis.getString("CAT"));
         oResult.put("Locs", resThis.getString("LOCS"));
         oResult.put("Locw", resThis.getString("LOCW"));
-        oResult.put("Notes", resThis.getString("NOTES"));
+        oResult.put("Date", resThis.getString("DATE"));
         oResult.put("SubType", resThis.getString("SUBTYPE"));
-        oResult.put("Text", resThis.getString("TEXT"));
-        oResult.put("Psd", resThis.getString("PSD"));
-        oResult.put("Pde", resThis.getString("PDE"));
+        oResult.put("Title", resThis.getString("TITLE"));
+        oResult.put("Genre", resThis.getString("GENRE"));
+        oResult.put("Author", resThis.getString("AUTHOR"));
+        oResult.put("Pre", resThis.getString("PRE"));
+        oResult.put("Hit", resThis.getString("HIT"));
+        oResult.put("Fol", resThis.getString("FOL"));
         // Get all the features from the result object
         JSONArray arFeat = new JSONArray();
         for (int i=0;i<this.loc_lFeatName.size();i++) {

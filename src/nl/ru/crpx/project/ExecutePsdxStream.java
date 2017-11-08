@@ -626,10 +626,10 @@ public class ExecutePsdxStream extends ExecuteXml {
             for (int k=0;k<arHitsPerQc.length(); k++) {
               // Get this hit
               JSONObject oOneHit = arHitsPerQc.getJSONObject(k);
-              // TODO: en dan uit [oOneHit] element "phf" pakken (binnen getResultXml) 
-              //       om daarmee de pre, hit, fol in de DB te stoppen
+
               // Get the result id of this hit
               int iResId = arResId[iQCid-1];
+              
               // Process the information in this hit
               ByRef<JSONObject> oResult = new ByRef(null);
               String sOneResult = getResultXml(sFileName, sTextId, sSubType, 
