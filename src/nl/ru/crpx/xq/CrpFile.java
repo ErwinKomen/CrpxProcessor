@@ -15,6 +15,7 @@ import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.search.JobXq;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.crpx.tools.FileIO;
+import nl.ru.util.json.JSONObject;
 import nl.ru.xmltools.XmlForest;
 import nl.ru.xmltools.XmlForestFoliaIndex;
 import nl.ru.xmltools.XmlForestPsdxIndex;
@@ -49,6 +50,7 @@ public class CrpFile {
   // ================= Local variables =========================================
   private Processor objSaxon;           // The processor (shared among threads)
   private ErrHandle errHandle;          // My own access to the error handler
+  private JSONObject metaInfo;          // Metadata of this file
   // =========== Class initializer =============================================
   public CrpFile(CorpusResearchProject oCrp, File fFile, Processor oProc, JobXq jobCaller) {
     try {
@@ -125,6 +127,9 @@ public class CrpFile {
       this.objProcType.close();
     }
   }
+  
+  public void setMeta(JSONObject oMeta) {this.metaInfo = new JSONObject(oMeta.toString()); }
+  public JSONObject getMeta() {return this.metaInfo; }
   
   /**
    * getLexDictQC

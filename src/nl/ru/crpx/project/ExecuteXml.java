@@ -246,6 +246,10 @@ public class ExecuteXml extends Execute {
    * @param sFileName
    * @param sTextId
    * @param sSubType
+   * @param sTitle
+   * @param sGenre
+   * @param sAuthor
+   * @param sDate
    * @param lstFtInfo
    * @param oXqf
    * @param iResId
@@ -253,7 +257,9 @@ public class ExecuteXml extends Execute {
    * @return 
    */
   public String getResultXml(String sFileName, String sTextId, 
-          String sSubType, List<JSONObject> lstFtInfo, JSONObject oXqf, int iResId,
+          String sSubType, String sTitle, String sGenre, String sAuthor, 
+          String sDate,
+          List<JSONObject> lstFtInfo, JSONObject oXqf, int iResId,
           ByRef<JSONObject> oResult) {
     StringBuilder bThis = new StringBuilder();
     
@@ -285,7 +291,11 @@ public class ExecuteXml extends Execute {
         "forestId=\"" + oXqf.getString("locs") + "\" " +
         "eTreeId=\"" + oXqf.getString("locw") + "\" " +
         "Notes=\"-\" " +
-        "Period=\"" + sSubType + "\">\n");
+        "Title=\"" + StringUtil.escapeXmlChars(sTitle) + "\" " +
+        "Genre=\"" + StringUtil.escapeXmlChars(sGenre) + "\" " +
+        "Author=\"" + StringUtil.escapeXmlChars(sAuthor) + "\" " +
+        "Date=\"" + StringUtil.escapeXmlChars(sDate) + "\" " +
+        "Period=\"" + StringUtil.escapeXmlChars(sSubType) + "\">\n");
       // Add underlying nodes: Text, Psd, Pde
       bThis.append("  <Text>").append(sContext).append("</Text>\n" );
       bThis.append("  <Psd>").append(sSyntax).append("</Psd>\n" );

@@ -67,6 +67,7 @@ public class ExecutePsdxStream extends ExecuteXml {
   JSONObject oProgress = null;            // Progress of this Xq job
   DataObjectList dlDbase = null;          // List of database information per QC line
   DataObjectMapElement dmProgress = null; // Progress of this Xq job
+  boolean bDoLhits = false;               // Whether to provide a [lhits] table with results
   // ========== constants ======================================================
   private static final QName loc_xq_EtreeId = new QName("", "", "eTreeId");
   private static final QName loc_xq_Value = new QName("", "", "Value");
@@ -184,11 +185,20 @@ public class ExecutePsdxStream extends ExecuteXml {
         RuBase.setCrpCaller(oCrpFile);
         
         // Check if there is an input specification and if this file should be dealt with
+        /*
         if (hasInputRestr(qMetaFilter, oCrpFile)) {
           logger.debug("metafilter ["+sShort+"]=restricted");
           continue;
         } else {
           logger.debug("metafilter ["+sShort+"]=none");
+        }*/
+        JSONObject oMetaInfo = getMetaInfoIfNoRestr(qMetaFilter, oCrpFile);
+        if (oMetaInfo == null) {
+          logger.debug("metafilter ["+sShort+"]=restricted");
+          continue;
+        } else {
+          logger.debug("metafilter ["+sShort+"]=none");
+          oCrpFile.setMeta(oMetaInfo);
         }
         
         // Get the @id of this combination
@@ -331,14 +341,6 @@ public class ExecutePsdxStream extends ExecuteXml {
       makeResultsDbaseList(jobCaller, dlDbase, arTotal);
       jobCaller.setJobDbList(dlDbase);
 
-      // Also provide the job count results (which are perhaps less interesting)
-      // NOTE: unclear whether this should be kept - superfluous?
-      /*
-      JSONObject oCount = new JSONObject();
-      oCount.put("counts", arCount);
-      jobCaller.setJobCount(oCount);
-      */
-      
       // Return positively
       return true;
     } catch (RuntimeException ex) {
@@ -518,12 +520,6 @@ public class ExecutePsdxStream extends ExecuteXml {
             }
           }
           // Now open it for append
-          /*
-          arFosCombi[i] = new FileOutputStream(fCombi, true);
-          arOsCombi[i] = new OutputStreamWriter(arFosCombi[i], "utf-8");
-          arBfCombi[i] = new BufferedWriter(arOsCombi[i]);
-          arPwCombi[i] = new PrintWriter(arBfCombi[i]);
-          */
           try (FileOutputStream fos = new FileOutputStream(fCombi, true)) {
             try (OutputStreamWriter osw = new OutputStreamWriter(fos, "utf-8")) {
               try (BufferedWriter bf = new BufferedWriter(osw)) {
@@ -560,13 +556,7 @@ public class ExecutePsdxStream extends ExecuteXml {
                           " <QC>" + Integer.toString(oGeneral.getInt("QC")) + "</QC>\n" +
                           " <Notes>"+oGeneral.getString("Notes")+"</Notes>\n" +
                           " <Analysis>"+oGeneral.getString("Analysis")+"</Analysis>\n</General>\n";
-                  // arPwCombi[i].append(sIntro);
                   pCombi.append(sIntro);
-                  // arPwCombi[i] = pCombi;
-
-                  /* SLOW db
-                  arDbStore[i].addGeneral(oGeneral);
-                  */
 
                   // Add index information to the current xml item indexer
                   int iByteLength = sIntro.getBytes("utf-8").length;
@@ -597,6 +587,11 @@ public class ExecutePsdxStream extends ExecuteXml {
       // int iResId = 1;
       // Get to the list for all files
       for (int i=0;i<arListTotal.length();i++) {
+        String sTitle = "";
+        String sGenre = "";
+        String sAuthor = "";
+        String sDate = "";
+        
         // Get the object for this file
         JSONObject oListOneFile = arListTotal.getJSONObject(i);
         // Get information from this object
@@ -605,8 +600,13 @@ public class ExecutePsdxStream extends ExecuteXml {
         String sSubType = "no-subtype";
         if (oListOneFile.has("subtype")) {
           sSubType = oListOneFile.getString("subtype");
-        } else {
-          int m = 0;
+        } 
+        JSONObject oMeta = oListOneFile.getJSONObject("meta");
+        if (oMeta != null) {
+          sTitle = oMeta.getString("title");
+          sGenre = oMeta.getString("genre");
+          sAuthor = oMeta.getString("author");
+          sDate = oMeta.getString("date");
         }
         JSONArray arHits = oListOneFile.getJSONArray("hits");
         // Show where we are
@@ -626,11 +626,14 @@ public class ExecutePsdxStream extends ExecuteXml {
             for (int k=0;k<arHitsPerQc.length(); k++) {
               // Get this hit
               JSONObject oOneHit = arHitsPerQc.getJSONObject(k);
+              // TODO: en dan uit [oOneHit] element "phf" pakken (binnen getResultXml) 
+              //       om daarmee de pre, hit, fol in de DB te stoppen
               // Get the result id of this hit
               int iResId = arResId[iQCid-1];
               // Process the information in this hit
               ByRef<JSONObject> oResult = new ByRef(null);
               String sOneResult = getResultXml(sFileName, sTextId, sSubType, 
+                      sTitle, sGenre, sAuthor, sDate,
                       arQuery[j].DbFeat, oOneHit, iResId, oResult);
               bThis.append(sOneResult);
               
@@ -830,6 +833,20 @@ public class ExecutePsdxStream extends ExecuteXml {
           }
           // Add the array of sub-cat counts
           oResThis.put("subs", aResSub);
+          if (bDoLhits) {
+            // Get the list of hits for this file
+            DataObjectList aResHits = new DataObjectList("hits");
+            JSONArray arHits = arJsonRes[i].getJSONArray("lhits");
+            for (int m=0;m<arHits.length(); m++) {
+              JSONObject oOneHit = arHits.getJSONObject(m);
+              DataObjectMapElement moOneHit = new DataObjectMapElement();
+              moOneHit.put("cat", oOneHit.getString("cat"));
+              moOneHit.put("locs", oOneHit.getString("locs"));
+              moOneHit.put("locw", oOneHit.getString("locw"));
+              aResHits.add(moOneHit);
+            }
+            oResThis.put("lhits", aResHits);
+          }
           // Add the results to the "hit" list
           aHits.add(oResThis);
         }
@@ -1136,6 +1153,58 @@ public class ExecutePsdxStream extends ExecuteXml {
     } catch (Exception ex) {
       // Return failure
       return errHandle.DoError("hasInputRestr failure", ex, ExecutePsdxStream.class);      
+    }
+  }
+  /**
+   * getMetaInfoIfNoRestr
+   *    Check if the file in oCrpFile has input restrictions
+   *    If not: return a JSONObject with the big five metadata
+   * 
+   * @param qEval
+   * @param oCrpFile
+   * @return 
+   */
+  private JSONObject getMetaInfoIfNoRestr(XQueryEvaluator qEval, CrpFile oCrpFile) {
+    ByRef<XmlNode> ndxForest;   // Forest we are working on
+    ByRef<XmlNode> ndxHeader;   // Header of this file
+    ByRef<XmlNode> ndxMdi;      // Access to corresponding .imdi or .cmdi file
+    XmlForest objProcType;      // Access to the XmlForest object allocated to me
+    JSONObject oMetaInfo = null;
+
+    try {
+      // Validation: if empty there is no restriction
+      // if (qEval == null) return null;
+      // Initialisations
+      objProcType = oCrpFile.objProcType;
+      ndxForest = new ByRef(null); 
+      ndxHeader = new ByRef(null);
+      ndxMdi = new ByRef(null);
+      boolean bPass = false;
+      File fThis = oCrpFile.flThis;
+      // (a) Read the first sentence (psdx: <forest>) as well as the header (psdx: <teiHeader>)
+      if (!objProcType.FirstForest(ndxForest, ndxHeader, ndxMdi, fThis.getAbsolutePath())) {
+        errHandle.DoError("hasInputRestr could not process firest forest of " + fThis.getName());
+        return null;
+      }
+      // Pass on header information 
+      oCrpFile.ndxHeader = ndxHeader.argValue;
+      oCrpFile.ndxMdi = ndxMdi.argValue;
+      oCrpFile.ndxCurrentForest = ndxForest.argValue;
+      if (qEval == null) {
+        bPass = true;
+      } else {
+        bPass = this.objParseXq.DoParseInputXq(qEval, oCrpFile, ndxForest.argValue);
+      }
+      if (bPass) {
+        // Yes, we are allowed to get the metadata
+        oMetaInfo = this.objParseXq.getMetaInfo(fThis.getAbsolutePath());
+      }
+      
+      return (oMetaInfo);
+    } catch (Exception ex) {
+      // Return failure
+      errHandle.DoError("getMetaInfoIfNoRestr failure", ex, ExecutePsdxStream.class);      
+      return null;
     }
   }
   
@@ -1487,6 +1556,7 @@ public class ExecutePsdxStream extends ExecuteXml {
                     if (arQuery[k].DbFeatSize>0) {
                       // A database output is required, so we need to add context, syntax and pde
                       oThisRes.put("con", objProcType.GetContext());
+                      oThisRes.put("phf", objProcType.getHitLine(oThisRes.getString("locs"), oThisRes.getString("locw")));
                       oThisRes.put("eng",  objProcType.GetPde(ndxForest));
                       oThisRes.put("syn",  objProcType.GetSyntax(ndxForest));
                       oThisRes.put("locl", sForestLoc);
@@ -1564,14 +1634,6 @@ public class ExecutePsdxStream extends ExecuteXml {
                 oAdd.put("locs", oThis.getString("locs"));
                 oAdd.put("locw", oThis.getString("locw"));
                 oAdd.put("msg", oThis.getString("msg"));
-                /*
-                // Possibly copy database features
-                // ***** NO ***** this is not needed
-                if (oThis.has("locl")) oAdd.put("locl", oThis.getString("locl"));
-                if (oThis.has("con")) oAdd.put("con", oThis.getString("con"));
-                if (oThis.has("syn")) oAdd.put("syn", oThis.getString("syn"));
-                if (oThis.has("eng")) oAdd.put("eng", oThis.getString("eng"));
-                        */
                 arCatRes.put(oAdd);
               }
             }
@@ -1641,11 +1703,22 @@ public class ExecutePsdxStream extends ExecuteXml {
       JSONArray arHitsCount = new JSONArray();
       JSONObject oCount;
       for (int k=0;k<arQuery.length;k++) {
+        JSONArray arXqfHits = new JSONArray();
         oCount = new JSONObject();
         oCount.put("qc", k+1);                  // Number of this QC line
         oCount.put("count", arXqf[k].length());
-        // oCount.put("name", arQuery[k].Descr);   // Name of this QC line
         oCount.put("sub", arXqfSub[k]);
+        if (this.bDoLhits) {
+          for (int m=0;m<arXqf[k].length();m++) {
+            JSONObject oThis = arXqf[k].getJSONObject(m);
+            JSONObject oHit = new JSONObject();
+            oHit.put("cat", oThis.get("cat"));
+            oHit.put("locs", oThis.get("locs"));
+            oHit.put("locw", oThis.get("locw"));
+            arXqfHits.put(oHit);
+          }
+          oCount.put("lhits", arXqfHits);
+        }
         arHitsCount.put(oCount);
       }
       oCount = new JSONObject();
@@ -1660,6 +1733,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       // Pass on the arXqf information for this XqF job in job.getJobList
       JSONObject oTotal = new JSONObject();
       oTotal.put("file", fThis.getName());
+      oTotal.put("meta", oCrpFile.getMeta());
       oTotal.put("textid", sTextId);
       oTotal.put("subtype", strSubType);
       JSONArray arTotalHits = new JSONArray();

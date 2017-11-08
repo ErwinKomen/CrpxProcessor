@@ -9,12 +9,15 @@ package nl.ru.xmltools;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import javax.xml.xpath.XPathExpressionException;
+import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.SaxonApiException;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.search.JobXq;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.util.ByRef;
+import nl.ru.util.json.JSONObject;
 
 /**
  *
@@ -23,6 +26,7 @@ import nl.ru.util.ByRef;
 public class XmlForestPsdxLine extends XmlForest {
   // ============ Local variables ==============================================
   private XmlChunkReader loc_xrdFile;   // Chunk reader for xml files
+  protected static final QName loc_xq_Text = new QName("", "", "Text");  
   // ============ Call the standard class initializer ==========================
   public XmlForestPsdxLine(CorpusResearchProject oCrp, JobXq oJob, ErrHandle oErr) {
     super(oCrp,oJob,oErr);
@@ -410,6 +414,71 @@ public class XmlForestPsdxLine extends XmlForest {
       return false;
     }
   }
+  
+  /**
+   * getHitLine
+   *    Given the sentence in [ndxSentence] get a JSON representation of 
+   *    this sentence that includes:
+   *    { 'pre': 'text preceding the hit',
+   *      'hit': 'the hit text',
+   *      'fol': 'text following the hit'}
+   * 
+   * @param sLocs
+   * @param sLocw
+   * @return 
+   */
+  @Override
+  public JSONObject getHitLine(String sLocs, String sLocw) {
+    JSONObject oBack = new JSONObject();
+    ByRef <XmlNode> ndxSent = new ByRef(null);
+    String sPre = "";
+    String sHit = "";
+    String sFol = "";
+    
+    try {
+      // Make sure the indicated sentence is read
+      if (!this.OneForest(ndxSent, sLocs)) { logger.error("getHitLine: could not read Sentence ["+sLocs+"]"); return null; }
+      // Validate
+      if (ndxSent.argValue == null)  { logger.error("getHitSyntax: ndxSent is empty"); return null; }
+      // Get word nodes of the whole sentence
+      // Attempt to leave out the non-words -- not fool-proof, because we now exclude "*" marks in the text...
+      List<XmlNode> arWords = ndxSent.argValue.SelectNodes("./descendant::wref[not(starts-with(@t, '*'))]");
+      // Walk the results
+      int i=0;
+      // Get the preceding context
+      ndxSent.argValue.SelectSingleNode("./descendant::wref[@id='"+arWords.get(i).getAttributeValue("id")+"']");
+      while(i < arWords.size() && !hasAncestor(arWords.get(i), "xml:id", sLocw))  {
+        // Double check for CODE ancestor
+        if (!hasAncestor(arWords.get(i), "pos", "CODE"))
+          sPre += arWords.get(i).getAttributeValue(loc_xq_Text) + " ";
+        i++;
+      }
+      // Get the hit context
+      while(i < arWords.size() && hasAncestor(arWords.get(i), "xml:id", sLocw))  {
+        // Double check for CODE ancestor
+        if (!hasAncestor(arWords.get(i), "pos", "CODE"))
+          sHit += arWords.get(i).getAttributeValue(loc_xq_Text) + " ";
+        i++;
+      }
+      // Get the following context
+      while(i < arWords.size() && !hasAncestor(arWords.get(i), "xml:id", sLocw))  {
+        // Double check for CODE ancestor
+        if (!hasAncestor(arWords.get(i), "pos", "CODE"))
+          sFol += arWords.get(i).getAttributeValue(loc_xq_Text) + " ";
+        i++;
+      }
+      
+      // Construct object
+      oBack.put("pre", sPre.trim());
+      oBack.put("hit", sHit.trim());
+      oBack.put("fol", sFol.trim());
+      return oBack;
+    } catch (Exception ex) {
+      logger.error("getHitLine failed", ex);
+      return null;
+    }
+  }
+      
   // ----------------------------------------------------------------------------------------------------------
   // Name :  GetContext
   // Goal :  Get the complete context
@@ -489,6 +558,42 @@ public class XmlForestPsdxLine extends XmlForest {
   public String GetPde(ByRef<XmlNode> ndxForest) {
     return "";
   }
+  
+  /**
+   * hasAncestor
+   *    Check if the indicated node has an ancestor of type @sType with value @sValue
+   * 
+   * @param ndThis
+   * @param sType
+   * @param sValue
+   * @return 
+   */
+  @Override
+  public boolean hasAncestor(XmlNode ndThis, String sType, String sValue) {
+    String sPath;
+    try {
+      // Validate
+      if (ndThis == null) return false;
+      // Action depends on the type
+      switch (sType) {
+        case "id":
+          sPath = "./ancestor::eTree[@Id = " + sValue + "] ";
+          break;
+        case "pos":
+          sPath = "./ancestor::eTree[@Label = '" + sValue + "'] ";
+          break;
+        default:
+          return false;
+      }
+      // Check if the ancestor exists
+      return (ndThis.SelectSingleNode(sPath) != null);
+    } catch (Exception ex) {
+      // Warn user
+      logger.error("XmlAccessPsdx/hasAncestor error: ", ex);
+      // Return failure
+      return false;
+    }
+  }  
   
   @Override
   public int GetSize() {

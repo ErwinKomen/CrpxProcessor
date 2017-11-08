@@ -27,6 +27,7 @@ import nl.ru.crpx.project.ExecuteXml;
 import nl.ru.crpx.search.JobXq;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.util.ByRef;
+import nl.ru.util.json.JSONObject;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
@@ -120,6 +121,7 @@ public abstract class XmlForest {
   // ========================================== LOCAL VARIABLE ================================================
   protected String loc_strCurrent = "";   // XML code of current forest
   protected String loc_strCombi = "";     // Combined XML context, from where current node is taken
+  protected String loc_strPreHitFol = ""; // Local sentence context
   protected int loc_intCurrent;           // Position of current node within [loc_arContext]
   protected List<String> loc_colStack;    // Stack for the context
   protected List<String> loc_colCombi;    // Where we combine the context
@@ -178,6 +180,7 @@ public abstract class XmlForest {
   public final void setProcType(ForType value) {loc_Type = value;  }
 
   // Methods that are overridden by the classes that extend XmlForest:
+  public abstract JSONObject getHitLine(String sLocs, String sLocw);
   public abstract boolean FirstForest(ByRef<XmlNode> ndxForest, ByRef<XmlNode> ndxHeader, ByRef<XmlNode> ndxMdi, String strFile);
   public abstract boolean GetForestId(ByRef<XmlNode> ndxForest, ByRef<Integer> intForestId);
   public abstract String getSentenceId(ByRef<XmlNode> ndxForest);
@@ -190,6 +193,7 @@ public abstract class XmlForest {
   public abstract String GetPde(ByRef<XmlNode> ndxForest);
   public abstract int GetSize();
   public abstract void close();
+  public abstract boolean hasAncestor(XmlNode ndThis, String sType, String sValue);
   
   // Public methods for all
   public String getCurrentLoc() { return this.loc_cntThis.Loc; }
