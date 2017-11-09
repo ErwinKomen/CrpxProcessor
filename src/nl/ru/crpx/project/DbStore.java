@@ -16,6 +16,7 @@ import java.io.File;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import nl.ru.crpx.dataobject.DataObject;
 import nl.ru.crpx.tools.ErrHandle;
@@ -26,6 +27,7 @@ import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
 import nl.ru.xmltools.XmlNode;
 import nl.ru.xmltools.XmlResultPsdxIndex;
+import org.sqlite.util.StringUtils;
 
 /**
  *
@@ -40,6 +42,9 @@ public class DbStore {
   private String loc_sDbSqlFile = "";
   private String loc_sOrder = "ASC";          // Sort order
   private String loc_sSortField = "RESID";    // Normally we sort by the Result Id
+  private JSONArray loc_arFilter = null;
+  private List<String> loc_lFilter = null;    // List of SQL filter statements
+  private List<String> loc_lValue = null;
   private boolean loc_bIsFeature = false;     // Search column is a feature
   private int loc_iResId = 0;                 // ResId for 
   private int loc_iFeatIdx = 0;               // Unique ID for each Feature
@@ -96,6 +101,7 @@ public class DbStore {
           "CREATE INDEX cat_index ON RESULT (CAT); ";
   private PreparedStatement loc_psInsertResult = null;
   private PreparedStatement loc_psInsertFeature = null;
+  private PreparedStatement loc_psFilterResult = null;
 // </editor-fold>  
   // =============== Class initializer =================================
   public DbStore(ErrHandle objErr) {
@@ -103,6 +109,8 @@ public class DbStore {
     try {
       // Cause the class to be initialized
       Class.forName("org.sqlite.JDBC");
+      this.loc_lFilter = new ArrayList<>();
+      this.loc_lValue = new ArrayList<>();
     } catch (Exception ex) {
       // Provide error message
       errHandle.DoError("DbStore/DbStore error: ", ex, DbStore.class);
@@ -624,6 +632,73 @@ public class DbStore {
   }
   
   /**
+   * filter
+   *    Specify the filter that needs to be used when downloading
+   * 
+   * @param arFilter
+   * @return 
+   */
+  public boolean filter(JSONObject oFilter) {
+    try {
+      // Validate
+      if (conThis == null) return false;
+      if (oFilter == null || oFilter.length() == 0) {
+        this.loc_arFilter = null;
+        return true;
+      }
+      // Copy the object
+      // this.loc_arFilter = new JSONArray( oFilter.toString());
+      
+      // Access the general table
+      conThis.setAutoCommit(false);
+      Statement stmt = null;
+      stmt = conThis.createStatement();
+      
+      // Reset the filter
+      this.loc_lFilter.clear();
+      this.loc_lValue.clear();
+      // Walk all elements of the filter
+      Iterator keys = oFilter.keys();
+      while (keys.hasNext()) {
+        StringBuilder sbThis = new StringBuilder();
+
+        String sKey = keys.next().toString();
+        String sValue = oFilter.getString(sKey);
+        
+        try {
+          // Create an index
+          stmt.execute("CREATE INDEX IF NOT EXISTS Res_"+sKey+" ON RESULT("+sKey+")");
+          // Make sure it is created - but do not complain if it goes wrong here
+          conThis.commit();
+        } catch (Exception exCon) {
+          int iOkay = 1;
+        }
+
+        sbThis.append(sKey);
+        // Add the key/value pair to the list of SQL filter expressions
+        if (sValue.contains("*")) {
+          boolean bEscape = sValue.contains("%");
+          sbThis.append(" LIKE ? ");
+          if (bEscape) {
+            sbThis.append(" ESCAPE '%'");
+          }
+        } else {
+          sbThis.append(" = ?");
+        }
+        // Add the filter line
+        loc_lFilter.add(sbThis.toString());
+        loc_lValue.add(sValue);
+      }
+      
+      // Return positively
+      return true;
+    } catch (Exception ex) {
+      errHandle.DoError("DbStore/filter error: ", ex, DbStore.class);
+      return false;
+    }
+  }
+  
+  /**
    * getResults
    *    Return [iCount] (sorted) results that start at [iStart]
    * 
@@ -643,14 +718,33 @@ public class DbStore {
       conThis.setAutoCommit(false);
       Statement stmt = null;
       stmt = conThis.createStatement();
+      PreparedStatement psThis = null;
       // Create the SQL query
       // Note: the [iStart] indicates the first
-      sSql = "SELECT * FROM RESULT "+
-              "ORDER BY "+this.loc_sSortField+" "+this.loc_sOrder+
-              " LIMIT "+iCount+" OFFSET "+iStart+
-              ";";
+      if (this.loc_lFilter.isEmpty())  {
+        // No filtering
+        sSql = "SELECT * FROM RESULT "+
+                "ORDER BY "+this.loc_sSortField+" "+this.loc_sOrder+
+                " LIMIT "+iCount+" OFFSET "+iStart+
+                ";";
+        psThis = conThis.prepareStatement(sSql);
+      } else {
+        // Filtering
+        sSql = "SELECT * FROM RESULT "+
+                "WHERE " + StringUtils.join(loc_lFilter, " AND ") +
+                "ORDER BY "+this.loc_sSortField+" "+this.loc_sOrder+
+                " LIMIT "+iCount+" OFFSET "+iStart+
+                ";";
+        psThis = conThis.prepareStatement(sSql);
+        for (int i=0;i<loc_lValue.size(); i++) {
+          psThis.setString(i+1, loc_lValue.get(i));
+        }
+      }
+      
       try {
-        resThis = stmt.executeQuery(sSql);
+        // resThis = psThis.executeQuery(sSql);
+        resThis = psThis.executeQuery();
+        // resThis = stmt.executeQuery(sSql);
       } catch (Exception exExe) {
         // Adapt the SQL, taking the ordering out
         sSql = "SELECT * FROM RESULT "+

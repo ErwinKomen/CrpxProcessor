@@ -92,6 +92,19 @@ public class XmlResultDbase extends XmlResult {
     return this.loc_size;
   }
   
+  public boolean Filter(JSONObject oFilter) {
+    try {
+      // Pass on the FILTER request to DbStore
+      if (!this.loc_oStore.filter(oFilter)) return false;
+      
+      // Return positively
+      return true;
+    } catch (Exception ex) {
+      objErr.DoError("XmlResult/Filter error: ", ex);
+      return false;
+    }
+  }
+  
   /**
    * Sort -- Sort the current database according to the [sSortOrder] parameter
    *    This parameter is, in principle, the name of one column.
