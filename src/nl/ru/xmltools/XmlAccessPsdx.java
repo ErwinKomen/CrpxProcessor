@@ -52,25 +52,6 @@ public class XmlAccessPsdx extends XmlAccess {
     super(crpThis, pdxDoc, sFileName);
   }
   
-    /**
-   * getMetaInfo
-   *    Retrieve the 'big five' metadata elements of this text
-   * 
-   * @return 
-   */
-  @Override
-  public  JSONObject getMetaInfo() {
-    JSONObject oBack = new JSONObject();
-
-    try {
-      
-      return oBack;
-    } catch (Exception ex) {
-      logger.error("getMetaInfo failed", ex);
-      return null;
-    }
-  }
-  
   /**
    * getHitLine
    *    Given the sentence in [ndxSentence] get a JSON representation of 
@@ -724,35 +705,6 @@ public class XmlAccessPsdx extends XmlAccess {
     } catch (Exception ex) {
       logger.error("PsdxToSvg failed", ex);
       return sBack;
-    }
-  }
-
-  /**
-   * readHeader
-   *    Read the header
-   * 
-   * @return 
-   */
-  private boolean readHeader() {
-    try {
-      // Do we have a header?
-      String sHeader = "";
-      sHeader = (bUseRa) ? objXmlRaRdr.getHeader() : objXmlRdr.getHeader();
-      if (sHeader.isEmpty()) {
-        // Indicate that it is empty
-        ndxHeader = null;
-      } else {
-        // Load this obligatory teiHeader 
-        this.pdxDoc.LoadXml(sHeader);
-        // Set the global parameter
-        ndxHeader = this.pdxDoc.SelectSingleNode(loc_path_PsdxHeader);
-      }
-      
-      // Return positively
-      return true;
-    } catch (Exception ex) {
-      logger.error("readHeader failed", ex);
-      return false;
     }
   }
 

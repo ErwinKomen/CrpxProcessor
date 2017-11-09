@@ -35,11 +35,8 @@ public abstract class XmlAccess {
   // ========================================== LOCAL VARIABLE ================================================
   protected String sCurrentSentId;      // ID of the currently loaded sentence
   protected XmlDocument pdxDoc;         // Provide facilities to convert a string into an xml document
-  protected XmlDocument loc_pdxMdi;     // MDI document (if existing)
   protected Processor objSaxon;         // Local access to the processor
   protected XmlNode ndxSent;            // The root node
-  protected XmlNode ndxMdi;             // MDI root
-  protected XmlNode ndxHeader;          // Header
   protected XmlIndexTgReader objXmlRdr; // Index reader for current file
   protected XmlIndexRaReader objXmlRaRdr;
   protected RuBase objBase;           // Access to RuBase functions
@@ -69,27 +66,8 @@ public abstract class XmlAccess {
         }
       }
       
-      // Try get mdi reader
-      MdiReader rdMdi = new MdiReader(crpThis.errHandle, this.loc_pdxMdi);
-      String sMdiFile = rdMdi.getMdi(sFileName);
-      if (!sMdiFile.isEmpty()) {
-        // Read the MDI (.imdi/.cmdi) file as an XmlDocument
-        loc_pdxMdi = rdMdi.Read(sMdiFile);
-        // Check what has been returned
-        if (loc_pdxMdi != null) {
-          // Set the pointer in the mdi
-          ndxMdi = loc_pdxMdi.SelectSingleNode("./descendant-or-self::Session");
-          if (ndxMdi == null) {
-            // Set point to the root document
-            ndxMdi = loc_pdxMdi.SelectSingleNode("/");
-          }
-        }
-      }
-      
-      
       // Initialise some stuff
       ndxSent = null;
-      ndxHeader = null;
       sCurrentSentId = "";
     } catch (Exception ex) {
       logger.error("XmlAccess initialisation error", ex);
@@ -99,7 +77,6 @@ public abstract class XmlAccess {
   // ==========================================================================================================
   // Methods that are overridden by the classes that extend XmlForest:
   public abstract JSONObject getHitLine(String sLngName, String sLocs, String sLocw);
-  public abstract JSONObject getMetaInfo();
   public abstract DataObject getHitSyntax(String sLngName, String sLocs, String sLocw);
   public abstract DataObject getHitTree(String sLngName, String sLocs, String sLocw);
   public abstract DataObject getHitSvg(String sLngName, String sLocs, String sLocw);

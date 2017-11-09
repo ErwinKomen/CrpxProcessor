@@ -185,20 +185,11 @@ public class ExecutePsdxStream extends ExecuteXml {
         RuBase.setCrpCaller(oCrpFile);
         
         // Check if there is an input specification and if this file should be dealt with
-        /*
         if (hasInputRestr(qMetaFilter, oCrpFile)) {
           logger.debug("metafilter ["+sShort+"]=restricted");
           continue;
         } else {
           logger.debug("metafilter ["+sShort+"]=none");
-        }*/
-        JSONObject oMetaInfo = getMetaInfoIfNoRestr(qMetaFilter, oCrpFile);
-        if (oMetaInfo == null) {
-          logger.debug("metafilter ["+sShort+"]=restricted");
-          continue;
-        } else {
-          logger.debug("metafilter ["+sShort+"]=none");
-          oCrpFile.setMeta(oMetaInfo);
         }
         
         // Get the @id of this combination
@@ -587,10 +578,6 @@ public class ExecutePsdxStream extends ExecuteXml {
       // int iResId = 1;
       // Get to the list for all files
       for (int i=0;i<arListTotal.length();i++) {
-        String sTitle = "";
-        String sGenre = "";
-        String sAuthor = "";
-        String sDate = "";
         
         // Get the object for this file
         JSONObject oListOneFile = arListTotal.getJSONObject(i);
@@ -601,13 +588,6 @@ public class ExecutePsdxStream extends ExecuteXml {
         if (oListOneFile.has("subtype")) {
           sSubType = oListOneFile.getString("subtype");
         } 
-        JSONObject oMeta = oListOneFile.getJSONObject("meta");
-        if (oMeta != null) {
-          sTitle = oMeta.getString("title");
-          sGenre = oMeta.getString("genre");
-          sAuthor = oMeta.getString("author");
-          sDate = oMeta.getString("date");
-        }
         JSONArray arHits = oListOneFile.getJSONArray("hits");
         // Show where we are
         String sShort = FileIO.getFileNameWithoutExtension(sFileName);
@@ -633,7 +613,6 @@ public class ExecutePsdxStream extends ExecuteXml {
               // Process the information in this hit
               ByRef<JSONObject> oResult = new ByRef(null);
               String sOneResult = getResultXml(sFileName, sTextId, sSubType, 
-                      sTitle, sGenre, sAuthor, sDate,
                       arQuery[j].DbFeat, oOneHit, iResId, oResult);
               bThis.append(sOneResult);
               
@@ -1153,58 +1132,6 @@ public class ExecutePsdxStream extends ExecuteXml {
     } catch (Exception ex) {
       // Return failure
       return errHandle.DoError("hasInputRestr failure", ex, ExecutePsdxStream.class);      
-    }
-  }
-  /**
-   * getMetaInfoIfNoRestr
-   *    Check if the file in oCrpFile has input restrictions
-   *    If not: return a JSONObject with the big five metadata
-   * 
-   * @param qEval
-   * @param oCrpFile
-   * @return 
-   */
-  private JSONObject getMetaInfoIfNoRestr(XQueryEvaluator qEval, CrpFile oCrpFile) {
-    ByRef<XmlNode> ndxForest;   // Forest we are working on
-    ByRef<XmlNode> ndxHeader;   // Header of this file
-    ByRef<XmlNode> ndxMdi;      // Access to corresponding .imdi or .cmdi file
-    XmlForest objProcType;      // Access to the XmlForest object allocated to me
-    JSONObject oMetaInfo = null;
-
-    try {
-      // Validation: if empty there is no restriction
-      // if (qEval == null) return null;
-      // Initialisations
-      objProcType = oCrpFile.objProcType;
-      ndxForest = new ByRef(null); 
-      ndxHeader = new ByRef(null);
-      ndxMdi = new ByRef(null);
-      boolean bPass = false;
-      File fThis = oCrpFile.flThis;
-      // (a) Read the first sentence (psdx: <forest>) as well as the header (psdx: <teiHeader>)
-      if (!objProcType.FirstForest(ndxForest, ndxHeader, ndxMdi, fThis.getAbsolutePath())) {
-        errHandle.DoError("hasInputRestr could not process firest forest of " + fThis.getName());
-        return null;
-      }
-      // Pass on header information 
-      oCrpFile.ndxHeader = ndxHeader.argValue;
-      oCrpFile.ndxMdi = ndxMdi.argValue;
-      oCrpFile.ndxCurrentForest = ndxForest.argValue;
-      if (qEval == null) {
-        bPass = true;
-      } else {
-        bPass = this.objParseXq.DoParseInputXq(qEval, oCrpFile, ndxForest.argValue);
-      }
-      if (bPass) {
-        // Yes, we are allowed to get the metadata
-        oMetaInfo = this.objParseXq.getMetaInfo(fThis.getAbsolutePath());
-      }
-      
-      return (oMetaInfo);
-    } catch (Exception ex) {
-      // Return failure
-      errHandle.DoError("getMetaInfoIfNoRestr failure", ex, ExecutePsdxStream.class);      
-      return null;
     }
   }
   
