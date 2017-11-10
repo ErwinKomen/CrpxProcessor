@@ -96,6 +96,7 @@ public class XmlResultDbase extends XmlResult {
     try {
       // Pass on the FILTER request to DbStore
       if (!this.loc_oStore.filter(oFilter)) return false;
+      this.loc_size = this.loc_oStore.getSize();
       
       // Return positively
       return true;

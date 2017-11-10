@@ -140,8 +140,20 @@ public class DbStore {
       // Validate
       if (conThis == null) return 0;
       // Create a statement
-      Statement stmt = conThis.createStatement();
-      ResultSet resThis = stmt.executeQuery("SELECT COUNT(*) FROM RESULT");
+      // Statement stmt = conThis.createStatement();
+      PreparedStatement psThis = null;
+      String sSql = "SELECT COUNT(*) FROM RESULT";
+      if (loc_lFilter.size()>0) {    
+        sSql += " INNER JOIN META ON RESULT.METAID = META.METAID "+
+                " WHERE " + StringUtils.join(loc_lFilter, " AND ");
+      }
+      psThis = conThis.prepareStatement(sSql);
+      for (int i=0;i<loc_lValue.size(); i++) {
+        psThis.setString(i+1, loc_lValue.get(i));
+      }
+
+      // ResultSet resThis = stmt.executeQuery(sSql);
+      ResultSet resThis = psThis.executeQuery();
       if (resThis.next()) {
         // Get the result
         this.loc_iSize = resThis.getInt(1);
