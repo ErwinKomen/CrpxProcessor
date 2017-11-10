@@ -1414,10 +1414,6 @@ public class ExecutePsdxStream extends ExecuteXml {
           if (objOneDbRes == null) 
             return false;
           
-          // String strNextFile = "";  // points to the next file
-          
-          // TODO: implement. See modMain.vb [2890-2920]
-          
           // Get the CURRENT database result
           objOneDbRes.CurrentResult(ndxDbRes);
           // Get a whole collection of results that have the same sentence
@@ -1585,7 +1581,7 @@ public class ExecutePsdxStream extends ExecuteXml {
                     if (arQuery[k].DbFeatSize>0) {
                       // A database output is required, so we need to add context, syntax and pde
                       oThisRes.put("con", objProcType.GetContext());
-                      oThisRes.put("phf", objProcType.getHitLine(oThisRes.getString("locs"), oThisRes.getString("locw")));
+                      // oThisRes.put("phf", objProcType.getHitLine(oThisRes.getString("locs"), oThisRes.getString("locw")));
                       oThisRes.put("eng",  objProcType.GetPde(ndxForest));
                       oThisRes.put("syn",  objProcType.GetSyntax(ndxForest));
                       oThisRes.put("locl", sForestLoc);

@@ -842,7 +842,7 @@ public class DbStore {
       // Note: the [iStart] indicates the first
       if (this.loc_lFilter.isEmpty())  {
         // No filtering
-        sSql = "SELECT * FROM RESULT "+
+        sSql = "SELECT DISTINCT * FROM RESULT "+
                 "INNER JOIN META ON RESULT.METAID = META.METAID "+
                 "ORDER BY "+this.loc_sSortField+" "+this.loc_sOrder+
                 " LIMIT "+iCount+" OFFSET "+iStart+
@@ -850,7 +850,7 @@ public class DbStore {
         psThis = conThis.prepareStatement(sSql);
       } else {
         // Filtering
-        sSql = "SELECT * FROM RESULT "+
+        sSql = "SELECT DISTINCT * FROM RESULT "+
                 "INNER JOIN META ON RESULT.METAID = META.METAID "+
                 "WHERE " + StringUtils.join(loc_lFilter, " AND ") +
                 "ORDER BY "+this.loc_sSortField+" "+this.loc_sOrder+
@@ -868,7 +868,7 @@ public class DbStore {
         // resThis = stmt.executeQuery(sSql);
       } catch (Exception exExe) {
         // Adapt the SQL, taking the ordering out
-        sSql = "SELECT * FROM RESULT "+
+        sSql = "SELECT DISTINCT * FROM RESULT "+
                 "INNER JOIN META ON RESULT.METAID = META.METAID "+
                 " LIMIT "+iCount+" OFFSET "+iStart+
                 ";";
