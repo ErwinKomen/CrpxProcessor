@@ -18,7 +18,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import nl.ru.crpx.dataobject.DataObject;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
@@ -69,6 +68,7 @@ public class DbStore {
   private final String loc_sqlInsertGeneral = 
           "INSERT INTO GENERAL (ID, PROJECTNAME, CREATED, DSTDIR, SRCDIR, "+
           "LANGUAGE, PART, QC, NOTES, ANALYSIS) ";
+  /*
   private final String loc_sqlCreateFeature = 
           "CREATE TABLE FEATURE " +
           "(ID INT PRIMARY KEY  NOT NULL,"+
@@ -76,7 +76,7 @@ public class DbStore {
           " NAME           TEXT NOT NULL,"+
           " VALUE          TEXT NOT NULL)";
   private final String loc_sqlInsertFeature = 
-          "INSERT INTO FEATURE (ID, RESID, NAME, VALUE) ";
+          "INSERT INTO FEATURE (ID, RESID, NAME, VALUE) ";*/
   private final String loc_sqlCreateFeatName = 
           "CREATE TABLE FEATNAME " +
           "(ID INT PRIMARY KEY  NOT NULL,"+
@@ -86,22 +86,33 @@ public class DbStore {
   private final String loc_sqlCreateResult = 
           "CREATE TABLE RESULT " +
           "(RESID INT PRIMARY KEY  NOT NULL,"+
-          " FILE           TEXT NOT NULL,"+
-          " TEXTID         CHAR(100),"+
+          " METAID         INT,"+
           " SEARCH         CHAR(200),"+
           " CAT            CHAR(100),"+
           " LOCS           CHAR(200),"+
           " LOCW           CHAR(200),"+
           " SUBTYPE        CHAR(200)";
-  private final String loc_sqlInsertResult = 
-          "INSERT INTO RESULT (RESID, FILE, TEXTID, SEARCH, CAT, "+
-          "LOCS, LOCW, SUBTYPE) ";
+  /*
+  private final String loc_sqlInsertResult
+          = "INSERT INTO RESULT (RESID, METAID, SEARCH, CAT, "
+          + "LOCS, LOCW, SUBTYPE) ";*/
+  private final String loc_sqlCreateMeta = 
+          "CREATE TABLE META " +
+          "(METAID INT PRIMARY KEY NOT NULL,"+
+          " FILE           TEXT NOT NULL,"+
+          " TEXTID         CHAR(100),"+
+          " SUBTYPE        CHAR(200),"+
+          " TITLE          TEXT NOT NULL,"+
+          " GENRE          CHAR(200),"+
+          " DATE           TEXT NOT NULL,"+
+          " SIZE           INT )";
   private final String loc_sqlCreateIndices = 
           "CREATE INDEX subtype_index ON RESULT (SUBTYPE); "+
           "CREATE INDEX cat_index ON RESULT (CAT); ";
   private PreparedStatement loc_psInsertResult = null;
+  private PreparedStatement loc_psInsertMeta = null;
   private PreparedStatement loc_psInsertFeature = null;
-  private PreparedStatement loc_psFilterResult = null;
+  // private PreparedStatement loc_psFilterResult = null;
 // </editor-fold>  
   // =============== Class initializer =================================
   public DbStore(ErrHandle objErr) {
@@ -248,9 +259,15 @@ public class DbStore {
    *    This is a linear method that is not too fast ...
    * 
    * @param sFileName
+   * @param arListTotal
    * @return 
    */
   public boolean xmlToDbNew(String sFileName) {
+    return xmlToDbNew(sFileName, null);
+  }
+  public boolean xmlToDbNew(String sFileName, JSONArray arListTotal) {
+    List<JSONObject> lTextlist;
+    
     try {
       // Process the header
       CorpusResearchProject oCrpx = new CorpusResearchProject(true);
@@ -274,6 +291,10 @@ public class DbStore {
       String sAnalysis = oHdr.getString("Analysis");
       boolean bDoFeatNames = true;
       
+      // Initialize a list of MetaId-File-TextId elements 
+      //     that need to be put into a separate table
+      lTextlist = new ArrayList<>();
+      
       // process the results one-by-one
       ByRef<XmlNode> ndxResult = new ByRef(null);
       int iFeatIdx = 1;
@@ -294,8 +315,11 @@ public class DbStore {
             errHandle.DoError("DbStore/xmlToDb: index is wrong at " + iCheck); return false; 
           }
           // Get all the other relevant values
-          oResult.put("File", ndxThis.getAttributeValue("File"));
-          oResult.put("TextId", ndxThis.getAttributeValue("TextId"));
+          String sFile = ndxThis.getAttributeValue("File");
+          String sTextId = ndxThis.getAttributeValue("TextId");
+          // Add the text/file to the file list if not already in there
+          int iMetaId = addToTextList(lTextlist, sTextId, sFile, arListTotal);
+          oResult.put("MetaId", iMetaId);
           oResult.put("Search", ndxThis.getAttributeValue("Search"));
           oResult.put("Cat", ndxThis.getAttributeValue("Cat"));
           oResult.put("Locs", ndxThis.getAttributeValue("forestId"));
@@ -314,10 +338,10 @@ public class DbStore {
           // If this is the first go, we should create an insert statement
           if (bDoFeatNames) {
             // Prepare a string for the values
-            String sSql = "INSERT INTO RESULT (RESID, FILE, TEXTID, SEARCH, CAT, "+
+            String sSql = "INSERT INTO RESULT (RESID, METAID, SEARCH, CAT, "+
                 "LOCS, LOCW, SUBTYPE, "+
                 StringUtil.join(this.loc_lFeatName, ", ")+
-                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?"+
+                ") VALUES (?, ?, ?, ?, ?, ?, ?"+
                 new String(new char[this.loc_lFeatName.size()]).replace("\0", ", ?")+
                 ")";
             // Prepare an insert statement
@@ -335,6 +359,19 @@ public class DbStore {
           oDbIndex.NextResult(ndxResult);
           iCheck += 1;
         }
+        
+        // Retrieve the textlist information
+        String sSql = "INSERT INTO META (METAID, TEXTID, FILE, SUBTYPE, "+
+                "TITLE, GENRE, DATE, SIZE) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        this.loc_psInsertMeta = conThis.prepareStatement(sSql);
+        // Add all appropriate lines to the Meta table
+        for (JSONObject oMeta : lTextlist) {
+          // Add the meta-information for this text
+          
+          // Process this meta-table line
+          if (!addMeta(oMeta)) return false;
+        }
+        
       }
       
       // CLose the database result index
@@ -363,6 +400,72 @@ public class DbStore {
     } catch (Exception ex) {
       errHandle.DoError("DbStore/xmlToDbNew error: ", ex, DbStore.class);
       return false;
+    }
+  }
+  
+  /**
+   * addToTextList
+   *    Add the combination [sTextId/sFile] to the textlist and return the index
+   * 
+   * @param lTexts
+   * @param sTextId
+   * @param sFile
+   * @return 
+   */
+  private int addToTextList(List<JSONObject> lTexts, String sTextId, 
+          String sFile, JSONArray arListTotal) {
+    int idx = -1;
+    JSONObject oListOneFile = null;
+    JSONObject oInfo;
+    
+    try {
+      for (int i=0;i<lTexts.size(); i++) {
+        JSONObject oItem = lTexts.get(i);
+        if (sTextId.equals(oItem.getString("TextId")) &&
+            sFile.equals(oItem.getString("File")) ) {
+          // Found it
+          return i+1;
+        }
+      }
+      // It is not yet processed...
+      
+      if (arListTotal == null) {
+        oListOneFile = null;
+      } else {
+        // Find the index within arListTotal
+        for (int i=0;i<arListTotal.length(); i++) {
+          oListOneFile = arListTotal.getJSONObject(i);
+          if (sTextId.equals(oListOneFile.getString("textid"))) {
+            // Found it
+            idx = i;
+            break;
+          }
+        }
+      }
+      
+      // Validate
+      oInfo = new JSONObject();
+      oInfo.put("MetaId", lTexts.size()+1);
+      if (idx >=0 && oListOneFile != null) {
+        // Add the information here
+        JSONObject oMeta = oListOneFile.getJSONObject("meta");
+        if (oMeta.has("subtype")) {oInfo.put("SubType", oMeta.getString("subtype"));}
+        if (oMeta.has("title")) {oInfo.put("Title", oMeta.getString("title"));}
+        if (oMeta.has("genre")) {oInfo.put("Genre", oMeta.getString("genre"));}
+        if (oMeta.has("date")) {oInfo.put("Date", oMeta.getString("date"));}
+        if (oMeta.has("size")) {oInfo.put("Size", oMeta.getInt("size"));}
+      }
+      
+      oInfo.put("TextId", sTextId);
+      oInfo.put("File", sFile);
+      lTexts.add(oInfo);
+      idx = lTexts.size();
+      
+      // Return success
+      return idx;
+    } catch (Exception ex) {
+      errHandle.DoError("DbStore/addToTextList error: ", ex, DbStore.class);
+      return -1;
     }
   }
     
@@ -409,6 +512,8 @@ public class DbStore {
       loc_stmt.executeUpdate(loc_sqlCreateGeneral);
       // Create a table for the Feature Names only (not linked)
       loc_stmt.executeUpdate(loc_sqlCreateFeatName);
+      // Create a table for the metainformation
+      loc_stmt.executeUpdate(loc_sqlCreateMeta);
       // Prepare the create statement for the RESULTS table
       String sSqlCreateResult = loc_sqlCreateResult;
       for (int i=0;i<arFeatList.size();i++) {
@@ -418,6 +523,7 @@ public class DbStore {
       sSqlCreateResult += ")";
       // Create a table for the Results
       loc_stmt.executeUpdate(sSqlCreateResult);
+      
       
       // Commit these steps
       conThis.commit();
@@ -522,8 +628,9 @@ public class DbStore {
       // Validate and correct
       if (iResId != loc_iResId) iResId = loc_iResId;
       // Get all the other relevant values
-      String sFile = oResult.getString("File");
-      String sTextId = oResult.getString("TextId");
+      //String sFile = oResult.getString("File");
+      //String sTextId = oResult.getString("TextId");
+      int iMetaId = oResult.getInt("MetaId");
       String sSearch =  oResult.getString("Search");
       String sCat =  oResult.getString("Cat");
       String sLocS =  oResult.getString("Locs");
@@ -532,16 +639,15 @@ public class DbStore {
       // Do NOT calculate values for Text, Psd and Pde -- these are not determined anyway
       
       this.loc_psInsertResult.setInt(1, iResId);
-      this.loc_psInsertResult.setString(2, sFile);
-      this.loc_psInsertResult.setString(3, sTextId);
-      this.loc_psInsertResult.setString(4, sSearch);
-      this.loc_psInsertResult.setString(5, sCat);
-      this.loc_psInsertResult.setString(6, sLocS);
-      this.loc_psInsertResult.setString(7, sLocW);
-      this.loc_psInsertResult.setString(8, sSubType);
+      this.loc_psInsertResult.setInt(2, iMetaId);
+      this.loc_psInsertResult.setString(3, sSearch);
+      this.loc_psInsertResult.setString(4, sCat);
+      this.loc_psInsertResult.setString(5, sLocS);
+      this.loc_psInsertResult.setString(6, sLocW);
+      this.loc_psInsertResult.setString(7, sSubType);
       // Add the feature values
       for (int i=0;i<this.loc_lFeatName.size();i++ ) {
-        int iNum = 8+i+1;  // The number of the element to be set
+        int iNum = 7+i+1;  // The number of the element to be set
         // Get the feature 
         String sFeatValue = oResult.getString(this.loc_lFeatName.get(i));
         this.loc_psInsertResult.setString(iNum, sFeatValue);
@@ -559,35 +665,43 @@ public class DbStore {
     }
   }
   
-  /**
-   * addFeature
-   *    Add one item to the table FEATURE
+    /**
+   * addMeta
+   *    Add one item to the table META
    * 
-   * @param iResId
-   * @param oFeature
+   * @param oMeta
    * @return 
    */
-  public boolean addFeature(int iResId, JSONObject oFeature) {
+  public boolean addMeta(JSONObject oMeta) {
     try {
-      this.loc_psInsertFeature.setInt(1, loc_iFeatIdx);
-      this.loc_psInsertFeature.setInt(2, iResId);
-      this.loc_psInsertFeature.setString(3, oFeature.getString("Name"));
-      this.loc_psInsertFeature.setString(4, oFeature.getString("Value"));
-      this.loc_psInsertFeature.executeUpdate();
+      // Get the ID for this record
+      int iMetaId = oMeta.getInt("MetaId");
 
-      /*
-      // Add this feature
-      String sSql = loc_sqlInsertFeature+"VALUES ("+loc_iFeatIdx+", "+
-              iResId+", '"+oFeature.getString("Name")+
-              "', '"+oFeature.getString("Value")+"');";
-      loc_stmt.executeUpdate(sSql);  
-      */
+      // Get all the other relevant values
+      String sTextId = oMeta.getString("TextId");
+      String sFile = oMeta.getString("File");
+      String sSubType =  oMeta.getString("SubType");
+      String sTitle =  oMeta.getString("Title");
+      String sGenre =  oMeta.getString("Genre");
+      String sDate =  oMeta.getString("Date");
+      int iSize = oMeta.getInt("MetaId");
+
+      // Do NOT calculate values for Text, Psd and Pde -- these are not determined anyway
       
-      loc_iFeatIdx += 1;
+      this.loc_psInsertMeta.setInt(1, iMetaId);
+      this.loc_psInsertMeta.setString(2, sTextId);
+      this.loc_psInsertMeta.setString(3, sFile);
+      this.loc_psInsertMeta.setString(4, sSubType);
+      this.loc_psInsertMeta.setString(5, sTitle);
+      this.loc_psInsertMeta.setString(6, sGenre);
+      this.loc_psInsertMeta.setString(7, sDate);
+      this.loc_psInsertMeta.setInt(8, iSize);
+      this.loc_psInsertMeta.executeUpdate();
+
       // Return positively
       return true;
     } catch (Exception ex) {
-      errHandle.DoError("DbStore/addFeature error: ", ex, DbStore.class);
+      errHandle.DoError("DbStore/addResult error: ", ex, DbStore.class);
       return false;
     }
   }
@@ -635,10 +749,11 @@ public class DbStore {
    * filter
    *    Specify the filter that needs to be used when downloading
    * 
-   * @param arFilter
+   * @param oFilter
    * @return 
    */
   public boolean filter(JSONObject oFilter) {
+    boolean bEscape = false;
     try {
       // Validate
       if (conThis == null) return false;
@@ -646,8 +761,6 @@ public class DbStore {
         this.loc_arFilter = null;
         return true;
       }
-      // Copy the object
-      // this.loc_arFilter = new JSONArray( oFilter.toString());
       
       // Access the general table
       conThis.setAutoCommit(false);
@@ -677,17 +790,19 @@ public class DbStore {
         sbThis.append(sKey);
         // Add the key/value pair to the list of SQL filter expressions
         if (sValue.contains("*")) {
-          boolean bEscape = sValue.contains("%");
           sbThis.append(" LIKE ? ");
-          if (bEscape) {
-            sbThis.append(" ESCAPE '%'");
-          }
         } else {
           sbThis.append(" = ?");
         }
         // Add the filter line
         loc_lFilter.add(sbThis.toString());
-        loc_lValue.add(sValue);
+        // Possible filter out the percent sign
+        sValue = sValue
+                .replace("!", "!!")
+                .replace("%", "!%")
+                .replace("_", "!_")
+                .replace("[", "![");
+        loc_lValue.add(sValue.replace("*", "%"));
       }
       
       // Return positively

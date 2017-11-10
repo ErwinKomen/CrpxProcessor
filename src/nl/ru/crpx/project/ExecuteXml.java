@@ -7,6 +7,7 @@
 package nl.ru.crpx.project;
 // <editor-fold desc="import">
 import java.io.File;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -23,12 +24,14 @@ import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.XQueryCompiler;
 import net.sf.saxon.trans.StaticError;
 import net.sf.saxon.trans.XPathException;
+import nl.ru.crpx.cmd.CrpxProcessor;
 import static nl.ru.crpx.tools.FileIO.getFileNameWithoutExtension;
 import static nl.ru.crpx.project.CrpGlobal.Status;
 import nl.ru.crpx.search.JobXq;
 import nl.ru.crpx.tools.FileIO;
 import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
+import nl.ru.util.Json;
 import nl.ru.util.StringUtil;
 import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
@@ -58,6 +61,7 @@ public class ExecuteXml extends Execute {
   protected Parse objParseXq;           // Object to parse Xquery
   protected Configuration xconfig;
   protected StaticQueryContext sqc;
+  protected JSONArray arMetaInfo = null; // THe information in loc_sMetaInfo
   // protected Extensions objExt;          // Make the extensions available
   // =========== Local variables ===============================================
   private FileUtil fHandle;             // For processing FileUtil functions
@@ -71,6 +75,21 @@ public class ExecuteXml extends Execute {
     super(oProj);
     // Validate: check for errors
     if (errHandle.hasErr()) return;
+
+    try {
+      // Read the JSON from a local file
+      InputStream is = FileIO.getProjectDirectory(CrpxProcessor.class, "nl/ru/xmltools/metaelement.json.txt");
+      if (is==null) {
+        // Provide an error message
+        errHandle.DoError("nl.ru.xmltools.Parse: cannot find file [metaelement.json.txt]");
+      } else {
+        this.arMetaInfo = Json.readArray(is);
+      }
+    } catch (Exception ex) {
+      errHandle.DoError("Cannot initialize the [ExecuteXml] class: ", ex, ExecuteXml.class);
+    }
+    
+    
     // Perform saxon-specific initialisations
     initSaxon(oProj);
   }

@@ -573,6 +573,7 @@ public class ExecutePsdxStream extends ExecuteXml {
           arPwCombi[i] = null;
       }
 
+      
       setProgress(jobCaller, "", "extracting databases...", -1,-1,-1, -1);
       // Start counting result id for all files
       // int iResId = 1;
@@ -656,8 +657,9 @@ public class ExecutePsdxStream extends ExecuteXml {
                   errHandle.debug("DB writing...");          
                   DbStore oDbStore = new DbStore(this.errHandle);
                   // oDbStore.xmlToDb(arFileName[i]);
-                  oDbStore.xmlToDbNew(arFileName[i]);
-                  errHandle.debug("DB done!");                }
+                  oDbStore.xmlToDbNew(arFileName[i], arListTotal);
+                  errHandle.debug("DB done!");                
+                }                
               }
             }
           }
@@ -667,6 +669,100 @@ public class ExecutePsdxStream extends ExecuteXml {
     } catch (Exception ex) {
       // Warn user
       errHandle.DoError("ExecutePsdxStream/makeResultsDbaseList error: ", ex, ExecutePsdxStream.class);
+    }
+  }
+  
+  /**
+   * getMetaInfo
+   *    Extract standard metadata information
+   * 
+   * @param ndxHeader
+   * @param ndxMdi
+   * @return 
+   */
+  private JSONObject getMetaInfo(CrpFile oCrpFile, XmlForest objProcType) {
+    JSONObject oBack = new JSONObject();
+    JSONObject oDef;
+    
+    try {
+      XmlNode ndxHeader = oCrpFile.ndxHeader;
+      XmlNode ndxMdi = oCrpFile.ndxMdi;
+      
+      // Preferably use the MDI
+      if (oCrpFile.ndxMdi != null) {
+        oDef = this.arMetaInfo.getJSONObject(0).getJSONObject("def");
+        oBack.put("title", getMetaElement(oDef.getJSONArray("title"), ndxMdi));
+        oBack.put("genre", getMetaElement(oDef.getJSONArray("genre"), ndxMdi));
+        oBack.put("author", getMetaElement(oDef.getJSONArray("author"), ndxMdi));
+        oBack.put("date", getMetaElement(oDef.getJSONArray("date"), ndxMdi));
+        oBack.put("subtype", getMetaElement(oDef.getJSONArray("subtype"), ndxMdi));
+      } else if (oCrpFile.ndxHeader != null) {
+        oDef = this.arMetaInfo.getJSONObject(1).getJSONObject("def");
+        oBack.put("title", getMetaElement(oDef.getJSONArray("title"), ndxHeader));
+        oBack.put("genre", getMetaElement(oDef.getJSONArray("genre"), ndxHeader));
+        oBack.put("author", getMetaElement(oDef.getJSONArray("author"), ndxHeader));
+        oBack.put("date", getMetaElement(oDef.getJSONArray("date"), ndxHeader));
+        oBack.put("subtype", getMetaElement(oDef.getJSONArray("subtype"), ndxHeader));
+      }
+      // Add the SIZE (length in terms of lines
+      oBack.put("size", objProcType.GetSize());
+      
+      // The result information 
+      return oBack;
+    } catch (Exception ex) {
+      // Warn user
+      errHandle.DoError("ExecutePsdxStream/getMetaInfo error: ", ex, ExecutePsdxStream.class);
+      return null;
+    }
+  }
+  
+  /**
+   * getMetaElement
+   *    Get the meta element requested in the [arDefList], which is 
+   *    a list of places that may be visited in turn
+   *    The first place that has a non-empty value is returned
+   * 
+   * @param arDefList
+   * @param ndxTop
+   * @return          - String value of the requested meta element
+   */
+  private String getMetaElement(JSONArray arDefList, XmlNode ndxTop) {
+    String sBack = "";
+    int i;
+    
+    try {
+      // Validate
+      if (arDefList.length() == 0 || ndxTop == null) return sBack;
+      // Follow all possibilities
+      for (i=0;i<arDefList.length();i++) {
+        JSONObject oThis = arDefList.getJSONObject(i);
+        // Get the Node and Attribute values
+        String sPath = oThis.getString("node");
+        String sAttr = oThis.getString("attr");
+        // Now try to get to the indicated node within [ndxTop]
+        XmlNode ndThis = ndxTop.SelectSingleNode(sPath);
+        if (ndThis != null)  {
+          // Action depends on the value of 'attr'
+          if (sAttr.isEmpty()) {
+            // Get inner value of this node
+            sBack = ndThis.getNodeValue();
+          } else {
+            // Attribute is specified: get its value
+            sBack = ndThis.getAttributeValue(sAttr);
+          }
+          // Trim the result so that preceding and following \s are removed
+          sBack = sBack.trim();
+          // Check if this value means anything
+          if (!sBack.isEmpty() && ! sBack.equals("-")) {
+            // Okay, we found a meaningful value -- return it
+            break;
+          }
+        }
+      }
+      return sBack;
+    } catch (Exception ex) {
+      errHandle.DoError("ExecutePsdxStream/getMetaElement", ex, Parse.class);
+      return sBack;
     }
   }
   
@@ -1273,9 +1369,15 @@ public class ExecutePsdxStream extends ExecuteXml {
       oCrpFile.ndxMdi = ndxMdi.argValue;
       oCrpFile.ndxCurrentForest = ndxForest.argValue;
       
-      // Now calculate the sub type
-      oCrpFile.currentPeriod = getSubType(oCrpFile, ndxHeader.argValue);
-      strSubType = oCrpFile.currentPeriod;
+      // Extract the MetaInformation from header and/or mdi
+      JSONObject oMetaInfo = getMetaInfo(oCrpFile, objProcType);
+      oCrpFile.setMeta(oMetaInfo);
+      
+      // OLD: Now calculate the sub type
+      //oCrpFile.currentPeriod = getSubType(oCrpFile, ndxHeader.argValue);
+      //strSubType = oCrpFile.currentPeriod;
+      // Retrieve the subtype
+      strSubType = oMetaInfo.getString("subtype");
       
       // If this is database, then the first <forest> element should be the one
       //   referred to from the current [ndxDbRes] element
