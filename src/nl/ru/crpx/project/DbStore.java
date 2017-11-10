@@ -104,6 +104,7 @@ public class DbStore {
           " SUBTYPE        CHAR(200),"+
           " TITLE          TEXT NOT NULL,"+
           " GENRE          CHAR(200),"+
+          " AUTHOR         CHAR(200),"+
           " DATE           TEXT NOT NULL,"+
           " SIZE           INT )";
   private final String loc_sqlCreateIndices = 
@@ -362,7 +363,7 @@ public class DbStore {
         
         // Retrieve the textlist information
         String sSql = "INSERT INTO META (METAID, TEXTID, FILE, SUBTYPE, "+
-                "TITLE, GENRE, DATE, SIZE) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                "TITLE, GENRE, AUTHOR, DATE, SIZE) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         this.loc_psInsertMeta = conThis.prepareStatement(sSql);
         // Add all appropriate lines to the Meta table
         for (JSONObject oMeta : lTextlist) {
@@ -452,6 +453,7 @@ public class DbStore {
         if (oMeta.has("subtype")) {oInfo.put("SubType", oMeta.getString("subtype"));}
         if (oMeta.has("title")) {oInfo.put("Title", oMeta.getString("title"));}
         if (oMeta.has("genre")) {oInfo.put("Genre", oMeta.getString("genre"));}
+        if (oMeta.has("author")) {oInfo.put("Author", oMeta.getString("author"));}
         if (oMeta.has("date")) {oInfo.put("Date", oMeta.getString("date"));}
         if (oMeta.has("size")) {oInfo.put("Size", oMeta.getInt("size"));}
       }
@@ -683,6 +685,7 @@ public class DbStore {
       String sSubType =  oMeta.getString("SubType");
       String sTitle =  oMeta.getString("Title");
       String sGenre =  oMeta.getString("Genre");
+      String sAuthor =  oMeta.getString("Author");
       String sDate =  oMeta.getString("Date");
       int iSize = oMeta.getInt("MetaId");
 
@@ -694,8 +697,9 @@ public class DbStore {
       this.loc_psInsertMeta.setString(4, sSubType);
       this.loc_psInsertMeta.setString(5, sTitle);
       this.loc_psInsertMeta.setString(6, sGenre);
-      this.loc_psInsertMeta.setString(7, sDate);
-      this.loc_psInsertMeta.setInt(8, iSize);
+      this.loc_psInsertMeta.setString(7, sAuthor);
+      this.loc_psInsertMeta.setString(8, sDate);
+      this.loc_psInsertMeta.setInt(9, iSize);
       this.loc_psInsertMeta.executeUpdate();
 
       // Return positively
@@ -839,6 +843,7 @@ public class DbStore {
       if (this.loc_lFilter.isEmpty())  {
         // No filtering
         sSql = "SELECT * FROM RESULT "+
+                "INNER JOIN META ON RESULT.METAID = META.METAID "+
                 "ORDER BY "+this.loc_sSortField+" "+this.loc_sOrder+
                 " LIMIT "+iCount+" OFFSET "+iStart+
                 ";";
@@ -846,6 +851,7 @@ public class DbStore {
       } else {
         // Filtering
         sSql = "SELECT * FROM RESULT "+
+                "INNER JOIN META ON RESULT.METAID = META.METAID "+
                 "WHERE " + StringUtils.join(loc_lFilter, " AND ") +
                 "ORDER BY "+this.loc_sSortField+" "+this.loc_sOrder+
                 " LIMIT "+iCount+" OFFSET "+iStart+
@@ -863,6 +869,7 @@ public class DbStore {
       } catch (Exception exExe) {
         // Adapt the SQL, taking the ordering out
         sSql = "SELECT * FROM RESULT "+
+                "INNER JOIN META ON RESULT.METAID = META.METAID "+
                 " LIMIT "+iCount+" OFFSET "+iStart+
                 ";";
         resThis = stmt.executeQuery(sSql);
@@ -880,6 +887,11 @@ public class DbStore {
         oResult.put("Locs", resThis.getString("LOCS"));
         oResult.put("Locw", resThis.getString("LOCW"));
         oResult.put("SubType", resThis.getString("SUBTYPE"));
+        oResult.put("Title", resThis.getString("TITLE"));
+        oResult.put("Genre", resThis.getString("GENRE"));
+        oResult.put("Author", resThis.getString("AUTHOR"));
+        oResult.put("Date", resThis.getString("DATE"));
+        oResult.put("Size", resThis.getInt("SIZE"));
         // Get all the features from the result object
         JSONArray arFeat = new JSONArray();
         for (int i=0;i<this.loc_lFeatName.size();i++) {
