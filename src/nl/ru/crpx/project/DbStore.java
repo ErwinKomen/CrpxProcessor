@@ -90,8 +90,7 @@ public class DbStore {
           " SEARCH         CHAR(200),"+
           " CAT            CHAR(100),"+
           " LOCS           CHAR(200),"+
-          " LOCW           CHAR(200),"+
-          " SUBTYPE        CHAR(200)";
+          " LOCW           CHAR(200)";
   /*
   private final String loc_sqlInsertResult
           = "INSERT INTO RESULT (RESID, METAID, SEARCH, CAT, "
@@ -108,7 +107,7 @@ public class DbStore {
           " DATE           TEXT NOT NULL,"+
           " SIZE           INT )";
   private final String loc_sqlCreateIndices = 
-          "CREATE INDEX subtype_index ON RESULT (SUBTYPE); "+
+          "CREATE INDEX search_index ON RESULT (SEARCH); "+
           "CREATE INDEX cat_index ON RESULT (CAT); ";
   private PreparedStatement loc_psInsertResult = null;
   private PreparedStatement loc_psInsertMeta = null;
@@ -338,7 +337,6 @@ public class DbStore {
           oResult.put("Locs", ndxThis.getAttributeValue("forestId"));
           oResult.put("Locw", ndxThis.getAttributeValue("eTreeId"));
           oResult.put("Notes", ndxThis.getAttributeValue("Notes"));
-          oResult.put("SubType", ndxThis.getAttributeValue("Period"));          
           oResult.put("ResId", Integer.parseInt(ndxThis.getAttributeValue("ResId")));
           // Determine the features for this result
           List<XmlNode> lFeatValue = ndxThis.SelectNodes("./child::Feature");
@@ -352,9 +350,9 @@ public class DbStore {
           if (bDoFeatNames) {
             // Prepare a string for the values
             String sSql = "INSERT INTO RESULT (RESID, METAID, SEARCH, CAT, "+
-                "LOCS, LOCW, SUBTYPE, "+
+                "LOCS, LOCW, "+
                 StringUtil.join(this.loc_lFeatName, ", ")+
-                ") VALUES (?, ?, ?, ?, ?, ?, ?"+
+                ") VALUES (?, ?, ?, ?, ?, ?"+
                 new String(new char[this.loc_lFeatName.size()]).replace("\0", ", ?")+
                 ")";
             // Prepare an insert statement
@@ -649,7 +647,6 @@ public class DbStore {
       String sCat =  oResult.getString("Cat");
       String sLocS =  oResult.getString("Locs");
       String sLocW =  oResult.getString("Locw");
-      String sSubType =  oResult.getString("SubType");
       // Do NOT calculate values for Text, Psd and Pde -- these are not determined anyway
       
       this.loc_psInsertResult.setInt(1, iResId);
@@ -658,10 +655,9 @@ public class DbStore {
       this.loc_psInsertResult.setString(4, sCat);
       this.loc_psInsertResult.setString(5, sLocS);
       this.loc_psInsertResult.setString(6, sLocW);
-      this.loc_psInsertResult.setString(7, sSubType);
       // Add the feature values
       for (int i=0;i<this.loc_lFeatName.size();i++ ) {
-        int iNum = 7+i+1;  // The number of the element to be set
+        int iNum = 6+i+1;  // The number of the element to be set
         // Get the feature 
         String sFeatValue = oResult.getString(this.loc_lFeatName.get(i));
         this.loc_psInsertResult.setString(iNum, sFeatValue);
