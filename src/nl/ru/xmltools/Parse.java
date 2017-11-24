@@ -869,7 +869,7 @@ public class Parse {
           case ProjFolia:
             // Assuming there is no 'org' segment -- try to get the list of words
             // But only take words of the right @class (if that exists)
-            ndxList = ndxForest.argValue.SelectNodes("./descendant::w[not(@class) or @class='Vern' or @class='Punct']/child::t");
+            ndxList = ndxForest.argValue.SelectNodes("./descendant::w[not(@class) or @class='Vern' or @class='Punct']/child::t[1]");
             for (i=0;i<ndxList.size();i++) {
               // The actual word (or punctuation) is the inner text
               lSeg.add(ndxList.get(i).getNodeValue().trim());
