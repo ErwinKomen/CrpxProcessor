@@ -9,6 +9,7 @@
 package nl.ru.xmltools;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import net.sf.saxon.s9api.DocumentBuilder;
 import net.sf.saxon.s9api.Processor;
@@ -140,8 +141,22 @@ public class MdiReader {
         if (lText.get(i).contains(strXMlNs)) {
           // Split line
           String[] arPart = lText.get(i).split(" ");
+          // Walk through the parts, building a new array that only contains the good stuff
+          List<String> lPart = new ArrayList<>();
+          for (String sPart : arPart) {
+            if (!sPart.contains(strXMlNs)) {
+              lPart.add(sPart);
+            }
+          }
+          // Recombine into a string
+          String sCombined = StringUtil.join(lPart, " ");
+          // Possibly add a closing > sign
+          if (!sCombined.endsWith(">")) {
+            sCombined += ">";
+          }
           // Change line into just the beginning tag without the XMLNS stuff
-          lText.set(i, arPart[0]+">");
+          // OLD lText.set(i, arPart[0]+">");
+          lText.set(i, sCombined);
         }
       }
 
