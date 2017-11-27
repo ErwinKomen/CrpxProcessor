@@ -43,7 +43,7 @@ public class XmlAccessFolia extends XmlAccess {
   protected static final String loc_path_FoliaFeat = "./child::feat";
   protected static final String loc_path_FoliaChild = "./child::su[@class != 'CODE']";
   protected static final String loc_path_FoliaLeaf = "./child::wref";
-  protected static final String loc_path_FoliaWord = "./ancestor::s[1]/child::w";
+  protected static final String loc_path_FoliaWord = "./ancestor::s[1]/descendant::w";
 
   // ==========================================================================================================
   // Class instantiation
