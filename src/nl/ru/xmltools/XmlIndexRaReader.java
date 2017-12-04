@@ -578,6 +578,28 @@ public class XmlIndexRaReader {
   public String getOneLine(String sLineId) {
     return getOneLine(sLineId, true);
   }
+  public String getOneLine(int iLines) {
+    ByRef<XmlIndexItem> oItem = new ByRef(null);
+    int iIndex = iCurrentLine + iLines;
+
+    try {
+      // Validate
+      if (iIndex < 0 || iIndex >= this.arIndex.size()) {
+        errHandle.DoError("Line number ["+iCurrentLine+"]+["+iLines+"] is out of reach", 
+                XmlIndexRaReader.class);
+        return "";
+      }
+      // Read the chunck from there
+      String sBack = getLineByIndex(iIndex, oItem);   
+      // Return it
+      return sBack;
+    } catch (Exception ex) {
+      errHandle.DoError("Could not read line [" + iIndex + "] of " 
+              + loc_fThis.getAbsolutePath(), ex, XmlIndexRaReader.class);
+      // Return failure
+      return "";
+    }
+  }
   public String getOneLine(String sLineId, boolean bTouch) {
     ByRef<XmlIndexItem> oItem = new ByRef(null);
 

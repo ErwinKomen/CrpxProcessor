@@ -172,6 +172,10 @@ public class XmlForestPsdxLine extends XmlForest {
   public boolean OneForest(ByRef<XmlNode> ndxForest, String sSentId) {
     return false;
   }  
+  public boolean OneForest(ByRef<XmlNode> ndxForest, int iLines) {
+    return false;
+  }
+
   
   @Override
   public String getSentenceId(ByRef<XmlNode> ndxForest) {

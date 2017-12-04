@@ -639,8 +639,8 @@ public class Extensions extends RuBase {
               }
               break;
             case ProjFolia:
-              sNewSentId = String.valueOf(Integer.parseInt(oCF.currentSentId) + intLines);
-              if (oCF.objProcType.OneForest(ndxNew, sNewSentId)) {
+              // sNewSentId = String.valueOf(Integer.parseInt(oCF.currentSentId) + intLines);
+              if (oCF.objProcType.OneForest(ndxNew, intLines)) {
                 ndxRes = ndxNew.argValue;
               }
               break;

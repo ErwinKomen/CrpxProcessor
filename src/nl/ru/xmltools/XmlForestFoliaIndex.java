@@ -234,6 +234,45 @@ public class XmlForestFoliaIndex extends XmlForest {
       return false;
     }
   }
+  @Override
+  // Version that looks [intLines] from the current forest
+  public boolean OneForest(ByRef<XmlNode> ndxForest, int intLines) {
+    XmlNode ndxWork;      // Working node
+    String strNext = "";  // Another chunk of <forest>
+
+    try {
+      // Validate
+      if (loc_pdxThis == null)  return false;
+      // Only suitable for the RA reader
+      if (!bUseRa) return false;
+      // Check for end of stream
+      if (IsEnd()) {
+        ndxForest.argValue = null;
+        return true;
+      }
+      // More validation
+      if (loc_xrdRaFile==null) return false;
+      
+      // Read this <forest>
+      strNext = loc_xrdRaFile.getOneLine(intLines);
+      // Double check what we got
+      if (strNext == null || strNext.length() == 0) {
+        ndxForest.argValue = null;
+        return true;
+      }      
+      // Load this line...
+      loc_pdxThis.LoadXml(strNext);
+      // Find and return the indicated sentence
+      ndxForest.argValue = loc_pdxThis.SelectSingleNode(loc_path_FoliaSent);
+      // Return positively
+      return true;
+    } catch (Exception ex) {
+      // Warn user
+      objErr.DoError("XmlForest/OneForest error: ", ex);
+      // Return failure
+      return false;
+    }
+  }
 
   @Override
   public String getSentenceId(ByRef<XmlNode> ndxForest) {

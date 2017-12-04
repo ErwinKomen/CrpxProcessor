@@ -255,6 +255,9 @@ public class XmlForestPsdxIndex extends XmlForest {
       return false;
     }
   }
+  public boolean OneForest(ByRef<XmlNode> ndxForest, int iLines) {
+    return false;
+  }
 
   @Override
   public String getSentenceId(ByRef<XmlNode> ndxForest) {

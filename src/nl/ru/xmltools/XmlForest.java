@@ -127,6 +127,7 @@ public abstract class XmlForest {
   protected List<String> loc_colCombi;    // Where we combine the context
   protected XmlDocument loc_pdxThis;      // Current one
   protected XmlDocument loc_pdxMdi;       // MDI document (if existing)
+  protected XmlDocument loc_pdxAny;       // Any (non-ordered) XmlDocument
   protected XmlDocument[] loc_arPrec;     // Preceding lines as Xml document
   protected XmlDocument[] loc_arFoll;     // Following lines as Xml document
   protected Context[] loc_arPrecCnt;      // Preceding context
@@ -155,6 +156,8 @@ public abstract class XmlForest {
       loc_pdxThis = new XmlDocument(this.objSaxDoc, this.objSaxon);
       // Set a new XML document for MDI
       loc_pdxMdi = new XmlDocument(this.objSaxDoc, this.objSaxon);
+      // Set a new XML document for random access
+      loc_pdxAny = new XmlDocument(this.objSaxDoc, this.objSaxon);
       // Other initialisations
       loc_colStack = new ArrayList<>();
       loc_cntThis  = new Context();
@@ -186,6 +189,7 @@ public abstract class XmlForest {
   public abstract String getSentenceId(ByRef<XmlNode> ndxForest);
   public abstract boolean NextForest(ByRef<XmlNode> ndxForest);
   public abstract boolean OneForest(ByRef<XmlNode> ndxForest, String sSentId);
+  public abstract boolean OneForest(ByRef<XmlNode> ndxForest, int iLines);
   public abstract boolean IsEnd();
   public abstract boolean Percentage(ByRef<Integer> intPtc);
   public abstract String GetContext();
