@@ -66,7 +66,11 @@ public class Extensions extends RuBase {
   private static final QName loc_qnText = new QName("", "", "Text");
   private static final QName loc_qnT = new QName("", "", "t");
   private static final QName loc_qnWref = new QName("", "", "wref");
+  private static final QName loc_qnS = new QName("", "", "s");
+  private static final QName loc_qnW = new QName("", "", "w");
   private static final QName loc_qnForest = new QName("", "", "forestId");
+  private static final QName ru_qnFoliaId = new QName("xml", "http://www.w3.org/XML/1998/namespace", "id");
+  private static final QName ru_qnFoliaWrefId = new QName("", "", "id");     // Simple identifier for <wref> element
 
   // ============== CLASS initialization =======================================
   public Extensions(CorpusResearchProject objPrj) {
@@ -552,6 +556,91 @@ public class Extensions extends RuBase {
       return "";
     }
   }
+// </editor-fold>
+  
+// <editor-fold desc="ru:foliaw">
+  public static Node foliaw(XPathContext objXp, SequenceIterator sIt) {
+      // Get the node we are considering
+      NodeInfo node = getOneNode(objXp, "foliaw", sIt);   
+      return get_foliaw(objXp, node);
+  }
+  public static Node get_foliaw(XPathContext objXp, NodeInfo node) {
+    XdmNode ndSax;             // Myself, if I am a proper node
+    XdmNode ndFS = null;              // The FS nodes
+    XdmNode ndW = null;
+    XdmSequenceIterator colFS = null; // Iterate through <fs>
+    XdmSequenceIterator colW = null;  // Iterate through <w>
+    int nodeKind;
+    String sId = "";
+    String sBack = "";
+    Node ndxBack = null;
+
+    try {
+      // Validate
+      if (node == null) return null;
+      nodeKind = node.getNodeKind();
+      if (nodeKind != Type.ELEMENT) return null;
+      // Get the XdmNode representation of the node
+      ndSax = objSaxDoc.wrap(node);   
+      // Determine which CRP this is
+      CrpFile oCF = getCrpFile(objXp);
+      // Initialise depending on project type
+      switch (oCF.crpThis.intProjType) {
+        case ProjPsdx:
+          break;
+        case ProjFolia:
+          String sNodeName = ndSax.getNodeName().getLocalName();
+          switch (sNodeName) {
+            case "su":      // Find a child <wref> and take that one's id
+              colFS = ndSax.axisIterator(Axis.CHILD, loc_qnWref);
+              // Only consider the *FIRST* <wref> child of an <su>
+              if (colFS.hasNext()) {
+                // Get this <pos> node
+                ndFS = (XdmNode) colFS.next();
+                // Teks the id from this one
+                sId = ndFS.getAttributeValue(ru_qnFoliaWrefId);
+              }
+              break;
+            case "wref":    // Take this one's id
+              sId = ndSax.getAttributeValue(ru_qnFoliaWrefId);
+              break;
+          }
+          // Do we have an id?
+          if (!sId.isEmpty()) {
+            // We have an id: get the first ancestor <s>
+            colFS = ndSax.axisIterator(Axis.ANCESTOR, loc_qnS);
+            if (colFS.hasNext()) {
+              ndFS = (XdmNode) colFS.next();
+              // From here start looking at the children
+              colW = ndFS.axisIterator(Axis.DESCENDANT, loc_qnW);
+              while (colW.hasNext()) {
+                // Get this one's id
+                ndW = (XdmNode) colW.next();
+                if (sId.equals(ndW.getAttributeValue(ru_qnFoliaId))) {
+                  // Found the correct <w>
+                  // return (Node) ndW.getUnderlyingNode();
+                  //return (NodeInfo) ndW.toString();
+                  //return xmlNodeToNode(oCF, ndW);
+                  sBack = ndW.toString();
+                  ndxBack = oCF.oDocFac.newDocumentBuilder().parse(new InputSource(new StringReader(sBack)));
+                  return ndxBack;
+                }
+              }
+            }
+          }
+          break;
+      }
+      // Return the result
+      return ndxBack;
+    } catch (Exception ex) {
+      // Show error
+      errHandle.DoError("Extensions/foliaw", ex);
+      setRtError(objXp, "foliaw", ex.getMessage());
+      // Return failure
+      return null;
+    }
+  }
+  
 // </editor-fold>
   
 // <editor-fold defaultstate="collapsed" desc="ru:header">

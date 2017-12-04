@@ -974,6 +974,22 @@ public class RuBase /* extends Job */ {
       return false;
     }
   }
+  
+  static synchronized XmlNode RuFoliaw(XPathContext objXp, XdmNode ndStart) {
+    XPathSelector selectXp; // The actual selector we are using
+    CorpusResearchProject crpThis;
+    
+    try {
+      
+      // Return what we found
+      return null;
+    } catch (Exception ex) {
+      // Warn user
+      errHandle.DoError("RuBase/RuFoliaw error", ex, RuBase.class);
+      // Return failure
+      return null;
+    }
+  }
 
   // ------------------------------------------------------------------------------------
   // Name:  RuCurrentWord
