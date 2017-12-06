@@ -268,6 +268,10 @@ public class FileUtil {
         in.close();
       }
       iLineCount = result.size();
+      // Check the first line for the BOM and remove it
+      if ( iLineCount > 0 && encoding.equals("utf-8")) {
+        result.set(0, result.get(0).replace("\uFEFF", ""));
+      }
       return result;
     } catch (Exception e) {
       throw new RuntimeException(e);

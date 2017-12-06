@@ -67,6 +67,7 @@ public class XmlAccessFolia extends XmlAccess {
   @Override
   public JSONObject getHitLine(String sLngName, String sLocs, String sLocw) {
     JSONObject oBack = new JSONObject();
+    XmlNode ndxSyntax = null; // The <syntax> node under which we need to look
     String sPre = "";
     String sHit = "";
     String sFol = "";
@@ -76,13 +77,15 @@ public class XmlAccessFolia extends XmlAccess {
       if (!readSent(sLocs)) { logger.error("getHitLine: could not read Sentence ["+sLocs+"]"); return null; }
       // Validate
       if (ndxSent == null)  { logger.error("getHitSyntax: ndxSent is empty"); return null; }
+      // Get to the correct <syntax> node
+      ndxSyntax = this.ndxSent.SelectSingleNode("./descendant::syntax[not(@class) or @class='surface']");
       // Get word nodes of the whole sentence
       // Attempt to leave out the non-words -- not fool-proof, because we now exclude "*" marks in the text...
-      List<XmlNode> arWords = this.ndxSent.SelectNodes("./descendant::wref[not(starts-with(@t, '*'))]");
+      List<XmlNode> arWords = ndxSyntax.SelectNodes("./descendant::wref[not(starts-with(@t, '*'))]");
       // Walk the results
       int i=0;
       // Get the preceding context
-      ndxSent.SelectSingleNode("./descendant::wref[@id='"+arWords.get(i).getAttributeValue("id")+"']");
+      ndxSyntax.SelectSingleNode("./descendant::wref[@id='"+arWords.get(i).getAttributeValue("id")+"']");
       while(i < arWords.size() && !hasAncestor(arWords.get(i), "xml:id", sLocw))  {
         // Double check for CODE ancestor
         if (!hasAncestor(arWords.get(i), "pos", "CODE"))
