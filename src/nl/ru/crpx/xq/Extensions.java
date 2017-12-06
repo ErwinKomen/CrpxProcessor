@@ -991,7 +991,7 @@ public class Extensions extends RuBase {
       if (node == null)
         return "";
       else
-        return NodeText(objXp, node, strType);
+        return NodeTextOne(objXp, node, strType);
     } catch (Exception ex) {
       // Show error
       logger.error("Extensions/NodeText[a] error: ",ex);
@@ -1000,10 +1000,10 @@ public class Extensions extends RuBase {
       return "";
     }
   }
-  public static String NodeText(XPathContext objXp, NodeInfo node) {
-    return NodeText(objXp, node, "");
+  public static String NodeTextOne(XPathContext objXp, NodeInfo node) {
+    return NodeTextOne(objXp, node, "");
   }
-  public static String NodeText(XPathContext objXp, NodeInfo node, String strType) {
+  public static String NodeTextOne(XPathContext objXp, NodeInfo node, String strType) {
     // XmlDocument docThis = new XmlDocument(); // Where we store it
     XdmNode ndSax;    // Myself, if I am a proper node
     String sResult;   // Resulting value
@@ -1022,7 +1022,7 @@ public class Extensions extends RuBase {
       return sResult;
     } catch (Exception ex) {
       // Show error
-      logger.error("Extensions/NodeText[b] error: ",ex);
+      logger.error("Extensions/NodeTextOne[b] error: ",ex);
       setRtError(objXp, "NodeText", ex.getMessage());
       // Return failure
       return "";
