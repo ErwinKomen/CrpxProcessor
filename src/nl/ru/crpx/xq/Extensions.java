@@ -7,6 +7,8 @@
 package nl.ru.crpx.xq;
 
 import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -28,11 +30,14 @@ import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.crpx.tools.FileIO;
 import nl.ru.util.ByRef;
+import nl.ru.util.StringUtil;
 import static nl.ru.util.StringUtil.isNumeric;
 import nl.ru.xmltools.XmlNode;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
 /**
@@ -571,7 +576,8 @@ public class Extensions extends RuBase {
     XdmSequenceIterator colFS = null; // Iterate through <fs>
     XdmSequenceIterator colW = null;  // Iterate through <w>
     int nodeKind;
-    String sId = "";
+    String sId = "";      // Standard <wref> id
+    String sIdw = "";     // Additional <wref> id, but with .w.
     String sBack = "";
     Node ndxBack = null;
 
@@ -603,6 +609,12 @@ public class Extensions extends RuBase {
               break;
             case "wref":    // Take this one's id
               sId = ndSax.getAttributeValue(ru_qnFoliaWrefId);
+              // Check for the wrong <wref> id, the one that doesn't have .w.
+              if (!sId.contains(".w.")) {
+                // Replace the last .n by .w.n
+                int iLastDot = sId.lastIndexOf(".");
+                sIdw = sId.substring(0,iLastDot) + ".w" + sId.substring(iLastDot);
+              }
               break;
           }
           // Do we have an id?
@@ -616,13 +628,12 @@ public class Extensions extends RuBase {
               while (colW.hasNext()) {
                 // Get this one's id
                 ndW = (XdmNode) colW.next();
-                if (sId.equals(ndW.getAttributeValue(ru_qnFoliaId))) {
+                String sWid = ndW.getAttributeValue(ru_qnFoliaId);
+                if (sId.equals(sWid) || sIdw.equals(sWid)) {
                   // Found the correct <w>
-                  // return (Node) ndW.getUnderlyingNode();
-                  //return (NodeInfo) ndW.toString();
-                  //return xmlNodeToNode(oCF, ndW);
                   sBack = ndW.toString();
-                  ndxBack = oCF.oDocFac.newDocumentBuilder().parse(new InputSource(new StringReader(sBack)));
+                  Node ndxFound = oCF.oDocFac.newDocumentBuilder().parse(new InputSource(new StringReader(sBack)));
+                  ndxBack = ndxFound.getFirstChild();
                   return ndxBack;
                 }
               }
@@ -1024,6 +1035,30 @@ public class Extensions extends RuBase {
       // Show error
       logger.error("Extensions/NodeTextOne[b] error: ",ex);
       setRtError(objXp, "NodeText", ex.getMessage());
+      // Return failure
+      return "";
+    }
+  }
+  public static String NodesText(XPathContext objXp, SequenceIterator sIt, String sCombi) {
+    return NodesText(objXp, sIt, sCombi,"");
+  }
+  public static String NodesText(XPathContext objXp, SequenceIterator sIt, String sCombi, String strType) {
+    List<String> lCombi = new ArrayList<>();
+    
+    try {
+      // Assuming that there may be more than one node passed on
+      while (sIt.next() != null) {
+        // Get this node
+        NodeInfo node = (NodeInfo) sIt.current();
+        lCombi.add(NodeTextOne(objXp, node, strType));
+      }
+      // Combine the result using spaces
+      String sBack = StringUtil.join(lCombi, sCombi);
+      return sBack;
+    } catch (Exception ex) {
+      // Show error
+      logger.error("Extensions/NodesText[a] error: ",ex);
+      setRtError(objXp, "NodesText", ex.getMessage());
       // Return failure
       return "";
     }
