@@ -113,6 +113,7 @@ public class ExecutePsdxStream extends ExecuteXml {
   public boolean ExecuteQueries(Job jobCaller)  {
     int iCrpFileId; // Index of CrpFile object
     int iPtc;       // Percentage progress
+    boolean bCsvContext = false;            // True of the <Context> needs to be included in CSV output
     String sWorkQueueMethod = "workqueue";  // Options: 'traditional', 'workqueue', 'concurrent'
     
     try {
@@ -329,7 +330,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       jobCaller.setJobTable(getResultsTable(arCount));
       
       // If a DATABASE needs to be created, combine the parts that have been made already
-      makeResultsDbaseList(jobCaller, dlDbase, arTotal);
+      makeResultsDbaseList(jobCaller, dlDbase, arTotal, bCsvContext);
       jobCaller.setJobDbList(dlDbase);
 
       // Return positively
@@ -428,14 +429,18 @@ public class ExecutePsdxStream extends ExecuteXml {
   }
   /**
    * makeResultsDbaseList
-   *    Two tasks: 
+   *    These tasks: 
    *    1 - Combine all database-parts for each QC line
    *    2 - Break up results in one-file-per-<Result> and store hierarchically + index
+   *    3 - Also make a CSV in one-file-per-<Result> 
    * 
+   * @param jobCaller
    * @param lstBack     - The dataobject list we will be returning with the dbase information
    * @param arListTotal - Array of all individual .setJobList() objects
+   * @param bIncludeContextInCsv
    */
-  private void makeResultsDbaseList(Job jobCaller, DataObjectList lstBack, JSONArray arListTotal) {
+  private void makeResultsDbaseList(Job jobCaller, DataObjectList lstBack, 
+          JSONArray arListTotal, boolean bIncludeContextInCsv) {
     int iIndexLine = 0;             // index line used to make a file name
     PrintWriter[] arPwCombi;        // Print-writer where we output the combined database
     BufferedWriter[] arBfCombi;     // 
@@ -655,10 +660,9 @@ public class ExecutePsdxStream extends ExecuteXml {
 
                   // Create a *NEW* database file for this file
                   errHandle.debug("DB writing...");          
-                  DbStore oDbStore = new DbStore(this.errHandle);
-                  // oDbStore.xmlToDb(arFileName[i]);
+                  DbStore oDbStore = new DbStore(this.errHandle, bIncludeContextInCsv);
                   oDbStore.xmlToDbNew(arFileName[i], arListTotal);
-                  errHandle.debug("DB done!");                
+                  errHandle.debug("DB done!");
                 }                
               }
             }

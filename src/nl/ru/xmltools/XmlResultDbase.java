@@ -153,7 +153,7 @@ public class XmlResultDbase extends XmlResult {
    */
   @Override
   public boolean Prepare(String strDbaseFile) {
-    DbStore oStore = new DbStore(objErr);
+    DbStore oStore = new DbStore(objErr, false);
 
     try {
       // Validate
@@ -197,7 +197,7 @@ public class XmlResultDbase extends XmlResult {
         }
       }
       // There now is a good .db file: open it into my local DbStore copy
-      this.loc_oStore = new DbStore(objErr);
+      this.loc_oStore = new DbStore(objErr, false);
       this.loc_oStore.openDb(strDbaseDb);
       this.loc_size = this.loc_oStore.getSize();
       

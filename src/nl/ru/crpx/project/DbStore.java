@@ -12,7 +12,11 @@
  * @author Erwin R. Komen
  */
 package nl.ru.crpx.project;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,6 +43,7 @@ public class DbStore {
   private String loc_sDbName = "";
   private String loc_sDbXmlFile = "";
   private String loc_sDbSqlFile = "";
+  private String loc_sCsvFile = "";           // Name of CSV file used to store data
   private String loc_sOrder = "ASC";          // Sort order
   private String loc_sSortField = "RESID";    // Normally we sort by the Result Id
   private JSONArray loc_arFilter = null;
@@ -49,6 +54,9 @@ public class DbStore {
   private int loc_iFeatIdx = 0;               // Unique ID for each Feature
   private int loc_iSize = 0;                  // Size of the database
   private Statement loc_stmt = null;
+  private boolean loc_bIncludeContext = false;// Include the Context in the CSV output
+  private List<String> loc_lCsvOblig = null;  // Obligatory fields for csv
+  private List<String> loc_lCsvMeta = null;   // Meta fields for CSV
   private List<String> loc_lFeatName = null;  // List of feature names
   private List<String> loc_lSortField = null; // List of fields for which indices have been built
   // =============== Local constants ===================================
@@ -115,20 +123,40 @@ public class DbStore {
   // private PreparedStatement loc_psFilterResult = null;
 // </editor-fold>  
   // =============== Class initializer =================================
-  public DbStore(ErrHandle objErr) {
+  public DbStore(ErrHandle objErr, boolean bIncludeContext) {
     this.errHandle = objErr;    // Take over the error object
     try {
       // Cause the class to be initialized
       Class.forName("org.sqlite.JDBC");
       this.loc_lFilter = new ArrayList<>();
       this.loc_lValue = new ArrayList<>();
+      this.loc_bIncludeContext = bIncludeContext;
+      this.setCsvFields();
     } catch (Exception ex) {
       // Provide error message
       errHandle.DoError("DbStore/DbStore error: ", ex, DbStore.class);
     }
   }
-  
+  private void setCsvFields() {
+      this.loc_lCsvOblig = new ArrayList<>();
+      loc_lCsvOblig.add("Cat");
+      loc_lCsvOblig.add("Locs");
+      loc_lCsvOblig.add("Locw");
+      if (this.loc_bIncludeContext) {
+        loc_lCsvOblig.add("Context");
+      }
+      this.loc_lCsvMeta = new ArrayList<>();
+      loc_lCsvMeta.add("TextId");
+      loc_lCsvMeta.add("SubType");
+      loc_lCsvMeta.add("Title");
+      loc_lCsvMeta.add("Author");
+      loc_lCsvMeta.add("Genre");
+      loc_lCsvMeta.add("Date");    
+  }
   // =============== Public methods ====================================
+  public void includeContext(boolean bValue) { this.loc_bIncludeContext = bValue; this.setCsvFields();}
+  
+  
   /**
    * getSize -- Get the size of a dbase that has been read
    * 
@@ -337,6 +365,7 @@ public class DbStore {
           oResult.put("Locs", ndxThis.getAttributeValue("forestId"));
           oResult.put("Locw", ndxThis.getAttributeValue("eTreeId"));
           oResult.put("Notes", ndxThis.getAttributeValue("Notes"));
+          oResult.put("Context", ndxThis.SelectSingleNode("child::Text").getNodeValue());
           oResult.put("ResId", Integer.parseInt(ndxThis.getAttributeValue("ResId")));
           // Determine the features for this result
           List<XmlNode> lFeatValue = ndxThis.SelectNodes("./child::Feature");
@@ -365,6 +394,8 @@ public class DbStore {
           // Process this Result
           if (!addResult(oResult)) return false;
           
+          // Process the CSV
+          if (!csvResult(oResult, lTextlist)) return false;
           
           // Get the next result
           oDbIndex.NextResult(ndxResult);
@@ -405,6 +436,8 @@ public class DbStore {
       
       // Close the database
       if (!closeWrite()) return false;
+      
+
       
       // Return success
       return true;
@@ -490,28 +523,34 @@ public class DbStore {
    * @return 
    */
   public boolean createWrite(String sFileName, List<String> arFeatList) {
+    boolean bCsvIsDel = true;
+    boolean bDbIsDel = true;
+    boolean bDbGzIsDel = true;
+    
     try {
       // NOTE: do not check existence of the database -- we are creating...
       File fThis = new File(sFileName);
       // Make database name(s) available for this class instance
       String sDbFile = sFileName.replace(".xml", ".db");
+      String sCsvFile = sFileName.replace(".xml", ".csv");
       String sDbName = fThis.getName().replace(".xml", "");
       // Make them available:
       this.loc_sDbName = sDbName;
       this.loc_sDbXmlFile = sFileName;
       this.loc_sDbSqlFile = sDbFile;
+      this.loc_sCsvFile = sCsvFile;
       // REmove if exists
       File fDb = new File(sDbFile);
-      if (fDb.exists()) { 
-        boolean bDbIsDel = fDb.delete(); 
-        if (!bDbIsDel) { int iIsNotDel = 1; }
-      }
+      if (fDb.exists()) {  bDbIsDel = fDb.delete();  }
       // Also remove a .gz version if it exists
       fDb = new File(sDbFile + ".gz");
-      if (fDb.exists()) {
-        boolean bDbGzIsDel = fDb.delete();
-        if (!bDbGzIsDel) { int iIsNotDel = 1; }
-      }
+      if (fDb.exists()) { bDbGzIsDel = fDb.delete(); }
+      // Same for the CSV
+      File fCsv = new File (sCsvFile);
+      if (fCsv.exists()) {bCsvIsDel = fCsv.delete();}
+      // ANd for the GZ version of the CSV
+      fCsv = new File(sCsvFile + ".gz");
+      if (fCsv.exists()) {if (!fCsv.delete()) {bCsvIsDel = false;}}
       // Try make connection
       conThis = DriverManager.getConnection("jdbc:sqlite:" + sDbFile);
       
@@ -550,8 +589,11 @@ public class DbStore {
       // Other initialisations
       loc_iFeatIdx = 1; loc_iResId = 1;
       
+      // Create the columnheader row for the CSV file
+      if (!csvHeader()) return false;
+      
       // Return success
-      return true;
+      return (bDbIsDel && bCsvIsDel && bDbGzIsDel);
     } catch (Exception ex) {
       errHandle.DoError("DbStore/createWrite error: ", ex, DbStore.class);
       return false;
@@ -627,6 +669,125 @@ public class DbStore {
   }
   
   /**
+   * csvHeader
+   *    Write a header row for a CSV file
+   * 
+   * @return 
+   */
+  public boolean csvHeader() {
+    int i;
+    
+    try {
+      try (FileOutputStream fos = new FileOutputStream(loc_sCsvFile, true)) {
+        try (OutputStreamWriter osw = new OutputStreamWriter(fos, "utf-8")) {
+          try (BufferedWriter bf = new BufferedWriter(osw)) {
+            try (PrintWriter pCombi = new PrintWriter(bf)) {
+              StringBuilder sb = new StringBuilder();
+              
+              // Obligatory: ResId
+              sb.append("\"ResId\"");
+              
+              // Obligatory: the meta string fields
+              for (i=0;i< loc_lCsvMeta.size();i++) {
+                // Get the obligatory field from oMeta
+                sb.append(",").append('"').append(loc_lCsvMeta.get(i)).append('"');
+              }
+              // Obligatory: Size of the file
+              sb.append(",").append("\"Size\"");
+              // Obligatory: location and category fields
+              for (i=0;i< loc_lCsvOblig.size();i++) {
+                // Get the obligatory field from oResult
+                sb.append(",").append('"').append(loc_lCsvOblig.get(i)).append('"');
+              }
+              // Add the feature values
+              for (i=0;i<this.loc_lFeatName.size();i++ ) {
+                // Get the feature 
+                sb.append(",").append('"').append(this.loc_lFeatName.get(i)).append('"');
+              }
+              sb.append('\n');
+              // Write to the file
+              pCombi.write(sb.toString());
+            }
+          }
+        }
+      }
+      
+      // Return positively
+      return true;
+    } catch (Exception ex) {
+      errHandle.DoError("DbStore/csvHeader error: ", ex, DbStore.class);
+      return false;
+    }
+  }
+  /**
+   * csvResult
+   *    Add one line of output (in oResult) to the current CSV file
+   * 
+   * @param oResult
+   * @param lMetaList
+   * @return 
+   */
+  public boolean csvResult(JSONObject oResult, List<JSONObject> lMetaList) {
+    int i,iMetaId;
+    JSONObject oMeta;
+    
+    try {
+      // Get to the metadata
+      iMetaId = oResult.getInt("MetaId");
+      oMeta = lMetaList.get(iMetaId-1);
+      try (FileOutputStream fos = new FileOutputStream(loc_sCsvFile, true)) {
+        try (OutputStreamWriter osw = new OutputStreamWriter(fos, "utf-8")) {
+          try (BufferedWriter bf = new BufferedWriter(osw)) {
+            try (PrintWriter pCombi = new PrintWriter(bf)) {
+              StringBuilder sb = new StringBuilder();
+              
+              // Obligatory: ResId
+              sb.append(oResult.getInt("ResId"));
+              
+              // Obligatory: the meta string fields
+              for (i=0;i< loc_lCsvMeta.size();i++) {
+                // Get the obligatory field from oMeta
+                String sItem = oMeta.getString(loc_lCsvMeta.get(i));
+                sItem = StringUtil.escapeCsvCharacters(sItem);
+                sb.append(",").append('"').append(sItem).append('"');
+              }
+              // Obligatory: Size of the file
+              sb.append(",").append(oMeta.getInt("Size"));
+              // Obligatory: location and category fields
+              for (i=0;i< loc_lCsvOblig.size();i++) {
+                // Get the obligatory field from oResult
+                String sItem = oResult.getString(loc_lCsvOblig.get(i));
+                sItem = StringUtil.escapeCsvCharacters(sItem);
+                sItem = sItem.replace("\r\n", "");
+                sItem = sItem.replace("\n", "");
+                sb.append(",").append('"').append(sItem).append('"');
+              }
+              // Add the feature values
+              for (i=0;i<this.loc_lFeatName.size();i++ ) {
+                // Get the feature 
+                String sItem = oResult.getString(this.loc_lFeatName.get(i));
+                sItem = StringUtil.escapeCsvCharacters(sItem);
+                sItem = sItem.replace("\r\n", "");
+                sItem = sItem.replace("\n", "");
+                sb.append(",").append('"').append(sItem).append('"');
+              }
+              sb.append('\n');
+              // Write to the file
+              pCombi.write(sb.toString());
+            }
+          }
+        }
+      }
+      
+      // Return positively
+      return true;
+    } catch (Exception ex) {
+      errHandle.DoError("DbStore/csvResult error: ", ex, DbStore.class);
+      return false;
+    }
+  }
+  
+  /**
    * addResult
    *    Add one item to the table RESULT
    *    Note: this also contains the features
@@ -640,8 +801,6 @@ public class DbStore {
       // Validate and correct
       if (iResId != loc_iResId) iResId = loc_iResId;
       // Get all the other relevant values
-      //String sFile = oResult.getString("File");
-      //String sTextId = oResult.getString("TextId");
       int iMetaId = oResult.getInt("MetaId");
       String sSearch =  oResult.getString("Search");
       String sCat =  oResult.getString("Cat");
@@ -941,6 +1100,12 @@ public class DbStore {
       FileUtil.compressGzipFile(this.loc_sDbSqlFile, this.loc_sDbSqlFile+".gz");
       // Remove the actual .db file
       fDb.delete();
+      // Convert the CSV to .gz
+      FileUtil.compressGzipFile(this.loc_sCsvFile, this.loc_sCsvFile+".gz");
+      // Remove the CSV proper
+            // REmove if exists
+      File fCsv = new File(this.loc_sCsvFile);
+      fCsv.delete();
       // Return success
       return true;      
     } catch (Exception ex) {
