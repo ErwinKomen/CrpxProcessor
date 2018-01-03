@@ -446,6 +446,18 @@ public class StringUtil {
     }
     /* */
   }
+  public static String compressSafe(byte[] arInput) {
+    ErrHandle errHandle = new ErrHandle(StringUtil.class);
+
+    try {
+      String sEnc = Base64.encode(arInput);
+      // Return the result
+      return sEnc;
+    } catch (Exception ex) {
+      errHandle.DoError("compressSafe failed", ex);
+      return null;
+    }
+  }
   
   /**
    * decompressSafe
