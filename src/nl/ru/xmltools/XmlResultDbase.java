@@ -184,6 +184,7 @@ public class XmlResultDbase extends XmlResult {
           FileUtil.decompressGzipFile(strDbaseXmlGz, strDbaseFile);
         } else {
           // XML file does not exist
+          objErr.DoError("Prepare: cannot fine .xml version of database, nor .xml.gz", XmlResultDbase.class);
           return false;
         }
       }    
@@ -197,19 +198,23 @@ public class XmlResultDbase extends XmlResult {
           // There is a .db.gz file: check date: it may not be younger than the .index file
           if (fDbaseGz.lastModified() < fDbaseIdx.lastModified()) {
             // The .db.gz file is STALE -- delete it, and create a new .db file
+            objErr.debug("Prepare: create new db [3]");
             fDbaseGz.delete();
             oStore.xmlToDbNew(strDbaseFile);
           }
         } else {
           // There is no .db.gz file, so create it
+          objErr.debug("Prepare: create new db [4]");
           oStore.xmlToDbNew(strDbaseFile);
         }
         // There now is a .db.gz file: unpack it
+        objErr.debug("Prepare: unpacking gz to db [1]");
         FileUtil.decompressGzipFile(strDbaseGz, strDbaseDb);
       } else {
         // Is the .db newer or older than the .xml file?
         if (fDbase.lastModified() < fDbaseXml.lastModified()) {
           // The .db file is stale --> create a new one
+          objErr.debug("Prepare: unpacking gz to db [2]");
           oStore.xmlToDbNew(strDbaseFile);
           FileUtil.decompressGzipFile(strDbaseGz, strDbaseDb);
         }
