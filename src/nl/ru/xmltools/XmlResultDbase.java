@@ -160,24 +160,42 @@ public class XmlResultDbase extends XmlResult {
       if (!strDbaseFile.endsWith(".xml")) strDbaseFile = strDbaseFile + ".xml";
       String strDbaseDb = strDbaseFile.replace(".xml", ".db");
       String strDbaseGz = strDbaseDb + ".gz";
+      String strDbaseIdx = strDbaseFile.replace(".xml", ".index");
       // Make sure files are okay on this system
       File fDbase = new File(strDbaseFile);
       if (fDbase.getAbsolutePath().startsWith("C:\\")) {
         strDbaseFile = "D:" + strDbaseFile;
         strDbaseGz = "D:" + strDbaseGz;
         strDbaseDb = "D:" + strDbaseDb;
+        strDbaseIdx = "D:" + strDbaseIdx;
       }
       // Check which one to take
       fDbase = new File(strDbaseDb);
       File fDbaseGz = new File(strDbaseGz);
       File fDbaseXml = new File(strDbaseFile);
+      File fDbaseIdx = new File(strDbaseIdx);
       // Find out which one exists and was modified last
-      if (!fDbaseXml.exists()) return false;    // XML file does not exist
+      if (!fDbaseXml.exists()) {
+        // Check if we need to unpack it
+        String strDbaseXmlGz = strDbaseFile.replace(".xml", ".xml.gz");
+        File fDbaseXmlGz = new File(strDbaseXmlGz);
+        if (fDbaseXmlGz.exists()) {
+          // Unpack it
+          FileUtil.decompressGzipFile(strDbaseXmlGz, strDbaseFile);
+        } else {
+          // XML file does not exist
+          return false;
+        }
+      }    
+      if (!fDbaseIdx.exists()) {
+        objErr.DoError("Prepare: cannot find .index file", XmlResultDbase.class);
+        return false;
+      }
       if (!fDbase.exists()) {
         // There is no .db file -- but is there a .gz file?
         if (fDbaseGz.exists()) {
-          // There is a .db.gz file: check date
-          if (fDbaseGz.lastModified() < fDbaseXml.lastModified()) {
+          // There is a .db.gz file: check date: it may not be younger than the .index file
+          if (fDbaseGz.lastModified() < fDbaseIdx.lastModified()) {
             // The .db.gz file is STALE -- delete it, and create a new .db file
             fDbaseGz.delete();
             oStore.xmlToDbNew(strDbaseFile);

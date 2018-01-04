@@ -17,6 +17,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -292,6 +296,54 @@ public class DbStore {
     }
   }
   
+  /**
+   * dbStorePart
+   *    Take the database created for [sFileName] and store its
+   *      variants in a subdirectory [sPartDir]
+   * 
+   * @param sFileName
+   * @param sPartDir
+   * @return 
+   */
+  public boolean dbStorePart(String sFileName, String sPartDir) {
+    File fThis;       // Pointer to the file
+    File fPartDir;    // Poiner to directory
+    String sSrcFile;  // Source file
+    String sDstFile;  // Name of the destination file
+    int i;            // Counter
+    String[] arVariant = {".index", ".csv.gz", ".db.gz"};
+    
+    try {
+      // Validate
+      if (sFileName.isEmpty() || sPartDir.isEmpty()) { return false;}
+      // Make sure we get the full path of the main variant: XML
+      sFileName = Paths.get(sFileName).toString();
+      fThis = new File(sFileName);
+      if (!fThis.exists()) { return false; }
+      // Make sure the subdirectory exists
+      fPartDir = new File(sPartDir);
+      if (!fPartDir.exists()) {fPartDir.mkdir();}
+      // Check if directories are the same
+      if (fPartDir.getAbsolutePath().equals(fThis.getParentFile().getPath())) {
+        // No need to copy from source to the same destination
+        return true;
+      }
+      // Copy the xml database as .xml.gz 
+      sDstFile = Paths.get(fPartDir.toString(), fThis.getName() + ".gz").toString();
+      FileUtil.compressGzipFile(sFileName, sDstFile);
+      // Copy all indicated variants (if they exist)
+      for (i=0;i<arVariant.length;i++) {
+        Path pSrcFile = Paths.get(sFileName.replace(".xml", arVariant[i]));
+        Path pDstFile = Paths.get(fPartDir.toString(), fThis.getName().replace(".xml", arVariant[i]));
+        Files.copy(pSrcFile, pDstFile, StandardCopyOption.REPLACE_EXISTING);
+      }
+      // Return success
+      return true;
+    } catch (Exception ex) {
+      errHandle.DoError("DbStore/dbStorePart error: ", ex, DbStore.class);
+      return false;
+    }
+  }
   
   /**
    * xmlToDb
@@ -1100,12 +1152,15 @@ public class DbStore {
       FileUtil.compressGzipFile(this.loc_sDbSqlFile, this.loc_sDbSqlFile+".gz");
       // Remove the actual .db file
       fDb.delete();
-      // Convert the CSV to .gz
-      FileUtil.compressGzipFile(this.loc_sCsvFile, this.loc_sCsvFile+".gz");
-      // Remove the CSV proper
-            // REmove if exists
-      File fCsv = new File(this.loc_sCsvFile);
-      fCsv.delete();
+      // Do we have a local CSV file copy?
+      if (!this.loc_sCsvFile.isEmpty()) {
+        // Convert the CSV to .gz
+        FileUtil.compressGzipFile(this.loc_sCsvFile, this.loc_sCsvFile+".gz");
+        // Remove the CSV proper
+              // REmove if exists
+        File fCsv = new File(this.loc_sCsvFile);
+        fCsv.delete();
+      }
       // Return success
       return true;      
     } catch (Exception ex) {

@@ -883,6 +883,11 @@ public class FileUtil {
    */
   public static void compressGzipFile(String file, String gzipFile) {
     try {
+      // Remove destination file if it exists
+      File fDst = new File(gzipFile);
+      if (fDst.exists()) {
+        fDst.delete();
+      }
       try (FileInputStream fis = new FileInputStream(file); 
            FileOutputStream fos = new FileOutputStream(gzipFile)) {
         GZIPOutputStream gzipOS = new GZIPOutputStream(fos);

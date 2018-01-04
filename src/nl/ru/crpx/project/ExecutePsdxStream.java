@@ -455,6 +455,8 @@ public class ExecutePsdxStream extends ExecuteXml {
     File[] arIdxFile;               // Array of index FILE handles
     List<XmlIndexItem> arIdxList[]; // Array of index-item-lists
     StringBuilder arIdxSb[];        // Array of index-item string builders
+    String sPartDir = "";
+    File fPartDir = null;
     
     try {
       // Check if *any* query creates a database
@@ -483,6 +485,12 @@ public class ExecutePsdxStream extends ExecuteXml {
       arFcombi = new File[arQuery.length];
       arResId = new int[arQuery.length];
       
+      // Establish and check the partdir
+      sPartDir = Paths.get(this.getDbaseDir(),this.crpThis.getPart()).toAbsolutePath().toString();
+      fPartDir = new File(sPartDir);
+      if (! fPartDir.exists()) {
+        fPartDir.mkdir();
+      }
       // Walk all the QC items
       for (int i=0;i<arQuery.length;i++) {
         // Set the Resid for this one
@@ -662,6 +670,8 @@ public class ExecutePsdxStream extends ExecuteXml {
                   errHandle.debug("DB writing...");          
                   DbStore oDbStore = new DbStore(this.errHandle, bIncludeContextInCsv);
                   oDbStore.xmlToDbNew(arFileName[i], arListTotal);
+                  // Make sure copies are stored on the [part] places
+                  oDbStore.dbStorePart(arFileName[i], sPartDir );
                   errHandle.debug("DB done!");
                 }                
               }
