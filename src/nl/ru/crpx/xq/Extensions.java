@@ -723,6 +723,8 @@ public class Extensions extends RuBase {
     public static Node line(XPathContext objXp, int intLines) {
       XmlNode ndxRes = null;
       Node ndxBack = null;
+      boolean bFirstChild = true;    // Don't return the document root but the first real child
+      
       try {
         // Determine which CRP this is
         CrpFile oCF = getCrpFile(objXp);
@@ -759,7 +761,12 @@ public class Extensions extends RuBase {
           // ndxBack = oCF.oSaxDoc.build(new InputSource(new StringReader(ndxRes.toString())));
           // ndxBack = (Node) oCF.oSaxDoc.build(new StreamSource(new StringReader(ndxRes.toString()))).getUnderlyingNode();
         }
-        
+
+        if (bFirstChild) {
+          // Possible extension: make sure we don't return the document root, but the actual child, the <s> node
+          if (ndxBack != null && ndxBack.hasChildNodes()) { ndxBack = ndxBack.getFirstChild(); }
+        }
+
         // Return the result
         return ndxBack;
       } catch (Exception ex) {
@@ -1436,11 +1443,30 @@ public class Extensions extends RuBase {
   // ----------------------------------------------------------------------------------------------------------
   
   public static int words(XPathContext objXp, SequenceIterator sIt) {
+    int iCount = 0;
+    
+    try {
+      // Assuming that there may be more than one node passed on
+      while (sIt.next() != null) {
+        // Get this node
+        NodeInfo node = (NodeInfo) sIt.current();
+        // Count the words in this node
+        iCount += get_words(objXp, node);
+      }
+      // Return the total
+      return iCount;
+    } catch(Exception ex) {      
+      // Show error
+      logger.error("Extensions/words error: ", ex);
+      setRtError(objXp, "words", ex.getMessage());
+      // Return failure
+      return -1;
+    }
     // Call the actual function, but first check if there is only one node
-    NodeInfo node = getOneNode(objXp, "refnum", sIt);
-    return words(objXp, node);
+    // NodeInfo node = getOneNode(objXp, "refnum", sIt);
+    // return words(objXp, node);
   }  
-  public static int words(XPathContext objXp, NodeInfo node) {
+  public static int get_words(XPathContext objXp, NodeInfo node) {
     XdmNode ndSax;    // Myself, if I am a proper node
     int iResult;      // Resulting value
     int nodeKind;     // The kind of object getting passed as argument
@@ -1458,8 +1484,8 @@ public class Extensions extends RuBase {
       return iResult;
     } catch (Exception ex) {
       // Show error
-      logger.error("Extensions/words error: ", ex);
-      setRtError(objXp, "words", ex.getMessage());
+      logger.error("Extensions/get_words error: ", ex);
+      setRtError(objXp, "get_words", ex.getMessage());
       // Return failure
       return -1;
     }

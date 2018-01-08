@@ -505,6 +505,12 @@ public class RuBase /* extends Job */ {
           for (XdmItem item : selectXp) {
             // Check if this @id is in the list
             String sId =((XdmNode) item).getAttributeValue(ru_qnFoliaWrefId);
+            // Get the text value of the node
+            String sTvalue = ((XdmNode) item).getAttributeValue(ru_qnFoliaWrefT);
+            sBuild.append(sTvalue).append(" ");
+            
+            // Not sure anymore why I required the words to be inside the wordlist...
+            /*
             if (lSuId.contains(sId)) {
               // Get the text value of the node
               String sTvalue = ((XdmNode) item).getAttributeValue(ru_qnFoliaWrefT);
@@ -515,7 +521,7 @@ public class RuBase /* extends Job */ {
               }
               // ===========================
               sBuild.append(sTvalue).append(" ");
-            }
+            }*/
           }
           break;
         case ProjAlp:
@@ -852,7 +858,8 @@ public class RuBase /* extends Job */ {
   // ------------------------------------------------------------------------------------
   static synchronized int RuWords(XPathContext objXp, XdmNode ndStart) {
     int iBack = 0;              // Resulting count
-    XPathSelector selectXp; // The actual selector we are using
+    XPathSelector selectXp;     // The actual selector we are using
+    List<String> lSentWords = null;
     CorpusResearchProject crpThis;
     
     try {
@@ -866,7 +873,11 @@ public class RuBase /* extends Job */ {
       // Action depends on the kind of xml project we have
       switch(crpThis.intProjType) {
         case ProjPsdx: selectXp = ru_xpeWords_Psdx; break;
-        case ProjFolia: selectXp = ru_xpeWords_Folia; break;
+        case ProjFolia: 
+          selectXp = ru_xpeWords_Folia; 
+          // Get a list of <w> node names
+          lSentWords = RuBase.getWordList(ndStart);
+          break;
         case ProjAlp: selectXp = ru_xpeWords_Alp; break;
         case ProjNegra: selectXp = ru_xpeWords_Negra; break;
       }
@@ -878,7 +889,19 @@ public class RuBase /* extends Job */ {
       // Count the words by taking the selection
       selectXp.setContextItem(ndStart);
       // Go through all the items
-      for (XdmItem item : selectXp) iBack++;
+      for (XdmItem item : selectXp) {
+        // make sure this is a word of type 'Vern'
+        if (lSentWords.isEmpty()) {
+          // Just count
+          iBack++;
+        } else {
+          // Check if this item is in the list of REAL words
+          String sIdValue = ((XdmNode) item).getAttributeValue(ru_qnFoliaWrefId);
+          if (lSentWords.contains(sIdValue)) {
+            iBack++;
+          }
+        }
+      }
       // Return what we found
       return iBack;
     } catch (Exception ex) {
