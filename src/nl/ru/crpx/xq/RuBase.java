@@ -71,6 +71,7 @@ public class RuBase /* extends Job */ {
   private static XPathSelector ru_xpeWords_Psdx;      // Search expression for ProjPsdx
   private static XPathSelector ru_xpeWords_Folia;     // Search expression for ProjFolia
   private static XPathSelector ru_xpeWords_Folia2;    // We need a second expression for ProjFolia
+  private static XPathSelector ru_xpeWords_FoliaSent; // The <w> elements under the <s>
   private static XPathSelector ru_xpeWords_Negra;     // Search expression for ProjNegra
   private static XPathSelector ru_xpeWords_Alp;       // Search expression for ProjAlp  
   
@@ -120,6 +121,7 @@ public class RuBase /* extends Job */ {
   public static final QName ru_qnFoliaId = new QName("xml", "http://www.w3.org/XML/1998/namespace", "id");
   public static final QName ru_qnFoliaWrefId = new QName("", "", "id");     // Simple identifier for <wref> element
   public static final QName ru_qnFoliaWrefT = new QName("", "", "t");       // Text in a <wref> element
+  public static final QName ru_qnFoliaClass = new QName("", "", "class");       // Text in a <wref> element
 
   // =========================== Local constants ===============================
   private final String RU_LEX = "-Lex";
@@ -164,7 +166,8 @@ public class RuBase /* extends Job */ {
         // Create search expressions for RuWords()
         ru_xpeWords_Psdx = xpComp.compile("./descendant-or-self::eLeaf[@Type = 'Vern' and count(ancestor::eTree[@Label='CODE'])=0]").load();
         ru_xpeWords_Folia = xpComp.compile("./descendant-or-self::wref[count(ancestor::su[@class='CODE'])=0]").load();
-        ru_xpeWords_Folia2 = xpComp.compile("./ancestor::s/child::w[not(@class) or @class='Vern']").load();
+        ru_xpeWords_Folia2 = xpComp.compile("./ancestor::s/descendant::w[not(@class) or @class='Vern']").load();
+        ru_xpeWords_FoliaSent = xpComp.compile("./ancestor::s/descendant::w").load();
         ru_xpeWords_Alp = xpComp.compile("./descendant-or-self::node[count(@word)>0]").load();
         ru_xpeWords_Negra = xpComp.compile("./descendant-or-self::t").load();
         // Create search expressions for RuWordsMatch()
@@ -497,17 +500,26 @@ public class RuBase /* extends Job */ {
           break;
         case ProjFolia:
           // Retrieve the list of words from the dynamic context
-          List<String> lSuId = getWordList(objXp);
+          // Use other method List<String> lSuId = getWordList(objXp);
+          List<String> lWrdPunct = RuBase.getWordsAndPunct(ndStart);
           // Make a list of all the <wref> nodes under me
           selectXp = ru_xpeNodeText_Folia;
           selectXp.setContextItem(ndStart);
           // Go through all the items
           for (XdmItem item : selectXp) {
+            // Get the XdmNode variant
+            XdmNode ndxItem = (XdmNode) item;
             // Check if this @id is in the list
-            String sId =((XdmNode) item).getAttributeValue(ru_qnFoliaWrefId);
-            // Get the text value of the node
-            String sTvalue = ((XdmNode) item).getAttributeValue(ru_qnFoliaWrefT);
-            sBuild.append(sTvalue).append(" ");
+            String sId =ndxItem.getAttributeValue(ru_qnFoliaWrefId);
+            // Check if this one is in the list of acceptable ones
+            if (lWrdPunct.contains(sId)) {
+              // Get the text value of the node
+              String sTvalue = ndxItem.getAttributeValue(ru_qnFoliaWrefT);
+              sBuild.append(sTvalue).append(" ");
+            }
+            // Check if this @id is in the list
+            // String sId =ndxItem.getAttributeValue(ru_qnFoliaWrefId);
+            // Find this node 
             
             // Not sure anymore why I required the words to be inside the wordlist...
             /*
@@ -1196,7 +1208,7 @@ public class RuBase /* extends Job */ {
       return null;
     }
   }
-  static List<String> getWordList(XdmNode ndxThis) {
+  static synchronized List<String> getWordList(XdmNode ndxThis) {
     List<String> lSuId = new ArrayList<>();
 
     try {
@@ -1221,6 +1233,41 @@ public class RuBase /* extends Job */ {
       return lSuId;
     } catch (Exception ex) {
       errHandle.DoError("RuBase/getWordList error", ex, RuBase.class);
+      return null;
+    }
+  }
+  /**
+   * getWordsAndPunct
+   *  Get a list of words ('Vern') and punctuation in the <s> above ndxThis
+   * 
+   * @param ndxThis
+   * @return 
+   */
+  static synchronized List<String> getWordsAndPunct(XdmNode ndxThis) {
+    List<String> lBack = new ArrayList<>();
+    
+    try {
+      // Make a list of all <w> nodes under <s>
+      XPathSelector selectXp = ru_xpeWords_FoliaSent;
+      try {
+        selectXp.setContextItem(ndxThis);
+      } catch (SaxonApiException ex) {
+        errHandle.DoError("RuBase/getWordsAndPunct problem: ", ex, RuBase.class);
+        return lBack;
+      }
+      // Go through all the items and add them to a new list
+      for (XdmItem item : selectXp) {
+        XdmNode ndxItem = (XdmNode) item;
+        String sType = ndxItem.getAttributeValue(ru_qnFoliaClass);
+        if (sType.equals("Vern") || sType.equals("Punct")) {
+          lBack.add(ndxItem.getAttributeValue(ru_qnFoliaId));
+        }
+      }
+      
+      // Return the result
+      return lBack;
+    } catch (Exception ex) {
+      errHandle.DoError("RuBase/getWordsAndPunct error", ex, RuBase.class);
       return null;
     }
   }
