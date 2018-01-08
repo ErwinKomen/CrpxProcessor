@@ -189,7 +189,7 @@ public abstract class XmlForest {
   public abstract String getSentenceId(ByRef<XmlNode> ndxForest);
   public abstract boolean NextForest(ByRef<XmlNode> ndxForest);
   public abstract boolean OneForest(ByRef<XmlNode> ndxForest, String sSentId);
-  public abstract boolean OneForest(ByRef<XmlNode> ndxForest, int iLines);
+  public abstract boolean OneForest(ByRef<XmlNode> ndxForest, String sSentId, int iLines);
   public abstract boolean IsEnd();
   public abstract boolean Percentage(ByRef<Integer> intPtc);
   public abstract String GetContext();

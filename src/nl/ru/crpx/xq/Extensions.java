@@ -740,7 +740,8 @@ public class Extensions extends RuBase {
               break;
             case ProjFolia:
               // sNewSentId = String.valueOf(Integer.parseInt(oCF.currentSentId) + intLines);
-              if (oCF.objProcType.OneForest(ndxNew, intLines)) {
+              // Get to [intLines] with respect to the currentSentId
+              if (oCF.objProcType.OneForest(ndxNew, oCF.currentSentId, intLines)) {
                 ndxRes = ndxNew.argValue;
               }
               break;

@@ -476,6 +476,31 @@ public class XmlIndexRaReader {
       return "";
     }
   }
+  
+  /**
+   * getIndexOfLine
+   *    Get the index of the line with the indicated id
+   * 
+   * @param sLineId
+   * @return 
+   */
+  public int getIndexOfLine(String sLineId) {
+    try {
+      // Walk the index
+      for (int i=0;i<arIndex.size();i++) {
+        if (arIndex.get(i).id.equals(sLineId)) {
+          return i;
+        }
+      }
+      // Did not find it
+      return -1;
+    } catch (Exception ex) {
+      errHandle.DoError("Could not get index of line [" + sLineId + "] of " + 
+              loc_fThis.getAbsolutePath(), ex, XmlIndexRaReader.class);
+      // Return failure
+      return -1;
+    }
+  }
 
   /**
    * getNextLine - read the next line in the file
@@ -499,7 +524,8 @@ public class XmlIndexRaReader {
       // Return the first line
       return sBack;
     } catch (Exception ex) {
-      errHandle.DoError("Could not read next line [" + iCurrentLine + "] of " + loc_fThis.getAbsolutePath(), ex, XmlIndexRaReader.class);
+      errHandle.DoError("Could not read next line [" + iCurrentLine + "] of " + 
+              loc_fThis.getAbsolutePath(), ex, XmlIndexRaReader.class);
       // Return failure
       return "";
     }
@@ -578,14 +604,14 @@ public class XmlIndexRaReader {
   public String getOneLine(String sLineId) {
     return getOneLine(sLineId, true);
   }
-  public String getOneLine(int iLines) {
+  public String getOneLine(int iIndex) {
     ByRef<XmlIndexItem> oItem = new ByRef(null);
-    int iIndex = iCurrentLine + iLines;
+    // int iIndex = iCurrentLine + iLines;
 
     try {
       // Validate
       if (iIndex < 0 || iIndex >= this.arIndex.size()) {
-        errHandle.DoError("Line number ["+iCurrentLine+"]+["+iLines+"] is out of reach", 
+        errHandle.DoError("Line number ["+iCurrentLine+"]+["+iIndex+"] is out of reach", 
                 XmlIndexRaReader.class);
         return "";
       }

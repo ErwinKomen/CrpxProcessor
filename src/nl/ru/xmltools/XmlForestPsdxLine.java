@@ -172,7 +172,7 @@ public class XmlForestPsdxLine extends XmlForest {
   public boolean OneForest(ByRef<XmlNode> ndxForest, String sSentId) {
     return false;
   }  
-  public boolean OneForest(ByRef<XmlNode> ndxForest, int iLines) {
+  public boolean OneForest(ByRef<XmlNode> ndxForest, String sSentId, int iLines) {
     return false;
   }
 

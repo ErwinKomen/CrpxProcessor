@@ -235,9 +235,10 @@ public class XmlForestFoliaIndex extends XmlForest {
     }
   }
   @Override
-  // Version that looks [intLines] from the current forest
-  public boolean OneForest(ByRef<XmlNode> ndxForest, int intLines) {
+  // Version that looks [intLines] from the forest specified by [sSentId]
+  public boolean OneForest(ByRef<XmlNode> ndxForest, String sSentId, int intLines) {
     XmlNode ndxWork;      // Working node
+    int iSentIdx = -1;    // Index of the [sSentId] line
     String strNext = "";  // Another chunk of <forest>
 
     try {
@@ -253,8 +254,11 @@ public class XmlForestFoliaIndex extends XmlForest {
       // More validation
       if (loc_xrdRaFile==null) return false;
       
+      // Get the index of [sSentId]
+      iSentIdx = loc_xrdRaFile.getIndexOfLine(sSentId);
+      if (iSentIdx<0) { return false; }
       // Read this <forest>
-      strNext = loc_xrdRaFile.getOneLine(intLines);
+      strNext = loc_xrdRaFile.getOneLine(iSentIdx + intLines);
       // Double check what we got
       if (strNext == null || strNext.length() == 0) {
         ndxForest.argValue = null;
