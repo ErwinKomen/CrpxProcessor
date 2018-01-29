@@ -4,6 +4,7 @@
         { "node": "./descendant::TextName", "attr": ""},
         { "node": "./descendant::Edition", "attr": ""}],
       "genre": [
+        { "node": "./descendant::Publication/child::PublicationGenre", "attr": ""},
         { "node": "./descendant::TextClass", "attr": ""},
         { "node": "./descendant::TextType", "attr": ""},
         { "node": "./descendant::Genre", "attr": ""}],
