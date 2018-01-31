@@ -75,6 +75,8 @@ public class MdiReader {
       // Get the *start* of the name for the .imdi or .cmdi file
       if (strFile.endsWith(".folia.xml")) {
         strFileMdi = strFile.replace(".folia.xml", "");
+      } else if (strFile.endsWith(".folia.xml.gz")) {
+        strFileMdi = strFile.replace(".folia.xml.gz", "");
       } else {
         strFileMdi = FileIO.getDirectory(strFile) + "/" + FileIO.getFileNameWithoutExtension(strFile);
       }

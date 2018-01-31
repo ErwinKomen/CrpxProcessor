@@ -7,14 +7,18 @@
 package nl.ru.xmltools;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import nl.ru.util.FileUtil;
 import org.apache.log4j.Logger;
 
 /**
@@ -58,14 +62,25 @@ public class XmlChunkReader {
   // ----------------------------------------------------------------------------------------------------------
   public XmlChunkReader(File fThis) throws FileNotFoundException {
     try {
-      // Create a buffered file reader, so that we know the position
-      FileReader plain = new FileReader (fThis);
-      reader = new BufferedReader( plain);
-      // lSize = reader.lines().count();
-      lFileLen = fThis.length();
+      // Check if this is a compressed file
+      if (fThis.getAbsolutePath().endsWith(".gz")) {
+        // Read the zipped file into a string
+        String sContents = FileUtil.decompressGzipString(fThis.getAbsolutePath());
+        // Get the size
+        lFileLen = sContents.length();
+        // Create a String Input Reader
+        rdIS = new InputStreamReader( new ByteArrayInputStream(sContents.getBytes(StandardCharsets.UTF_8)), "utf-8");
+      } else {
+        // Create a buffered file reader, so that we know the position
+        FileReader plain = new FileReader (fThis);
+        reader = new BufferedReader( plain);
+        // lSize = reader.lines().count();
+        lFileLen = fThis.length();
+        // Set the input for real
+        fIS = new FileInputStream(fThis);
+        rdIS = new InputStreamReader(fIS, "utf-8");
+      }
       // Now start reading for real
-      fIS = new FileInputStream(fThis);
-      rdIS = new InputStreamReader(fIS, "utf-8");
       reader = new BufferedReader(rdIS);
       // reader = new BufferedReader(new InputStreamReader(new FileInputStream (fThis), "utf-8"));
       iLinesRead=0;

@@ -42,6 +42,8 @@ public class XmlIndexRaReader {
   private File loc_fHeader;               // Pointer to the header file
   private String loc_sTextId;             // Short file name serves as text identifier
   private RandomAccessFile loc_fRa;       // Random access to the file this index belongs to
+  private String loc_sContents;           // File contents completely read (for .gz files)
+  private boolean loc_bClosed;            // Show this is closed
   private CorpusResearchProject crpThis;  // Reference to the CRP that is calling me
   private XmlDocument loc_pdxThis;        // Possibility to read and interpret XML chunks
   private List<XmlIndexItem> arIndex;     // The datastructure containing the index   
@@ -63,6 +65,7 @@ public class XmlIndexRaReader {
     try {
       // Take over the CRP
       this.crpThis = prjThis;
+      this.loc_bClosed = true;
       // Set the error handler
       if (this.crpThis == null) {
         // If no CRP has been given, then use my own error handler
@@ -286,8 +289,15 @@ public class XmlIndexRaReader {
       
       // Note the last index of the last part
       this.lstPartLastIdx.add(arIndex.size()-1);
-      // Create a random-access reader entry (READ ONLY)
-      this.loc_fRa = new RandomAccessFile(loc_fThis.getAbsolutePath(), "r");   
+      // Check if this is a zip or not
+      if (loc_fThis.getAbsolutePath().endsWith(".gz")) {
+        this.loc_fRa = null;
+        this.loc_sContents = FileUtil.decompressGzipString(loc_fThis.getAbsolutePath());
+        this.loc_bClosed = false;
+      } else {
+        // Create a random-access reader entry (READ ONLY)
+        this.loc_fRa = new RandomAccessFile(loc_fThis.getAbsolutePath(), "r");   
+      }
       // Return positively
       return true;
     } catch (Exception ex) {
@@ -302,7 +312,11 @@ public class XmlIndexRaReader {
    */
   public void close() {
     try {
-      if (this.loc_fRa != null) {
+      if (this.loc_fRa == null) {
+        if (!this.loc_sContents.isEmpty()) {
+          this.loc_bClosed = true;
+        }
+      } else {
         synchronized(this.loc_fRa) {
           errHandle.debug("Ra reader closing: " + loc_fThis.getName());
           this.loc_fRa.close();
@@ -320,7 +334,7 @@ public class XmlIndexRaReader {
    * @return boolean
    */
   public boolean is_closed() {
-    return (this.loc_fRa == null);
+    return (this.loc_bClosed && this.loc_fRa == null);
   }
   
   /**
@@ -440,6 +454,7 @@ public class XmlIndexRaReader {
    */
   private String getLineByIndex(int iIndex, ByRef<XmlIndexItem> oItem) {
     byte[] bBuf = null;
+    String sBack = "";
     
     try {
       // Validate
@@ -449,8 +464,14 @@ public class XmlIndexRaReader {
       oItem.argValue = this.arIndex.get(iIndex);
       // Make sure we access reading while it is possible
       if (this.loc_fRa == null) {
-        // Return nothing
-        return "";
+        // Possibly this is a string contents
+        if (this.loc_sContents == null) {
+          // Return nothing
+          return "";
+        } else {
+          sBack = loc_sContents.substring(oItem.argValue.start, 
+                  oItem.argValue.start + oItem.argValue.size);
+        }
       } else {
         synchronized(this.loc_fRa) {
           // Some error occurring here--get to the root of it
@@ -465,9 +486,9 @@ public class XmlIndexRaReader {
           bBuf = new byte[oItem.argValue.size];
           this.loc_fRa.read(bBuf);
         }
+        // Turn what we read into a string
+        sBack = new String(bBuf, "utf-8");
       }
-      // Turn what we read into a string
-      String sBack = new String(bBuf, "utf-8");
       // Return the indicated line
       return sBack;      
     } catch (Exception ex) {

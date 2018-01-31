@@ -537,7 +537,11 @@ public class ExecuteXml extends Execute {
         // Look for all relevant files starting from [SrcDir]
         Path pStart = Paths.get(crpThis.getSrcDir().getAbsolutePath());
         FileUtil.getFileNames(lInputFiles, pStart, sInputFile);
-        // Throw out ALL files that do not strictly adhere to the output extension criteria
+        // If there are no files, then add .gz to the possibilities
+        if (lInputFiles.isEmpty()) {
+          sInputFile = sInputFile + ".gz";
+          FileUtil.getFileNames(lInputFiles, pStart, sInputFile);
+        }
         // There should be at least 1 file
         if (lInputFiles.isEmpty()) {
           // Give appropriate error message
