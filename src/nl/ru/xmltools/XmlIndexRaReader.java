@@ -13,7 +13,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.RandomAccessFile;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import net.sf.saxon.s9api.QName;
 import nl.ru.crpx.project.CorpusResearchProject;
@@ -43,6 +45,7 @@ public class XmlIndexRaReader {
   private String loc_sTextId;             // Short file name serves as text identifier
   private RandomAccessFile loc_fRa;       // Random access to the file this index belongs to
   private String loc_sContents;           // File contents completely read (for .gz files)
+  private byte[] loc_bContents;
   private boolean loc_bClosed;            // Show this is closed
   private CorpusResearchProject crpThis;  // Reference to the CRP that is calling me
   private XmlDocument loc_pdxThis;        // Possibility to read and interpret XML chunks
@@ -201,6 +204,10 @@ public class XmlIndexRaReader {
             iIndexLine++;
             // Treatment is different if the PART is specified
             if (sPartId.isEmpty()) {
+              // Double check
+              if (strNext.startsWith("<s") && ! strNext.endsWith("/s>")) {
+                int iStop = 1;
+              }
               // Create an index item (without part-specification)
               int iByteLength = strNext.getBytes("utf-8").length;
               XmlIndexItem oItem = new XmlIndexItem(sTagLine, sLineId, "", iPos, iByteLength);
@@ -293,6 +300,7 @@ public class XmlIndexRaReader {
       if (loc_fThis.getAbsolutePath().endsWith(".gz")) {
         this.loc_fRa = null;
         this.loc_sContents = FileUtil.decompressGzipString(loc_fThis.getAbsolutePath());
+        this.loc_bContents = loc_sContents.getBytes("utf-8");
         this.loc_bClosed = false;
       } else {
         // Create a random-access reader entry (READ ONLY)
@@ -469,8 +477,11 @@ public class XmlIndexRaReader {
           // Return nothing
           return "";
         } else {
-          sBack = loc_sContents.substring(oItem.argValue.start, 
-                  oItem.argValue.start + oItem.argValue.size);
+          // Read the indicated part from the bytes content array as UTF8
+          sBack = new String( Arrays.copyOfRange(loc_bContents, 
+                  oItem.argValue.start, 
+                  oItem.argValue.start + oItem.argValue.size), 
+                  StandardCharsets.UTF_8);
         }
       } else {
         synchronized(this.loc_fRa) {
