@@ -179,6 +179,10 @@ public class RunTxtList extends RunAny {
         while (!stack.isEmpty()) {
           // Get all the items inside "dir"
           Path pThis = stack.pop();
+          
+          // DEBUGGING
+          errHandle.debug("getTextList processing dir=" + pThis.toAbsolutePath().toString());
+          
           try(DirectoryStream<Path> streamSub = Files.newDirectoryStream(pThis, sSearch)) {
             // Create an object for this directory
             JSONObject oDirContent = new JSONObject();
@@ -194,8 +198,12 @@ public class RunTxtList extends RunAny {
             for (Path pathSub : streamSub) {
               if (Files.isDirectory(pathSub)) {
                 stack.push(pathSub);
+                // DEBUGGING
+                errHandle.debug("getTextList pushing dir=" + pathSub.toAbsolutePath().toString());
               } else {
                 String sFile = pathSub.getFileName().toString();
+                // DEBUGGING
+                errHandle.debug("getTextList treating file=" + sFile);
                 // Check if the file has an extension in the list of allowed ones
                 if (sExtType.isEmpty() || sExtFind.isEmpty()) {
                   sExt = getExtensionInList(lExtList, sFile);
