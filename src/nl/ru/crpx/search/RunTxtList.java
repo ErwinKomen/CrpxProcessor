@@ -197,10 +197,15 @@ public class RunTxtList extends RunAny {
               } else {
                 String sFile = pathSub.getFileName().toString();
                 // Check if the file has an extension in the list of allowed ones
-                if (sExtType.isEmpty() || sExtFind.isEmpty()) 
+                if (sExtType.isEmpty() || sExtFind.isEmpty()) {
                   sExt = getExtensionInList(lExtList, sFile);
-                else
+                } else {
                   sExt = (sFile.endsWith(sExtFind)) ? sExtFind : "";
+                  // Double check for .gz
+                  if (sExt.isEmpty() && sFile.endsWith(sExtFind + ".gz")) {
+                    sExt = sExtFind + ".gz";
+                  }
+                }
                 if (!sExt.isEmpty()) {
                   // We found a match -- get the complete path
                   String sSubThis = pathSub.toAbsolutePath().toString();

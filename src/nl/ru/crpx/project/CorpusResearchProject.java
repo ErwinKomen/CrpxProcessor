@@ -1079,7 +1079,9 @@ public class CorpusResearchProject {
   }
   public static List<String> getTextExtList() {
     List<String> lBack = new ArrayList<>();
-    // Make sure these are in decreasin size
+    // Make sure these are in decreasing size
+    // Make sure to include GZ where needed
+    lBack.add(getTextExt(ProjType.ProjFolia) + ".gz");
     lBack.add(getTextExt(ProjType.ProjFolia));
     lBack.add(getTextExt(ProjType.ProjNegra));
     lBack.add(getTextExt(ProjType.ProjPsdx));
