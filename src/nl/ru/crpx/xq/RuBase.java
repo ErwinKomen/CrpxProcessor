@@ -411,9 +411,16 @@ public class RuBase /* extends Job */ {
       arType = strType.split("\\+");
       for (String sTypeThis : arType) {
         switch(sTypeThis.toLowerCase()) {
-          case "clean":
+          case "cleanE":
             // Replace ";" with spaces and convert to lower case
             strOut = VernToEnglish(strOut.replace(";", " ").toLowerCase());
+            // Remove "$" signs and single quotes "'"
+            strOut = strOut.replace("$", "");
+            strOut = strOut.replace("'", "");
+            break;
+          case "clean":
+            // Replace ";" with spaces and convert to lower case
+            strOut = strOut.replace(";", " ").toLowerCase();
             // Remove "$" signs and single quotes "'"
             strOut = strOut.replace("$", "");
             strOut = strOut.replace("'", "");
