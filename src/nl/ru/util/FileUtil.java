@@ -792,17 +792,31 @@ public class FileUtil {
    * @return handle to [sFile]
    */
   public static String findFileInDirectory(String sDir, String sFile) {  
+    String sBack = "";
     try {
+      // Initialize starting directory
       Path startDir = Paths.get(sDir);
-      // Set a finder
-      Finder finder = new Finder(sFile);
-      // Walk the file tree
-      // Files.walkFileTree(startDir, finder);
+      // Are we looking for a directory within a directory?
+      if (sFile.contains(".")) {
+        // Probably a file, so... Set a finder
+        Finder finder = new Finder(sFile);
+        // Walk the file tree
+        // Files.walkFileTree(startDir, finder);
+
+        Files.walkFileTree(startDir, EnumSet.of(FileVisitOption.FOLLOW_LINKS) , Integer.MAX_VALUE, finder);
+        // Get the first result
+        sBack = finder.found();
+      } else {
+        // Assume we are looking for a directory
+        DirectoryStream.Filter<Path> filter = new DirectoryStream.Filter<Path>() {
+          public boolean accept(Path file) throws IOException {
+            return (file.toFile().isDirectory());
+          }
+        };
+        sBack = FileUtil.getDirInDir(startDir, sFile, filter);
+      }
       
-      Files.walkFileTree(startDir, EnumSet.of(FileVisitOption.FOLLOW_LINKS) , Integer.MAX_VALUE, finder);
-      // Get the first result
-      String sBack = finder.found();
-        // Getting here means we have no success
+      // Getting here means we have no success
       return sBack;
     } catch(Exception e) {
       Logger.getLogger(FileUtil.class.getName()).log(Level.SEVERE, 
@@ -812,6 +826,25 @@ public class FileUtil {
       return "";
     }
   }
+  
+  static String getDirInDir(Path pStart, String sTarget, DirectoryStream.Filter<Path> filter) throws IOException  {
+    // Look through the directory
+    DirectoryStream<Path> stream = Files.newDirectoryStream(pStart, filter);
+    for (Path path : stream) {
+      if (path.getFileName().toString().equals(sTarget)) {
+        return path.toAbsolutePath().toString();
+      } else {
+        // Try follow this link
+        String sAttempt = FileUtil.getDirInDir(path, sTarget, filter);
+        if (!sAttempt.isEmpty()) {
+          return sAttempt;
+        }
+      }
+    }
+    // Getting here means: no success
+    return "";
+  }
+  
   
   /**
    * decompressGzipFile -- 
