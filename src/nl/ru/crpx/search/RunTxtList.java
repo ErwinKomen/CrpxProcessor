@@ -40,17 +40,19 @@ public class RunTxtList extends RunAny {
   String loc_sLng = "";
   String loc_sPart = "";
   String loc_sExt = "";
+  SearchManager srchManager;
 // </editor-fold>
   
 // <editor-fold defaultstate="collapsed" desc="Class initializer">
   public RunTxtList(ErrHandle oErr, Job jParent, 
-          String userId, SearchParameters par) {
+          String userId, SearchManager srchManager, SearchParameters par) {
     // Make sure the class I extend is initialized
     super(oErr, par);
     // Then make my own initialisations
     try {
       this.jobStatus = "creating";
       this.jobName = "txtlist";
+      this.srchManager = srchManager;
       // Get the parameters from [par]
       loc_sLng = par.getString("lng");
       loc_sExt = par.getString("ext");
@@ -155,12 +157,17 @@ public class RunTxtList extends RunAny {
       Parse prsThis = new Parse(crpThis, this.errHandle);
       
       // Get the directory from where to search
+      Path pRoot = Paths.get(this.srchManager.getCorpusPartDir(sLng, sPart));
+
+/*      
       Path pRoot = Paths.get(FileUtil.nameNormalize(sCorpusBase), sLng);
       // If [part] is specified, then we need to get a sub directory
       if (sPart != null && !sPart.isEmpty()) {
         // Find the first sub directory containing [sPart] under [pRoot]
         pRoot =Paths.get(FileUtil.findFileInDirectory(pRoot.toString(), sPart));
-      }
+        
+        
+      }*/
       // Check to see if a file-list .json file already exists
       String sTextListName = (sExtType.isEmpty()) ? "textlist-all" : "textlist-" + sExtType;
       Path pJsonTextList = Paths.get(pRoot.toString(), sTextListName+".json");

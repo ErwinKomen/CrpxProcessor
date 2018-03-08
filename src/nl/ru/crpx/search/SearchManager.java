@@ -18,6 +18,7 @@ import nl.ru.crpx.dataobject.DataObjectMapElement;
 import nl.ru.crpx.dataobject.DataObjectString;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.util.FileUtil;
+import nl.ru.util.Json;
 import nl.ru.util.JsonUtil;
 import nl.ru.util.MemoryUtil;
 import nl.ru.util.json.JSONArray;
@@ -135,6 +136,10 @@ public class SearchManager {
   
   // Properties passed on in the command-line
   private JSONObject oCmdLine;
+  
+  // Cache of combinations Language-Part
+  private JSONObject oLngPart;
+  private String sLngPart = "/etc/corpora/lng-part.json";
 
   /**
    * 
@@ -152,6 +157,9 @@ public class SearchManager {
     
     // Initialise the command-line properties to nothing
     oCmdLine = new JSONObject();
+    
+    // Initialize the Language-Part storage
+    oLngPart = initLngPart();
 
     // Request properties
     JSONObject reqProp = properties.getJSONObject("requests");
@@ -303,6 +311,9 @@ public class SearchManager {
    * @return 
    */
   public String getCorpusPartDir(String sLng, String sPart) {
+    JSONObject oPart = null;
+    String sFull = "";      // The full string of the path we return
+    
     // Get the directory associated with the Language Index
     File fDir = getIndexDir(sLng);
     if (fDir==null) return "";
@@ -310,21 +321,30 @@ public class SearchManager {
     String sTarget = fDir.getAbsolutePath();
     // Get a sub directory or focus file
     if (!sPart.isEmpty()) {
-      // Locate this part 'under' the language index directory
-      sTarget = FileUtil.findFileInDirectory(sTarget, sPart);
-      /*
-      Path pStart = Paths.get(sTarget);
-      List<String> lInputFiles = new ArrayList<>();
-      FileUtil.getFileNames(lInputFiles, pStart, sPart);
-      // Validate result
-      if (lInputFiles.isEmpty()) 
-        return "";
-      // If anything comes out, then take only the *FIRST* hit!!!!
-      sTarget = lInputFiles.get(0);
-      */
+      // See if this file is in the cache we have 
+      if (this.oLngPart.has(sLng)) {
+        // There is an entry for this language
+        oPart = this.oLngPart.getJSONObject(sLng);
+        // Do we have an entry for [sPart]?
+        if (oPart.has(sPart)) {
+          // There is an entry for this part
+          return oPart.getString(sPart);
+        } 
+      } else {
+        // Create an entry for the language/part
+        oPart = new JSONObject();
+      }
+      // Locate this part 'under' the language index directory      
+      sFull = FileUtil.findFileInDirectory(sTarget, sPart);
+      // Add this path to the appropriate lng/part position
+      oPart.put(sPart, sFull);
+      // Add the path to the language
+      this.oLngPart.put(sLng, oPart);
+      // Make sure changes are saved
+      saveLngPart();
     }
     // Return a handle to the target
-    return sTarget;
+    return sFull;
   }
 
   /**
@@ -645,4 +665,52 @@ public class SearchManager {
 		logger.warn("Onbekend outputtype gevraagd: " + typeString);
 		return defaultValue;
 	}
+        
+       
+  /**
+   * initLngPart
+   *    If available, read the JSON file
+   * 
+   * @param sLngPartFile
+   * @return 
+   */
+  private JSONObject initLngPart() {
+    try {
+      // Windows check: should be D
+      if (new File(this.sLngPart).getCanonicalPath().startsWith("C:")) {
+        this.sLngPart = "D:" + this.sLngPart;
+      }
+      
+      File fLngPartFile = new File(this.sLngPart);
+      // Do we have a file?
+      if (fLngPartFile.exists()) {
+        // Read the file
+        this.oLngPart = Json.read(fLngPartFile);
+        // 
+      } else {
+        // There is no file yet
+        this.oLngPart = new JSONObject();
+      }
+      
+      return this.oLngPart;
+    } catch (Exception ex) {
+      logger.error("searchManager/initLngPart: ", ex);
+      return null;
+    }
+  }
+  
+  /**
+   * saveLngPart
+   *    Save changes to the JSON file location cache
+   * 
+   */
+  private void saveLngPart() {
+    try {
+      File fLngPartFile = new File(this.sLngPart);
+      Json.write(this.oLngPart, fLngPartFile);      
+    } catch (Exception ex) {
+      logger.error("searchManager/saveLngPart: ", ex);
+    }
+  }
+  
 }

@@ -63,6 +63,7 @@ public class FileUtil {
    * The default encoding for opening files.
    */
   private static String defaultEncoding = "utf-8";
+  // Other settings
   private int iLineCount = 0;
 
   /**
@@ -827,6 +828,16 @@ public class FileUtil {
     }
   }
   
+  /**
+   * getDirInDir
+   *    Recursively get directory 'sTarget' that is descendant of pStart
+   * 
+   * @param pStart
+   * @param sTarget
+   * @param filter
+   * @return
+   * @throws IOException 
+   */
   static String getDirInDir(Path pStart, String sTarget, DirectoryStream.Filter<Path> filter) throws IOException  {
     // Look through the directory
     DirectoryStream<Path> stream = Files.newDirectoryStream(pStart, filter);
@@ -843,6 +854,28 @@ public class FileUtil {
     }
     // Getting here means: no success
     return "";
+  }
+  
+  /**
+   * findSubDir
+   *    Find subdirectory sSubdir as descendant of sDir
+   *    Use caching for this
+   * 
+   * @param sDir
+   * @param sSubdir
+   * @return 
+   */
+  static String findSubDir(String sDir, String sSubdir) {
+    try {
+      
+      return "";
+    } catch(Exception e) {
+      Logger.getLogger(FileUtil.class.getName()).log(Level.SEVERE, 
+                        "findSubDir problem at dir [{0}], file [{1}]", 
+                        new Object[]{sDir, sSubdir});
+      e.printStackTrace();
+      return "";
+    }
   }
   
   
