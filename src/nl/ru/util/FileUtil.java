@@ -811,7 +811,18 @@ public class FileUtil {
         // Assume we are looking for a directory
         DirectoryStream.Filter<Path> filter = new DirectoryStream.Filter<Path>() {
           public boolean accept(Path file) throws IOException {
-            return (file.toFile().isDirectory());
+            // Check if this is a symbolic link
+            boolean isSymLink = Files.isSymbolicLink(file);
+            if (isSymLink) {
+              file = Files.readSymbolicLink(file);
+            }
+            File f = file.toFile();
+            String sDecision = (f.isDirectory()) ? "d" : ( (isSymLink) ? "s" : "f");
+            if (sDecision.equals("d") || sDecision.equals("s")) {
+              Logger.getLogger(FileUtil.class.getName()).log(Level.INFO, 
+                      "filter {0}: {1}", new Object[]{f.getName(), sDecision});
+            }
+            return (f.isDirectory());
           }
         };
         sBack = FileUtil.getDirInDir(startDir, sFile, filter);
@@ -840,15 +851,20 @@ public class FileUtil {
    */
   static String getDirInDir(Path pStart, String sTarget, DirectoryStream.Filter<Path> filter) throws IOException  {
     // Look through the directory
-    DirectoryStream<Path> stream = Files.newDirectoryStream(pStart, filter);
-    for (Path path : stream) {
-      if (path.getFileName().toString().equals(sTarget)) {
-        return path.toAbsolutePath().toString();
-      } else {
-        // Try follow this link
-        String sAttempt = FileUtil.getDirInDir(path, sTarget, filter);
-        if (!sAttempt.isEmpty()) {
-          return sAttempt;
+    try (DirectoryStream<Path> stream = Files.newDirectoryStream(pStart, filter)) {
+      for (Path path : stream) {
+        if (path.getFileName().toString().equals(sTarget)) {
+          return path.toAbsolutePath().toString();
+        } else {
+          // Try follow this link
+          String sAttempt = FileUtil.getDirInDir(path, sTarget, filter);
+          /*
+          Logger.getLogger(FileUtil.class.getName()).log(Level.INFO, 
+                  "getDirInDir {0}-{1}: {2} ", new Object[]{pStart.getFileName().toString(), sTarget, sAttempt});
+          */
+          if (!sAttempt.isEmpty()) {
+            return sAttempt;
+          }
         }
       }
     }
