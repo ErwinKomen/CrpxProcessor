@@ -674,7 +674,7 @@ public class SearchManager {
    * @param sLngPartFile
    * @return 
    */
-  private JSONObject initLngPart() {
+  private synchronized JSONObject initLngPart() {
     try {
       // Windows check: should be D
       if (new File(this.sLngPart).getCanonicalPath().startsWith("C:")) {
@@ -702,9 +702,10 @@ public class SearchManager {
   /**
    * saveLngPart
    *    Save changes to the JSON file location cache
+   *    Make sure this is done synchronized!
    * 
    */
-  private void saveLngPart() {
+  private synchronized void saveLngPart() {
     try {
       File fLngPartFile = new File(this.sLngPart);
       Json.write(this.oLngPart, fLngPartFile);      
