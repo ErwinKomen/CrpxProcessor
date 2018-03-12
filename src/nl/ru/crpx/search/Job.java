@@ -282,7 +282,8 @@ public abstract class Job implements Comparable<Job> {
     if (searchThread == null)
       return; // can't cancel, hasn't been started yet (shouldn't happen)
     searchThread.interrupt();
-
+    // Make sure we set the status to interrupt, to signal the rest
+    setJobStatus("interrupt");
     // Tell the jobs we were waiting for we're no longer interested
     for (Job j: waitingFor) {
       j.changeClientsWaiting(-1);

@@ -533,6 +533,12 @@ public class ExecuteXml extends Execute {
           // Replace it
           sInputFile = sInputFile.replace("*.", "*?.");
         }
+        // Look for optional search parameters
+        JSONObject oQuery = new JSONObject(this.objSearchJob.getJobQuery());
+        if (oQuery.has("options")) {
+          // Get the options
+          JSONObject oOptions = oQuery.getJSONObject("options");
+        }
         // There are wildcards, so construct the inputfiles now
         // Look for all relevant files starting from [SrcDir]
         Path pStart = Paths.get(crpThis.getSrcDir().getAbsolutePath());
