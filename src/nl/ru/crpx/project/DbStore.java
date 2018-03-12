@@ -26,7 +26,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import nl.ru.crpx.search.Job;
 import nl.ru.crpx.tools.ErrHandle;
+import nl.ru.crpx.tools.FileIO;
 import nl.ru.util.ByRef;
 import nl.ru.util.FileUtil;
 import nl.ru.util.StringUtil;
@@ -345,6 +347,17 @@ public class DbStore {
     }
   }
   
+  private synchronized void setProgress(Job jobCaller, JSONObject oProgress, 
+          String sStart, int iCount) {
+    try {
+      if (!sStart.isEmpty()) oProgress.put("start", sStart);
+      if (iCount>=0) oProgress.put("count", iCount);
+      jobCaller.setJobProgress(oProgress);
+    } catch (Exception ex) {
+      errHandle.DoError("DbStore/setProgress error: ", ex, DbStore.class);
+    }
+  }
+  
   /**
    * xmlToDb
    *    Complete conversion of a .xml Result Database into an SQLite .db.gz
@@ -355,9 +368,10 @@ public class DbStore {
    * @return 
    */
   public boolean xmlToDbNew(String sFileName) {
-    return xmlToDbNew(sFileName, null);
+    return xmlToDbNew(sFileName, null, null, null);
   }
-  public boolean xmlToDbNew(String sFileName, JSONArray arListTotal) {
+  public boolean xmlToDbNew(String sFileName, JSONArray arListTotal, 
+          Job jobCaller, JSONObject oProgress) {
     List<JSONObject> lTextlist;
     
     try {
@@ -409,6 +423,9 @@ public class DbStore {
           // Get all the other relevant values
           String sFile = ndxThis.getAttributeValue("File");
           String sTextId = ndxThis.getAttributeValue("TextId");
+          // Show where we are
+          String sShort = FileIO.getFileNameWithoutExtension(sFile);
+          this.setProgress(jobCaller, oProgress, sShort, iCount);
           // Add the text/file to the file list if not already in there
           int iMetaId = addToTextList(lTextlist, sTextId, sFile, arListTotal);
           oResult.put("MetaId", iMetaId);

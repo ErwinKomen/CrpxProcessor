@@ -669,7 +669,7 @@ public class ExecutePsdxStream extends ExecuteXml {
                   // Create a *NEW* database file for this file
                   errHandle.debug("DB writing...");          
                   DbStore oDbStore = new DbStore(this.errHandle, bIncludeContextInCsv);
-                  oDbStore.xmlToDbNew(arFileName[i], arListTotal);
+                  oDbStore.xmlToDbNew(arFileName[i], arListTotal, jobCaller, oProgress);
                   // Make sure copies are stored on the [part] places
                   oDbStore.dbStorePart(arFileName[i], sPartDir );
                   errHandle.debug("DB done!");
