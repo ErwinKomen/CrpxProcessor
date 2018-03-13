@@ -366,7 +366,7 @@ public class DbStore {
   }
   
   /**
-   * xmlToDb
+   * xmlToDbNew
    *    Complete conversion of a .xml Result Database into an SQLite .db.gz
    *    This is a linear method that is not too fast ...
    * 
@@ -380,6 +380,10 @@ public class DbStore {
   public boolean xmlToDbNew(String sFileName, JSONArray arListTotal, 
           Job jobCaller, JSONObject oProgress) {
     List<JSONObject> lTextlist;
+    long startTimeDb;
+    long startTimeCsv;
+    long totalTimeDb = 0;
+    long totalTimeCsv = 0;
     
     try {
       // Process the header
@@ -412,72 +416,97 @@ public class DbStore {
       ByRef<XmlNode> ndxResult = new ByRef(null);
       int iFeatIdx = 1;
       int iCount = 0;
-      if (oDbIndex.FirstResult(ndxResult)) {
-        // Walk through them
-        int iCheck = 1; 
-        while (ndxResult.argValue != null) {
-          // Keep track of the count
-          iCount += 1;
-          // Get the values of this result
-          XmlNode ndxThis = ndxResult.argValue;
-          JSONObject oResult = new JSONObject();
-          // Get the index
-          int iResId = Integer.parseInt(ndxThis.getAttributeValue("ResId"));
-          // Double check
-          if (iCheck != iResId) { 
-            errHandle.DoError("DbStore/xmlToDb: index is wrong at " + iCheck); return false; 
+      
+      try (FileOutputStream fos = new FileOutputStream(loc_sCsvFile, true)) {
+        try (OutputStreamWriter osw = new OutputStreamWriter(fos, "utf-8")) {
+          try (BufferedWriter bf = new BufferedWriter(osw)) {
+            try (PrintWriter pCombi = new PrintWriter(bf)) {
+
+
+              if (oDbIndex.FirstResult(ndxResult)) {
+                // Walk through them
+                int iCheck = 1; 
+                while (ndxResult.argValue != null) {
+                  // Keep track of the count
+                  iCount += 1;
+                  // Get the values of this result
+                  XmlNode ndxThis = ndxResult.argValue;
+                  JSONObject oResult = new JSONObject();
+                  // Get the index
+                  int iResId = Integer.parseInt(ndxThis.getAttributeValue("ResId"));
+                  // Double check
+                  if (iCheck != iResId) { 
+                    errHandle.DoError("DbStore/xmlToDb: index is wrong at " + iCheck); return false; 
+                  }
+                  // Get all the other relevant values
+                  String sFile = ndxThis.getAttributeValue("File");
+                  String sTextId = ndxThis.getAttributeValue("TextId");
+                  // Show where we are
+                  String sShort = FileIO.getFileNameWithoutExtension(sFile);
+                  this.setProgress(jobCaller, oProgress, sShort, iCount);
+                  // Add the text/file to the file list if not already in there
+                  int iMetaId = addToTextList(lTextlist, sTextId, sFile, arListTotal);
+                  oResult.put("MetaId", iMetaId);
+                  oResult.put("Search", ndxThis.getAttributeValue("Search"));
+                  oResult.put("Cat", ndxThis.getAttributeValue("Cat"));
+                  oResult.put("Locs", ndxThis.getAttributeValue("forestId"));
+                  oResult.put("Locw", ndxThis.getAttributeValue("eTreeId"));
+                  oResult.put("Notes", ndxThis.getAttributeValue("Notes"));
+                  oResult.put("Context", ndxThis.SelectSingleNode("child::Text").getNodeValue());
+                  oResult.put("ResId", Integer.parseInt(ndxThis.getAttributeValue("ResId")));
+                  // Determine the features for this result
+                  List<XmlNode> lFeatValue = ndxThis.SelectNodes("./child::Feature");
+                  for (int j=0;j<lFeatValue.size();j++) {
+                    // Create name for feature
+                    String sFeatName = "ft_" + lFeatValue.get(j).getAttributeValue("Name");
+                    // Add this in the result
+                    oResult.put(sFeatName, lFeatValue.get(j).getAttributeValue("Value"));
+                  }
+                  // If this is the first go, we should create an insert statement
+                  if (bDoFeatNames) {
+                    // Prepare a string for the values
+                    String sSql = "INSERT INTO RESULT (RESID, METAID, SEARCH, CAT, "+
+                        "LOCS, LOCW, "+
+                        StringUtil.join(this.loc_lFeatName, ", ")+
+                        ") VALUES (?, ?, ?, ?, ?, ?"+
+                        new String(new char[this.loc_lFeatName.size()]).replace("\0", ", ?")+
+                        ")";
+                    // Prepare an insert statement
+                    this.loc_psInsertResult = conThis.prepareStatement(sSql);            
+                  }
+
+                  // Switch off feature-name extraction after the first go
+                  bDoFeatNames = false;
+
+                  // Process this Result
+                  startTimeDb = System.nanoTime();
+                  if (!addResult(oResult)) return false;
+                  totalTimeDb += System.nanoTime() - startTimeDb;
+
+                  // Process the CSV
+                  startTimeCsv = System.nanoTime();
+                  // if (!csvResult(oResult, lTextlist)) return false;
+                  if (!csvResultLine(oResult, lTextlist, pCombi)) return false;
+                  totalTimeCsv += System.nanoTime() - startTimeCsv;
+
+                  // Show the time every 100 times
+                  if (iCheck % 100 == 0) {
+                    double fDb = ((double) totalTimeDb)/1000;
+                    double fCsv = ((double) totalTimeCsv)/1000;
+                    errHandle.debug(String.format("xmlToDbNew db=%1$.2f csv=%2$.2f", 
+                            fDb, fCsv));
+                  }
+
+                  // Get the next result
+                  oDbIndex.NextResult(ndxResult);
+                  iCheck += 1;
+                }
+                
+              }
+            }
           }
-          // Get all the other relevant values
-          String sFile = ndxThis.getAttributeValue("File");
-          String sTextId = ndxThis.getAttributeValue("TextId");
-          // Show where we are
-          String sShort = FileIO.getFileNameWithoutExtension(sFile);
-          this.setProgress(jobCaller, oProgress, sShort, iCount);
-          // Add the text/file to the file list if not already in there
-          int iMetaId = addToTextList(lTextlist, sTextId, sFile, arListTotal);
-          oResult.put("MetaId", iMetaId);
-          oResult.put("Search", ndxThis.getAttributeValue("Search"));
-          oResult.put("Cat", ndxThis.getAttributeValue("Cat"));
-          oResult.put("Locs", ndxThis.getAttributeValue("forestId"));
-          oResult.put("Locw", ndxThis.getAttributeValue("eTreeId"));
-          oResult.put("Notes", ndxThis.getAttributeValue("Notes"));
-          oResult.put("Context", ndxThis.SelectSingleNode("child::Text").getNodeValue());
-          oResult.put("ResId", Integer.parseInt(ndxThis.getAttributeValue("ResId")));
-          // Determine the features for this result
-          List<XmlNode> lFeatValue = ndxThis.SelectNodes("./child::Feature");
-          for (int j=0;j<lFeatValue.size();j++) {
-            // Create name for feature
-            String sFeatName = "ft_" + lFeatValue.get(j).getAttributeValue("Name");
-            // Add this in the result
-            oResult.put(sFeatName, lFeatValue.get(j).getAttributeValue("Value"));
-          }
-          // If this is the first go, we should create an insert statement
-          if (bDoFeatNames) {
-            // Prepare a string for the values
-            String sSql = "INSERT INTO RESULT (RESID, METAID, SEARCH, CAT, "+
-                "LOCS, LOCW, "+
-                StringUtil.join(this.loc_lFeatName, ", ")+
-                ") VALUES (?, ?, ?, ?, ?, ?"+
-                new String(new char[this.loc_lFeatName.size()]).replace("\0", ", ?")+
-                ")";
-            // Prepare an insert statement
-            this.loc_psInsertResult = conThis.prepareStatement(sSql);            
-          }
-          
-          // Switch off feature-name extraction after the first go
-          bDoFeatNames = false;
-          
-          // Process this Result
-          if (!addResult(oResult)) return false;
-          
-          // Process the CSV
-          if (!csvResult(oResult, lTextlist)) return false;
-          
-          // Get the next result
-          oDbIndex.NextResult(ndxResult);
-          iCheck += 1;
         }
-        
+                
         // Retrieve the textlist information
         String sSql = "INSERT INTO META (METAID, TEXTID, FILE, SUBTYPE, "+
                 "TITLE, GENRE, AUTHOR, DATE, SIZE) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -510,13 +539,9 @@ public class DbStore {
       // Commit all changes
       conThis.commit();
       
-      // Close the database
-      if (!closeWrite()) return false;
-      
-
-      
-      // Return success
-      return true;
+      // Close the database and the CSV 
+      // Also: compress them to gz
+      return closeWrite();
     } catch (Exception ex) {
       errHandle.DoError("DbStore/xmlToDbNew error: ", ex, DbStore.class);
       return false;
@@ -859,6 +884,69 @@ public class DbStore {
       return true;
     } catch (Exception ex) {
       errHandle.DoError("DbStore/csvResult error: ", ex, DbStore.class);
+      return false;
+    }
+  }
+  
+  /**
+   * csvResultLine
+   *    Add one line of output (in oResult) to the current CSV file
+   * 
+   * @param oResult
+   * @param lMetaList
+   * @param pCombi
+   * @return 
+   */
+  public boolean csvResultLine(JSONObject oResult, List<JSONObject> lMetaList, 
+          PrintWriter pCombi) {
+    int i,iMetaId;
+    JSONObject oMeta;
+    
+    try {
+      // Get to the metadata
+      iMetaId = oResult.getInt("MetaId");
+      oMeta = lMetaList.get(iMetaId-1);
+      
+      StringBuilder sb = new StringBuilder();
+
+      // Obligatory: ResId
+      sb.append(oResult.getInt("ResId"));
+
+      // Obligatory: the meta string fields
+      for (i=0;i< loc_lCsvMeta.size();i++) {
+        // Get the obligatory field from oMeta
+        String sItem = oMeta.getString(loc_lCsvMeta.get(i));
+        sItem = StringUtil.escapeCsvCharacters(sItem);
+        sb.append(",").append('"').append(sItem).append('"');
+      }
+      // Obligatory: Size of the file
+      sb.append(",").append(oMeta.getInt("Size"));
+      // Obligatory: location and category fields
+      for (i=0;i< loc_lCsvOblig.size();i++) {
+        // Get the obligatory field from oResult
+        String sItem = oResult.getString(loc_lCsvOblig.get(i));
+        sItem = StringUtil.escapeCsvCharacters(sItem);
+        sItem = sItem.replace("\r\n", "");
+        sItem = sItem.replace("\n", "");
+        sb.append(",").append('"').append(sItem).append('"');
+      }
+      // Add the feature values
+      for (i=0;i<this.loc_lFeatName.size();i++ ) {
+        // Get the feature 
+        String sItem = oResult.getString(this.loc_lFeatName.get(i));
+        sItem = StringUtil.escapeCsvCharacters(sItem);
+        sItem = sItem.replace("\r\n", "");
+        sItem = sItem.replace("\n", "");
+        sb.append(",").append('"').append(sItem).append('"');
+      }
+      sb.append('\n');
+      // Write to the file
+      pCombi.write(sb.toString());
+      
+      // Return positively
+      return true;
+    } catch (Exception ex) {
+      errHandle.DoError("DbStore/csvResultLine error: ", ex, DbStore.class);
       return false;
     }
   }
