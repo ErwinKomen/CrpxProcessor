@@ -632,8 +632,17 @@ public class Extensions extends RuBase {
                 if (sId.equals(sWid) || sIdw.equals(sWid)) {
                   // Found the correct <w>
                   sBack = ndW.toString();
+                  
+                  // Convert this <w> to a proper <Node>
+                  // Attempt #1...
+                  ndxBack = oCF.oDocFac.newDocumentBuilder().parse(
+                          new InputSource(new StringReader(sBack))).getDocumentElement();
+                  
+                  // Attempt #2: outdated
+                  /*
                   Node ndxFound = oCF.oDocFac.newDocumentBuilder().parse(new InputSource(new StringReader(sBack)));
                   ndxBack = ndxFound.getFirstChild();
+                  */
                   return ndxBack;
                 }
               }

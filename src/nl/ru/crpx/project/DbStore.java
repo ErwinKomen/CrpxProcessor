@@ -351,7 +351,14 @@ public class DbStore {
           String sStart, int iCount) {
     try {
       if (!sStart.isEmpty()) oProgress.put("start", sStart);
-      if (iCount>=0) oProgress.put("count", iCount);
+      if (iCount>=0) {
+        oProgress.put("count", iCount);
+        oProgress.put("ready", iCount);
+      }
+      // Make sure the total is set
+      oProgress.put("total", oProgress.getInt("found"));
+      // Clear some other stuff
+      oProgress.put("finish", "");
       jobCaller.setJobProgress(oProgress);
     } catch (Exception ex) {
       errHandle.DoError("DbStore/setProgress error: ", ex, DbStore.class);
