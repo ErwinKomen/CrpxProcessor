@@ -267,6 +267,8 @@ public abstract class Job implements Comparable<Job> {
     // if (clientsWaiting < 0)
     //   error(logger, "clientsWaiting < 0 for job: " + this);
     if (shouldBeCancelled()) {
+      // Show that we are removing the job due to clientsWaiting zero
+      errHandle.debug("clientsWaiting = 0 for job: " + this.id);
       cancelJob();
     }
   }
@@ -284,6 +286,7 @@ public abstract class Job implements Comparable<Job> {
     searchThread.interrupt();
     // Make sure we set the status to interrupt, to signal the rest
     setJobStatus("interrupt");
+    errHandle.debug("Cancelling job " + this.id);
     // Tell the jobs we were waiting for we're no longer interested
     for (Job j: waitingFor) {
       j.changeClientsWaiting(-1);
