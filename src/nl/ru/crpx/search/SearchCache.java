@@ -21,7 +21,7 @@ public class SearchCache {
   /** Max time searches are allowed to run (24 hours of 60 minutes) 
    * [ERK: changed from 5 to 60 minutes] 
    * ERK: changed to 24 hours because of long CESAR searches */
-  public final static int MAX_SEARCH_TIME_SEC = 24 * 60 * 60;
+  public final static int MAX_SEARCH_TIME_SEC = 24 * 3600;
 
   /** The cached search objects. */
   private Map<SearchParameters, Job> cachedSearches;
@@ -33,8 +33,8 @@ public class SearchCache {
   private int maxNumberOfJobs = 20;
 
   /** Maximum age of a cached search in seconds. May be exceeded because it is only cleaned up when
-   *  adding new searches. Defaults to one hour. */
-  private int maxJobAgeSec = 3600;
+   *  adding new searches. Defaults to MAX_SEARCH_TIME_SEC, which currently is 24 hours. */
+  private int maxJobAgeSec = MAX_SEARCH_TIME_SEC;
 
   /** (Estimated) size of the cache. Only updated in removeOldSearches, so may not
    * always be accurate. */
@@ -53,7 +53,7 @@ public class SearchCache {
    */
   public SearchCache(JSONObject settings) {
     cachedSearches = new HashMap<SearchParameters, Job>();
-    maxJobAgeSec = JsonUtil.getIntProp(settings, "maxJobAgeSec", 3600);
+    maxJobAgeSec = JsonUtil.getIntProp(settings, "maxJobAgeSec", MAX_SEARCH_TIME_SEC);
     maxNumberOfJobs = JsonUtil.getIntProp(settings, "maxNumberOfJobs", 20);
     maxSizeMegs = JsonUtil.getIntProp(settings, "maxSizeMegs", -1);
     minFreeMemTargetMegs = JsonUtil.getIntProp(settings, "targetFreeMemMegs", 100);
