@@ -98,18 +98,54 @@ public class SearchCache {
   }
   public Job getJob(String sQuery) {
     try {
-    // Sort cache by last access time
-    List<Job> allCachedJobs = new ArrayList<>(cachedSearches.values());
-    // Walk all jobs
-    for (Job search: allCachedJobs) {
-      // Check out the id of this job
-      if (search.jobQuery.equals(sQuery)) {
-        // Found the job!
-        return search;
+      // Sort cache by last access time
+      List<Job> allCachedJobs = new ArrayList<>(cachedSearches.values());
+      // Walk all jobs
+      for (Job search: allCachedJobs) {
+        // Check out the id of this job
+        if (search.jobQuery.equals(sQuery)) {
+          // Found the job!
+          return search;
+        }
       }
+      // We did not succeed in finding the correct job...
+      return null;
+    } catch (Exception ex) {
+      logger.error("Could not getJob", ex);
+      return null;
     }
-    // We did not succeed in finding the correct job...
-    return null;
+  }
+  
+  /**
+   * getJobList
+   *    Get a list of jobs in a dataobject array
+   * 
+   * @return 
+   */
+  public DataObject getJobList() {
+    DataObjectList lJob = new DataObjectList("jobs");
+    
+    try {
+      // Sort cache by last access time
+      List<Job> allCachedJobs = new ArrayList<>(cachedSearches.values());
+      // Walk all jobs
+      for (Job search: allCachedJobs) {
+        // Get the information from this job: type, user, number
+        String sUser = search.userId;
+        String sId =  String.valueOf(search.id);
+        String sQuery = search.jobQuery;
+        String sStatus = search.jobStatus;
+        // Write this into a dataobject
+        DataObjectMapElement oJob = new DataObjectMapElement();
+        oJob.put("id", sId);
+        oJob.put("user", sUser);
+        oJob.put("query", sQuery);
+        oJob.put("status", sStatus);
+        // Add the job to the list
+        lJob.add(oJob);
+      }
+      // We did not succeed in finding the correct job...
+      return lJob;
     } catch (Exception ex) {
       logger.error("Could not getJob", ex);
       return null;

@@ -265,6 +265,9 @@ public class SearchManager {
     }
   }
 
+  public DataObject jobList() {
+    return cache.getJobList();
+  }
   /**
    * Return the list of indices available for searching.
    * 
