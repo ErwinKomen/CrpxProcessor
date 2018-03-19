@@ -11,7 +11,11 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
+import java.util.Set;
 import javax.xml.transform.ErrorListener;
 import javax.xml.transform.SourceLocator;
 import javax.xml.transform.TransformerException;
@@ -66,6 +70,7 @@ public class ExecuteXml extends Execute {
   // =========== Local variables ===============================================
   private FileUtil fHandle;             // For processing FileUtil functions
   private XqErr oXq;                    // For using XqErr
+  private Random r;
   // =========== Accessible variables ==========================================
   // public boolean bIsDbase;           // Whether this is a database or not
 // </editor-fold>
@@ -520,12 +525,19 @@ public class ExecuteXml extends Execute {
   // 30/apr/2015 ERK Adapted for Java
   // ----------------------------------------------------------------------------------------------------------
   private boolean BuildSource(List<String> lInputFiles) {
+    List<String> lAllFiles;
     String sInputFile;  // The input file we are working with
+    int iSamples = -1;  // The number of samples to be taken randomly
+    int iFirst = -1;    // The number of 'first' items to be taken
     int intI = 0;       // Counter
 
     try {
       // Derive the input file or the list of input files from [arQuery(0).InputFile]
       sInputFile = arQuery[0].InputFile;
+      // Initialize a list where all files will get into
+      lAllFiles = new ArrayList <>();
+      // Make sure we properly initialize random
+      r = new Random();
       // (1) Does the input file consist of wildcards?
       if (sInputFile.contains("*")) {
         // Check if this contains [*.] --> that should be replaced with [*?.]
@@ -538,16 +550,62 @@ public class ExecuteXml extends Execute {
         if (oQuery.has("options")) {
           // Get the options
           JSONObject oOptions = oQuery.getJSONObject("options");
+          if (oOptions.has("search_type")) {
+            String sSearchType = oOptions.getString("search_type");
+            if (oOptions.has("search_count")) {
+              int iSubset = oOptions.getInt("search_count");
+              switch(sSearchType) {
+                case "random":  // Take random 'search_count' options
+                  iSamples = iSubset;
+                  break;
+                case "first":   // Take the first 'search_count' items
+                  iFirst = iSubset;
+                  break;
+                default:
+                  // no need to do anything
+                  break;
+              }
+            }
+          }
         }
         // There are wildcards, so construct the inputfiles now
         // Look for all relevant files starting from [SrcDir]
         Path pStart = Paths.get(crpThis.getSrcDir().getAbsolutePath());
-        FileUtil.getFileNames(lInputFiles, pStart, sInputFile);
+        FileUtil.getFileNames(lAllFiles, pStart, sInputFile);
         // If there are no files, then add .gz to the possibilities
-        if (lInputFiles.isEmpty()) {
+        if (lAllFiles.isEmpty()) {
           sInputFile = sInputFile + ".gz";
-          FileUtil.getFileNames(lInputFiles, pStart, sInputFile);
+          FileUtil.getFileNames(lAllFiles, pStart, sInputFile);
         }
+        
+        int numFiles = lAllFiles.size();
+        
+        // See how we can derive lInputFiles from lAllFiles
+        if (iSamples > 0 && iSamples < numFiles) {
+          // We need to take a number of samples: Get an array of indices
+          // See: https://www.javamex.com/tutorials/random_numbers/random_sample.shtml
+          int i = 0,
+              nLeft = numFiles;
+          while (iSamples > 0) {
+            // Gat a random index
+            int rand = r.nextInt(nLeft);
+            if (rand < iSamples) {
+              lInputFiles.add(lAllFiles.get(i));
+              iSamples--;
+            }
+            nLeft--;
+            i++;
+          }
+        } else if (iFirst>0 &&  iFirst < numFiles) {
+          // Take the first [iFirst] items
+          for (int i=0;i<iFirst;i++) {
+            lInputFiles.add(lAllFiles.get(i));
+          }
+        } else {
+          // Just copy lAllFiles
+          lInputFiles.addAll(lAllFiles);
+        }
+        
         // There should be at least 1 file
         if (lInputFiles.isEmpty()) {
           // Give appropriate error message
@@ -603,6 +661,40 @@ public class ExecuteXml extends Execute {
       return false;
     }
   }
+  
+  
+  /*
+  private List<String> getNElementsBitSet(List<String> list, int n) {
+    List<String> rtn = new ArrayList<>(n);
+    int[] ids = generateUniformBitmap(n, 0, list.size());
+    for (int i = 0; i < ids.length; i++) {
+      rtn.add(list.get(ids[i]));
+    }
+    return rtn;
+  }
+  private int[] generateUniformBitmap(int N, int Max) {
+        if (N > Max) throw new RuntimeException("not possible");
+        int[] ans = new int[N];
+        if (N == Max) {
+            for (int k = 0; k < N; ++k)
+                ans[k] = k;
+            return ans;
+        }
+        BitSet bs = new BitSet(Max);
+        int cardinality = 0;
+        while (cardinality < N) {
+            int v = rand.nextInt(Max);
+            if (!bs.get(v)) {
+                bs.set(v);
+                cardinality++;
+            }
+        }
+        int pos = 0;
+        for (int i = bs.nextSetBit(0); i >= 0; i = bs.nextSetBit(i + 1)) {
+            ans[pos++] = i;
+        }
+        return ans;
+  }  */
 // </editor-fold>
 // <editor-fold defaultstate="collapsed" desc="ErrorListener class">
   public class MyErrorListener implements ErrorListener {

@@ -652,54 +652,16 @@ public class FileUtil {
       Logger.getLogger(FileUtil.class.getName()).log(Level.SEVERE, null, ex);
       return "";
     }
-    /* ================= OBSOLETE =========
-    try {
-      pThis = pThis.toRealPath(lThis);
-    } catch (NoSuchFileException | RuntimeException ex) {
-      pThis = null;
-    } catch (IOException ex) {
-      pThis = null;
-    }
-    try {
-      if (pThis==null) {
-        // This particular file/directory is not found: attempt dir-by-dir
-        String[] arDir = pThis.toString().split("/");
-        String sTmpPath = "";
-        // Walk the whole directory structure part-for-part
-        for (int i=1; i< arDir.length; i++) {
-          // Check if this exists
-          File fNew = new File(sTmpPath + "/" + arDir[i]);
-          if (!fNew.exists()) {
-            // Look for a variant 
-            File fOld = new File(sTmpPath);
-            if (!fOld.isDirectory()) {
-              // This is a problem: we can only look inside directories
-            }
-            String[] arHere = fOld.list();
-            if (arHere == null) {
-              Logger.getLogger(FileUtil.class.getName()).log(Level.SEVERE, "arHere is null");
-              return "";
-            }
-            // Find the variant
-            for (int j=0;j<arHere.length; j++) {
-              if (arHere[j].equalsIgnoreCase(arDir[i])) {
-                // We found the culprit
-                arDir[i] = arHere[j];
-              }
-            }
-          }
-          // Build path
-          sTmpPath += "/" + arDir[i];
-        }
-      }
-      sName = pThis.toString();
-    } catch (Exception ex) {
-      Logger.getLogger(FileUtil.class.getName()).log(Level.SEVERE, null, ex);
-    }
-   return sName;
-       ================================ */
   }
-  // ERK: added: get all filtered files recursively
+  
+  /**
+   * getFileNames
+   *    get all filtered files recursively
+   * 
+   * @param fileNames
+   * @param dir
+   * @param sFilter 
+   */
   public static void getFileNames(List<String> fileNames, Path dir, String sFilter) {
     // Validate: we can only look inside directories
     if (!dir.toFile().isDirectory()) {
