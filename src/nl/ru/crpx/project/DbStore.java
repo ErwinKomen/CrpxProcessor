@@ -1107,37 +1107,36 @@ public class DbStore {
       this.loc_lValue.clear();
       // Walk all elements of the filter
       Iterator keys = oFilter.keys();
+      
       while (keys.hasNext()) {
         StringBuilder sbThis = new StringBuilder();
 
         String sKey = keys.next().toString();
-        String sValue = oFilter.getString(sKey);
         
-        try {
-          // Create an index
-          stmt.execute("CREATE INDEX IF NOT EXISTS Res_"+sKey+" ON RESULT("+sKey+")");
-          // Make sure it is created - but do not complain if it goes wrong here
-          conThis.commit();
-        } catch (Exception exCon) {
-          int iOkay = 1;
-        }
-
-        sbThis.append(sKey);
-        // Add the key/value pair to the list of SQL filter expressions
-        if (sValue.contains("*")) {
-          sbThis.append(" LIKE ? ");
+        // Check if this is an or_list
+        if (sKey.equals("or_list")) {
+          // Process the or_list
+          JSONArray or_list = oFilter.getJSONArray(sKey);
+          List<String> lKV = new ArrayList<>();
+          for (int j=0;j<or_list.length();j++) {
+            JSONObject oKV = or_list.getJSONObject(j);
+            JSONArray lstNames = oKV.names();
+            String kvKey = lstNames.getString(0);
+            String kvValue = oKV.getString(kvKey);
+            lKV.add(getFilterOperation(kvKey, kvValue));
+            loc_lValue.add(getFilterValue(kvKey, kvValue));
+          }
+          // Combine the or_list
+          String sValue = "(" + StringUtils.join(lKV, " OR ") + ")";
+          loc_lFilter.add(sValue);
         } else {
-          sbThis.append(" = ?");
+          // This is a plain key/value pair
+          String sValue = oFilter.getString(sKey);
+          loc_lFilter.add(getFilterOperation(sKey, sValue));
+          loc_lValue.add(getFilterValue(sKey, sValue));
         }
-        // Add the filter line
-        loc_lFilter.add(sbThis.toString());
-        // Possible filter out the percent sign
-        sValue = sValue
-                .replace("!", "!!")
-                .replace("%", "!%")
-                .replace("_", "!_")
-                .replace("[", "![");
-        loc_lValue.add(sValue.replace("*", "%"));
+        
+
       }
       
       // Return positively
@@ -1145,6 +1144,61 @@ public class DbStore {
     } catch (Exception ex) {
       errHandle.DoError("DbStore/filter error: ", ex, DbStore.class);
       return false;
+    }
+  }
+  
+  private String getFilterOperation(String sKey, String sValue) {
+    StringBuilder sbThis = new StringBuilder();
+    Statement stmt = null;
+    
+    try {
+      stmt = conThis.createStatement();
+
+      try {
+        // Create an index
+        stmt.execute("CREATE INDEX IF NOT EXISTS Res_"+sKey+" ON RESULT("+sKey+")");
+        // Make sure it is created - but do not complain if it goes wrong here
+        conThis.commit();
+      } catch (Exception exCon) {
+        int iOkay = 1;
+      }
+
+      sbThis.append(sKey);
+      // Add the key/value pair to the list of SQL filter expressions
+      if (sValue.contains("*")) {
+        sbThis.append(" LIKE ? ");
+      } else {
+        sbThis.append(" = ?");
+      }
+      return sbThis.toString();
+    } catch (Exception ex) {
+      errHandle.DoError("DbStore/getFilterOperation error: ", ex, DbStore.class);
+      return "";
+    }
+  }
+  
+  /**
+   * getFilterValue
+   *    Given the key/value, get a good SQL translation
+   *    The translation is either Key = Value or Key LIKE Value
+   * 
+   * @param sKey
+   * @param sValue
+   * @return 
+   */
+  private String getFilterValue(String sKey, String sValue) {
+    try {
+      // Possible filter out the percent sign
+      sValue = sValue
+              .replace("!", "!!")
+              .replace("%", "!%")
+              .replace("_", "!_")
+              .replace("[", "![");
+      // Return what we have finally found
+      return sValue.replace("*", "%"); 
+    } catch (Exception ex) {
+      errHandle.DoError("DbStore/getFilterValue error: ", ex, DbStore.class);
+      return "";
     }
   }
   
