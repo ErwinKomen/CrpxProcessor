@@ -697,6 +697,8 @@ public class ExecutePsdxStream extends ExecuteXml {
   private JSONObject getMetaInfo(CrpFile oCrpFile, XmlForest objProcType) {
     JSONObject oBack = new JSONObject();
     JSONObject oDef;
+    String sWords = "";
+    int iWords = 0;
     
     try {
       XmlNode ndxHeader = oCrpFile.ndxHeader;
@@ -710,6 +712,7 @@ public class ExecutePsdxStream extends ExecuteXml {
         oBack.put("author", getMetaElement(oDef.getJSONArray("author"), ndxMdi));
         oBack.put("date", getMetaElement(oDef.getJSONArray("date"), ndxMdi));
         oBack.put("subtype", getMetaElement(oDef.getJSONArray("subtype"), ndxMdi));
+        sWords = getMetaElement(oDef.getJSONArray("words"), ndxMdi);
       } else if (oCrpFile.ndxHeader != null) {
         oDef = this.arMetaInfo.getJSONObject(1).getJSONObject("def");
         oBack.put("title", getMetaElement(oDef.getJSONArray("title"), ndxHeader));
@@ -717,9 +720,21 @@ public class ExecutePsdxStream extends ExecuteXml {
         oBack.put("author", getMetaElement(oDef.getJSONArray("author"), ndxHeader));
         oBack.put("date", getMetaElement(oDef.getJSONArray("date"), ndxHeader));
         oBack.put("subtype", getMetaElement(oDef.getJSONArray("subtype"), ndxHeader));
+        sWords = getMetaElement(oDef.getJSONArray("words"), ndxHeader);
       }
       // Add the SIZE (length in terms of lines
       oBack.put("size", objProcType.GetSize());
+      // Special check: do we have a word size?
+      if (sWords.isEmpty()) {
+        // There is no word size: signal this by setting it to minus 1
+        iWords = -1;        
+      } else {
+        // See if emendments are needed
+        sWords = sWords.replaceAll("[^\\d]", "");
+        iWords = Integer.parseInt(sWords);
+      }
+      // Put the integer word count here
+      oBack.put("words", iWords);
       
       // The result information 
       return oBack;

@@ -239,6 +239,7 @@ public class RunTxtList extends RunAny {
                     String sValue = "";
                     switch(sKey) {
                       case "size":
+                      case "words":
                         oFile.put(sKey, oMeta.getInt(sKey));
                         break;
                       case "subtype":
@@ -336,6 +337,7 @@ public class RunTxtList extends RunAny {
             switch (sKey) {
               case "size":
               case "genre":
+              case "words":
               case "subtype":
                 oDataFile.put(sKey, oFile.getInt(sKey));
                 break;

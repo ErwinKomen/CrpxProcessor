@@ -914,6 +914,55 @@ public class Parse {
   }
   
   /**
+   * getWordCount
+   *    Calculate the number of words
+   * 
+   * @param oCrpFile
+   * @param ndxForest
+   * @return 
+   */
+  private int getWordCount(CrpFile oCrpFile, ByRef<XmlNode> ndxForest) {
+    XmlForest objProcType = null; 
+    int iCount = 0;
+    
+    try {
+      // Validate
+      if (this.crpThis == null ) return -1;
+      // Initialize
+      objProcType = oCrpFile.objProcType;
+      
+      // Walk all forests
+      while (ndxForest.argValue != null) {
+        
+        // Retrieve all the words in this sentence
+        switch(crpThis.intProjType) {
+          case ProjPsdx:
+            iCount += ndxForest.argValue.SelectNodes("./descendant::eLeaf[not(@Type) or @Type='Vern']").size();
+            break;
+          case ProjFolia:
+            // But only take words of the right @class (if that exists)
+            iCount += ndxForest.argValue.SelectNodes("./descendant::w[not(@class) or @class='Vern']").size();
+            break;
+        }
+        
+        // Get to the next sentence
+        if (!objProcType.NextForest(ndxForest)) {
+          objProcType.close();
+          errHandle.DoError("Parse/getWordCount could not process next forest of " + oCrpFile.sTextId);
+          return -1;
+        }
+            
+      }
+      
+      return iCount;
+    } catch (Exception ex) {
+      if (objProcType != null) { objProcType.close(); }
+      errHandle.DoError("Parse/getWordCount problem ", ex, Parse.class);
+      return -1;
+    }
+  }
+  
+  /**
    * getMetaInfo
    *    Get the metadata information for [sFileName]
    * 
@@ -928,6 +977,8 @@ public class Parse {
     CrpFile oCrpFile;
     JSONObject oBack = new JSONObject();
     JSONObject oDef = null;
+    String sWords = "";
+    int iWords = 0;
     
     try {
       // Validate
@@ -959,6 +1010,7 @@ public class Parse {
         oBack.put("author", getMetaElement(oDef.getJSONArray("author"), oCrpFile.ndxMdi));
         oBack.put("date", getMetaElement(oDef.getJSONArray("date"), oCrpFile.ndxMdi));
         oBack.put("subtype", getMetaElement(oDef.getJSONArray("subtype"), oCrpFile.ndxMdi));
+        sWords = getMetaElement(oDef.getJSONArray("words"), oCrpFile.ndxMdi);
       } else if (oCrpFile.ndxHeader != null) {
         oDef = this.arMetaInfo.getJSONObject(1).getJSONObject("def");
         oBack.put("title", getMetaElement(oDef.getJSONArray("title"), oCrpFile.ndxHeader));
@@ -966,9 +1018,22 @@ public class Parse {
         oBack.put("author", getMetaElement(oDef.getJSONArray("author"), oCrpFile.ndxHeader));
         oBack.put("date", getMetaElement(oDef.getJSONArray("date"), oCrpFile.ndxHeader));
         oBack.put("subtype", getMetaElement(oDef.getJSONArray("subtype"), oCrpFile.ndxHeader));
+        sWords = getMetaElement(oDef.getJSONArray("words"), oCrpFile.ndxHeader);
       }
       // Add the SIZE (length in terms of lines
       oBack.put("size", objProcType.GetSize());
+      
+      // Special check: do we have a word size?
+      if (sWords.isEmpty()) {
+        // There is no word size: calculate it...
+        iWords = getWordCount(oCrpFile, ndxForest);
+      } else {
+        // See if emendments are needed
+        sWords = sWords.replaceAll("[^\\d]", "");
+        iWords = Integer.parseInt(sWords);
+      }
+      // Put the integer word count here
+      oBack.put("words", iWords);
       
       // Make sure to close the Random-Access-Reader for this file
       oCrpFile.close();

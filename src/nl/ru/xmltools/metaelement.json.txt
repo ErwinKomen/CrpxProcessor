@@ -11,6 +11,10 @@
       "author": [
         { "node": "./descendant::Author/child::Name", "attr": ""},
         { "node": "./descendant::Author", "attr": ""}],
+      "words": [
+        { "node": "./descendant::TotalSize/child::Number", "attr": ""},
+        { "node": "./descendant::TextStatistics/child::Words", "attr": ""},
+        { "node": "./descendant::MDGroup/child::Keys/child::Key[@Name=\"CGN.wordCount\"]", "attr": ""}],
       "date": [
         { "node": "./descendant::Publication/child::PublicationDate", "attr": ""},
         { "node": "./descendant::BroadcastPublication/child::BroadcastDate", "attr": ""},
@@ -37,6 +41,8 @@
       "date": [
         { "node": "./descendant::langUsage/child::creation", "attr": "manuscript"},
         { "node": "./descendant::metadata/child::meta[@id=\"Manuscript date\"]", "attr": ""}],
+      "words": [
+        { "node": "./descendant::metadata/child::meta[@id=\"Word count\"]", "attr": ""}],
       "subtype": [
         { "node": "./descendant::langUsage/child::creation", "attr": "subtype"}]}
   }

@@ -1152,6 +1152,21 @@ public class CorpusResearchProject {
       default: return "";
     }
   }
+  public String getNodeWords() {
+    return getNodeWords(this.intProjType);
+  }
+  public static String getNodeWords(ProjType ptThis) {
+    switch (ptThis) {
+      case ProjPsdx: return "./descendant-or-self::eLeaf[@Type='Vern']";
+      case ProjNegra: return "";  // TODO
+      case ProjPsd: return "";
+      case ProjFolia: return "./descendant-or-self::w[not(@class) or @class='Vern']";
+      case ProjAlp: return "";    // TODO
+      case Dbase: return "";      // TODO
+      default: return "";
+    }
+  }
+  
   public String getNodeLast() {
     return getNodeLast(this.intProjType);
   }
