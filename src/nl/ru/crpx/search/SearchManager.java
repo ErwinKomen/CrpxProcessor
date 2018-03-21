@@ -332,8 +332,11 @@ public class SearchManager {
         if (oPart.has(sPart)) {
           // There is an entry for this part
           return oPart.getString(sPart);
-        } 
+        } else {
+          logger.debug("getCorpusPartDir: language ["+sLng+"] doesn't yeat have part ["+sPart+"]");
+        }
       } else {
+        logger.debug("getCorpusPartDir: language not in lookup ["+sLng+"]");
         // Create an entry for the language/part
         oPart = new JSONObject();
       }
