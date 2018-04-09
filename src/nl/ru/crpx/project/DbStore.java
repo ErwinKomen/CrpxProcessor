@@ -1192,8 +1192,9 @@ public class DbStore {
       sValue = sValue
               .replace("!", "!!")
               .replace("%", "!%")
-              .replace("_", "!_")
               .replace("[", "![");
+      // Removed from the above:
+      //               .replace("_", "!_")
       // Return what we have finally found
       return sValue.replace("*", "%"); 
     } catch (Exception ex) {
