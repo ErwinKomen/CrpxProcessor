@@ -322,6 +322,11 @@ public class SearchManager {
     if (fDir==null) return "";
     // We need the directory as a string
     String sTarget = fDir.getAbsolutePath();
+    // Preliminary: take the language directory as basis
+    sFull = sTarget;
+    
+    logger.debug("getCorpusPartDir sTarget="+sTarget);
+    
     // Get a sub directory or focus file
     if (!sPart.isEmpty()) {
       // See if this file is in the cache we have 

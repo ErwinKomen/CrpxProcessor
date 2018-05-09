@@ -158,6 +158,8 @@ public class RunTxtList extends RunAny {
       
       // Get the directory from where to search
       Path pRoot = Paths.get(this.srchManager.getCorpusPartDir(sLng, sPart));
+      
+      errHandle.debug("getTextList for ["+sLng+","+sPart+"] is looking in dir: " + pRoot.toString());
 
 /*      
       Path pRoot = Paths.get(FileUtil.nameNormalize(sCorpusBase), sLng);
@@ -371,7 +373,7 @@ public class RunTxtList extends RunAny {
       // Return the back object
       return oBack;      
     } catch (Exception ex) {
-      errHandle.DoError("Could not get a list of texts", ex, RunTxtList.class);
+      errHandle.DoError("RunTxtList.getTextList: Could not get a list of texts", ex, RunTxtList.class);
       return null;
     }
   }
