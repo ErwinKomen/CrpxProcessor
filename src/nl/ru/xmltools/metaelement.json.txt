@@ -6,8 +6,8 @@
       "genre": [
         { "node": "./descendant::Publication/child::PublicationGenre", "attr": ""},
         { "node": "./descendant::TextClass", "attr": ""},
-        { "node": "./descendant::TextType", "attr": ""},
-        { "node": "./descendant::Genre", "attr": ""}],
+        { "node": "./descendant::Genre", "attr": ""},
+        { "node": "./descendant::TextType", "attr": ""}],
       "author": [
         { "node": "./descendant::Author/child::Name", "attr": ""},
         { "node": "./descendant::Author", "attr": ""}],
