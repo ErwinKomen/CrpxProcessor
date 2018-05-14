@@ -9,6 +9,8 @@ package nl.ru.crpx.xq;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -67,6 +69,8 @@ public class Extensions extends RuBase {
   private static final QName loc_qnSubset = new QName("", "", "subset");
   private static final QName loc_qnClass = new QName("", "", "class");
   private static final QName loc_qnEleaf = new QName("", "", "eLeaf");
+  private static final QName loc_qnPsdxConstId = new QName("", "", "Id");
+  private static final QName loc_qnRef = new QName("", "", "ref");
   private static final QName loc_qnLabel = new QName("", "", "Label");
   private static final QName loc_qnText = new QName("", "", "Text");
   private static final QName loc_qnT = new QName("", "", "t");
@@ -76,6 +80,7 @@ public class Extensions extends RuBase {
   private static final QName loc_qnForest = new QName("", "", "forestId");
   private static final QName ru_qnFoliaId = new QName("xml", "http://www.w3.org/XML/1998/namespace", "id");
   private static final QName ru_qnFoliaWrefId = new QName("", "", "id");     // Simple identifier for <wref> element
+  private static final QName ru_qnPsdxTarget = new QName("", "", "target");
 
   // ============== CLASS initialization =======================================
   public Extensions(CorpusResearchProject objPrj) {
@@ -95,50 +100,215 @@ public class Extensions extends RuBase {
   
 // <editor-fold desc="ru:ant">
     // ------------------------------------------------------------------------------------
-    // Name:   ant
-    // Goal:   Return the antecedent from this node
+    // Name:   antdist
+    // Goal:   Return the distance to the antecedent of this node
     // History:
-    // 15-05-2012  ERK Created for .NET
-    // 24-09-2013  ERK Added line with only 1 argument
-    // 27/Sep/2016 ERK Started adaptation for Java
+    // 14/may/2018 ERK Started adaptation for Java
     // ------------------------------------------------------------------------------------
-    public static Node ant(XPathContext objXp) {
-      XmlNode ndxRes = null;
-      Node ndxBack = null;
+    public static Node ant(XPathContext objXp, SequenceIterator sIt) {
+        // Get the node we are considering
+        NodeInfo node = getOneNode(objXp, "ant", sIt);
+        return ant(objXp, node);
+    }
+    public static Node ant(XPathContext objXp, NodeInfo node) {
       try {
-        // Determine which CRP this is
-        CrpFile oCF = getCrpFile(objXp);
-        ByRef<XmlNode> ndxNew = new ByRef(null);
-        switch(oCF.crpThis.intProjType) {
-          /*
-          case ProjPsdx:
-            if (oCF.objProcType.OneForest(ndxNew, sNewSentId)) {
-              ndxRes = ndxNew.argValue;
-            }
-            break;
-          case ProjFolia:
-            if (oCF.objProcType.OneForest(ndxNew, sNewSentId)) {
-              ndxRes = ndxNew.argValue;
-            }
-            break;
-          */
-        }
-        
-        // Convert Xdm or Xml node to Node
-        if (ndxRes == null)
-          ndxBack = null;
-        else {
-          ndxBack = oCF.oDocFac.newDocumentBuilder().parse(new InputSource(new StringReader(ndxRes.toString())));
-        }
-        
-        // Return the result
-        return ndxBack;
+        // Get the constituent id of the antecedent
+        String sConstId = get_antConstId(objXp, node);
+        return get_antnode(objXp, node, sConstId);
       } catch (Exception ex) {
         // Show error
         errHandle.DoError("Extensions/ant", ex);
         setRtError(objXp, "ant", ex.getMessage());
         // Return failure
         return null;
+      }
+    }
+    // Get the distance between the line of [node] and the line of [sConstId]
+    public static Node get_antnode(XPathContext objXp, NodeInfo node, String sConstId) {
+      int nodeKind;
+      int iDist = 0;
+      String sBack = "";
+      XdmNode ndSax;             // Myself, if I am a proper node
+      Node ndxBack = null;
+      XmlNode ndxRes = null;
+
+      try {
+        // Validate
+        if (node == null) return null;
+        nodeKind = node.getNodeKind();
+        if (nodeKind != Type.ELEMENT) return null;
+        // Get the XdmNode representation of the node
+        ndSax = objSaxDoc.wrap(node);   
+        // Determine which CRP this is
+        CrpFile oCF = getCrpFile(objXp);
+        switch(oCF.crpThis.intProjType) {
+          case ProjPsdx:
+            String sNodeName = ndSax.getNodeName().getLocalName();
+            switch (sNodeName) {
+              case "eTree": // Find a child <ref> and take that one's id
+                ByRef<XmlNode> ndxNew = new ByRef(null);                
+                if (oCF.objProcType.FindForest(ndxNew, sConstId)) {
+                  // This is the <forest> in which the constituent is
+                  ndxRes = ndxNew.argValue;
+                  
+                  // Get from the forest to the node
+                  ndxRes = ndxRes.SelectSingleNode("./descendant::eTree[@Id='"+sConstId+"']");
+                  
+                  // Get the string of this node
+                  sBack = ndxRes.toString();
+                  
+                  // Calculate the correct thing to return
+                  ndxBack = oCF.oDocFac.newDocumentBuilder().parse(
+                          new InputSource(new StringReader(sBack))).getDocumentElement();
+                }
+                break;
+            }
+            break;
+        }
+        
+        // Return the result
+        return ndxBack;
+      } catch (Exception ex) {
+        // Show error
+        errHandle.DoError("Extensions/get_antnode", ex);
+        setRtError(objXp, "get_antnode", ex.getMessage());
+        // Return failure
+        return null;
+      }
+    }
+// </editor-fold>
+  
+  
+// <editor-fold desc="ru:antdist">
+    // ------------------------------------------------------------------------------------
+    // Name:   antdist
+    // Goal:   Return the distance to the antecedent of this node
+    // History:
+    // 14/may/2018 ERK Started adaptation for Java
+    // ------------------------------------------------------------------------------------
+    public static int antdist(XPathContext objXp, SequenceIterator sIt) {
+        // Get the node we are considering
+        NodeInfo node = getOneNode(objXp, "antdist", sIt);
+        return antdist(objXp, node);
+    }
+    public static int antdist(XPathContext objXp, NodeInfo node) {
+      try {
+        // Get the constituent id of the antecedent
+        String sConstId = get_antConstId(objXp, node);
+        
+        if (sConstId.isEmpty()) {
+          return 0;
+        } else {     
+          // Get the NdDist value
+          String sNdDist = feature(objXp, node, "NdDist");
+          if (!sNdDist.isEmpty()) {
+            int iNdDist = Integer.parseInt(sNdDist);
+            
+            if (iNdDist <0) {
+              return -1;
+            } else {
+              // If there is a constituent antecedent, then get the distance to it        
+              return get_antdist(objXp, node, sConstId);        
+            }
+          } else {
+            return 0;
+          }
+        }
+      } catch (Exception ex) {
+        // Show error
+        errHandle.DoError("Extensions/get_antConstId", ex);
+        setRtError(objXp, "get_antConstId", ex.getMessage());
+        // Return failure
+        return 0;
+      }
+    }
+    public static String get_antConstId(XPathContext objXp, NodeInfo node) {
+      int nodeKind;
+      String sBack = "";
+      XdmNode ndSax;             // Myself, if I am a proper node
+      XdmNode ndFS = null;              // The FS nodes
+      XdmSequenceIterator colFS = null; // Iterate through <fs>
+
+      try {
+        // Validate
+        if (node == null) return "";
+        nodeKind = node.getNodeKind();
+        if (nodeKind != Type.ELEMENT) return "";
+        // Get the XdmNode representation of the node
+        ndSax = objSaxDoc.wrap(node);   
+        // Determine which CRP this is
+        CrpFile oCF = getCrpFile(objXp);
+        switch(oCF.crpThis.intProjType) {
+          case ProjPsdx:
+            String sNodeName = ndSax.getNodeName().getLocalName();
+            switch (sNodeName) {
+              case "eTree": // Find a child <ref> and take that one's id
+                colFS = ndSax.axisIterator(Axis.CHILD, loc_qnRef);
+                // Only consider the *FIRST* <ref> child of an <eTree>
+                if (colFS.hasNext()) {
+                  // Get this <ref> node
+                  ndFS = (XdmNode) colFS.next();
+                  // Take the @target from this one
+                  sBack = ndFS.getAttributeValue(ru_qnPsdxTarget);
+                }
+                break;
+            }
+            break;
+        }
+        // Return the result
+        return sBack;
+      } catch (Exception ex) {
+        // Show error
+        errHandle.DoError("Extensions/get_antConstId", ex);
+        setRtError(objXp, "get_antConstId", ex.getMessage());
+        // Return failure
+        return "";
+      }
+    }
+    // Get the distance between the line of [node] and the line of [sConstId]
+    public static int get_antdist(XPathContext objXp, NodeInfo node, String sConstId) {
+      int nodeKind;
+      int iDist = 0;
+      XdmNode ndSax;             // Myself, if I am a proper node
+      XmlNode ndxRes = null;
+
+      try {
+        // Validate
+        if (node == null) return 0;
+        nodeKind = node.getNodeKind();
+        if (nodeKind != Type.ELEMENT) return 0;
+        // Get the XdmNode representation of the node
+        ndSax = objSaxDoc.wrap(node);   
+        // Determine which CRP this is
+        CrpFile oCF = getCrpFile(objXp);
+        switch(oCF.crpThis.intProjType) {
+          case ProjPsdx:
+            String sNodeName = ndSax.getNodeName().getLocalName();
+            switch (sNodeName) {
+              case "eTree": // Find a child <ref> and take that one's id
+                // Get the current node's ID
+                String sCurrentId = ndSax.getAttributeValue(loc_qnPsdxConstId);
+                iDist = oCF.objProcType.NodeDist(sCurrentId, sConstId, "lines");
+                break;
+              default:
+                // Cannot handle any other kind
+                return 0;
+            }
+            break;
+        }
+        
+        if (iDist > 0) {
+          int iStop = 1;
+        }
+        
+        // Return the result
+        return iDist;
+      } catch (Exception ex) {
+        // Show error
+        errHandle.DoError("Extensions/get_antdist", ex);
+        setRtError(objXp, "get_antdist", ex.getMessage());
+        // Return failure
+        return 0;
       }
     }
 // </editor-fold>
@@ -433,6 +603,18 @@ public class Extensions extends RuBase {
     return feature(objXp, node, strFeatName);
   }
   public static String feature(XPathContext objXp, NodeInfo node, Value strFeatName) {
+    try {
+      String sFeatName = strFeatName.getStringValue();
+      return feature(objXp, node, sFeatName);
+    } catch (XPathException ex) {
+      // Show error
+      errHandle.DoError("Extensions/feature saxon error", ex, Extensions.class );
+      setRtError(objXp, "feature", ex.getMessage());
+      // Return failure
+      return "";
+    }
+  }  
+  public static String feature(XPathContext objXp, NodeInfo node, String sFeatName) {
     XdmNode ndSax;             // Myself, if I am a proper node
     XdmNode ndFS = null;              // The FS nodes
     XdmNode ndF = null;               // Potential F nodes
@@ -448,7 +630,7 @@ public class Extensions extends RuBase {
       // Get the XdmNode representation of the node
       ndSax = objSaxDoc.wrap(node);   
       // Get the feature string
-      String sFeatName = strFeatName.getStringValue();
+      // String sFeatName = strFeatName.getStringValue();
       // Get the CrpFile associated with me
       CrpFile oCrpFile = getCrpFile(objXp);
       // Initialise depending on project type
@@ -547,7 +729,7 @@ public class Extensions extends RuBase {
       }
       // Return failure
       return "";
-    } catch (SaxonApiUncheckedException | XPathException ex) {
+    } catch (SaxonApiUncheckedException ex) {
       // Show error
       errHandle.DoError("Extensions/feature saxon error", ex, Extensions.class );
       setRtError(objXp, "feature", ex.getMessage());

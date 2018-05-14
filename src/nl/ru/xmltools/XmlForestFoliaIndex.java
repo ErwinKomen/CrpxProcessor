@@ -277,6 +277,17 @@ public class XmlForestFoliaIndex extends XmlForest {
       return false;
     }
   }
+  
+  @Override
+  public boolean FindForest(ByRef<XmlNode> ndxForest, String sNodeId) {
+    // Not (yet) implemented for FoLiA
+    return false;
+  }
+  
+  @Override
+  public int NodeDist(String sConstFromId, String sConstToId, String sType) {
+    return 0;
+  }
 
   @Override
   public String getSentenceId(ByRef<XmlNode> ndxForest) {

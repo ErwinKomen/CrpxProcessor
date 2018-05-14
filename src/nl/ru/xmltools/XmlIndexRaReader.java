@@ -166,7 +166,7 @@ public class XmlIndexRaReader {
           sHeaderXml = rdThis.ReadOuterXml();
           // Create an entry for the database header
           int iByteLength = sHeaderXml.getBytes("utf-8").length;
-          XmlIndexItem oItem = new XmlIndexItem(sTagHeader, "", "", iPos, iByteLength);
+          XmlIndexItem oItem = new XmlIndexItem(sTagHeader, "", "", iPos, iByteLength, "", "");
           // Add index information for the database header
           sIndexData.append(oItem.csv());
         }
@@ -179,6 +179,7 @@ public class XmlIndexRaReader {
         QName qAttrPartId = CorpusResearchProject.getAttrPartId(ptThis);    // Added 14/sep/15
         String sPathLine = CorpusResearchProject.getNodeLine(ptThis);
         String sLastNode = CorpusResearchProject.getNodeLast(ptThis);
+        String sFirstNode = CorpusResearchProject.getNodeFirst(ptThis);
         while (!rdThis.EOF ) {
           // Read to the following start-of-line
           rdThis.ReadToFollowing(sTagLine);
@@ -193,6 +194,9 @@ public class XmlIndexRaReader {
             XmlNode  ndxWork = loc_pdxThis.SelectSingleNode(sPathLine);
             // Get the @id (or @forestId) attribute as string
             String sLineId = (ndxWork == null) ? "-" : ndxWork.getAttributeValue(qAttrLineId);
+            // Get the first constituent node
+            ndxWork = loc_pdxThis.SelectSingleNode(sFirstNode);
+            String sFirstId = (ndxWork == null) ? "-" : ndxWork.getAttributeValue(qAttrConstId);
             // Get the last constituent node
             ndxWork = loc_pdxThis.SelectSingleNode(sLastNode);
             String sLastId = (ndxWork == null) ? "-" : ndxWork.getAttributeValue(qAttrConstId);
@@ -210,13 +214,13 @@ public class XmlIndexRaReader {
               }
               // Create an index item (without part-specification)
               int iByteLength = strNext.getBytes("utf-8").length;
-              XmlIndexItem oItem = new XmlIndexItem(sTagLine, sLineId, "", iPos, iByteLength);
+              XmlIndexItem oItem = new XmlIndexItem(sTagLine, sLineId, "", iPos, iByteLength, sFirstId, sLastId);
               // Add index information on this item
               sIndexData.append(oItem.csv());
             } else {
               // Create an index item *with* part specification
               int iByteLength = strNext.getBytes("utf-8").length;
-              XmlIndexItem oItem = new XmlIndexItem(sTagLine, sLineId, sPartId, iPos, iByteLength);
+              XmlIndexItem oItem = new XmlIndexItem(sTagLine, sLineId, sPartId, iPos, iByteLength, sFirstId, sLastId);
               // Add index information on this item
               sIndexData.append(oItem.csv());
             }
@@ -267,7 +271,7 @@ public class XmlIndexRaReader {
         while ((line = br.readLine()) != null) {
           String[] lineArray = line.split("\t");
           // Double check
-          if (lineArray.length!=5) {
+          if (lineArray.length<5) {
             // Stop and review what is going on
             int iStop = 0;
           } else {
@@ -275,8 +279,14 @@ public class XmlIndexRaReader {
             iStart = Integer.parseInt(lineArray[3]);
             iSize = Integer.parseInt(lineArray[4]);
             sPart = lineArray[2];
+            String sFirstId = "";
+            String sLastId = "";
+            if (lineArray.length >= 7) {
+              sFirstId = lineArray[5];
+              sLastId = lineArray[6];
+            }
             // Add the line to the index
-            arIndex.add(new XmlIndexItem(lineArray[0], lineArray[1], sPart, iStart, iSize));
+            arIndex.add(new XmlIndexItem(lineArray[0], lineArray[1], sPart, iStart, iSize,sFirstId, sLastId));
             // Check if part needs to be adapted
             if (!sPart.equals(sLastPart)) {
               // Note where the last index of the previous part was
@@ -528,6 +538,37 @@ public class XmlIndexRaReader {
       return -1;
     } catch (Exception ex) {
       errHandle.DoError("Could not get index of line [" + sLineId + "] of " + 
+              loc_fThis.getAbsolutePath(), ex, XmlIndexRaReader.class);
+      // Return failure
+      return -1;
+    }
+  }
+  
+  /**
+   * getIndexOfNode 
+   *    Get the index of the first line that contains [sNodeId]
+   * 
+   * @param sPattern
+   * @return 
+   */
+  public int getIndexOfNode(String sTag, String sNodeId) {
+    try {
+      // Walk the index
+      for (int i=0;i<arIndex.size();i++) {
+        XmlIndexItem oItem = arIndex.get(i);
+        if (oItem.tag.equals(sTag)) {
+          // Check if this may contain the node
+          if (oItem.firstId.compareToIgnoreCase(sNodeId) <=0 &&
+              oItem.lastId.compareToIgnoreCase(sNodeId) >= 0 ) {
+            // Got it
+            return i;
+          }
+        }
+      }
+      // Did not find it
+      return -1;
+    } catch (Exception ex) {
+      errHandle.DoError("Could not get index for line with node [" + sNodeId + "] of " + 
               loc_fThis.getAbsolutePath(), ex, XmlIndexRaReader.class);
       // Return failure
       return -1;

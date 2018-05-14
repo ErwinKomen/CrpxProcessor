@@ -1181,6 +1181,20 @@ public class CorpusResearchProject {
       default: return "";
     }
   }
+  public String getNodeFirst() {
+    return getNodeFirst(this.intProjType);
+  }
+  public static String getNodeFirst(ProjType ptThis) {
+    switch (ptThis) {
+      case ProjPsdx: return "./descendant::eTree[1]";
+      case ProjNegra: return "./descendant::su[1]";
+      case ProjPsd: return "";
+      case ProjFolia: return "./descendant::su[1]";
+      case ProjAlp: return "./descendant::node[1]";
+      case Dbase: return "./descendant::Result[1]";
+      default: return "";
+    }
+  }
   public QName getAttrLineId() {
     return getAttrLineId(this.intProjType);
   }

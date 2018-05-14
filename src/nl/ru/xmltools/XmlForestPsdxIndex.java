@@ -255,8 +255,74 @@ public class XmlForestPsdxIndex extends XmlForest {
       return false;
     }
   }
+  @Override
   public boolean OneForest(ByRef<XmlNode> ndxForest, String sSentId, int iLines) {
     return false;
+  }
+  @Override
+  // Find the forest/sentence that contains [sNodeId]
+  public boolean FindForest(ByRef<XmlNode> ndxForest, String sNodeId) {
+    XmlNode ndxWork;      // Working node
+    int iSentIdx = -1;    // Index of the [sSentId] line
+    String strNext = "";  // Another chunk of <forest>
+
+    try {
+      // Validate + only suitable for the RA reader
+      if (loc_pdxThis == null)  return false;
+      if (!bUseRa) return false;
+      if (loc_xrdRaFile==null) return false;
+      
+      iSentIdx = loc_xrdRaFile.getIndexOfNode("forest", sNodeId);
+      if (iSentIdx<0) { return false; }
+      // Read this <forest>
+      strNext = loc_xrdRaFile.getOneLine(iSentIdx);
+      // Double check what we got
+      if (strNext == null || strNext.length() == 0) {
+        ndxForest.argValue = null;
+        return true;
+      }      
+      // Load this line...
+      loc_pdxThis.LoadXml(strNext);
+      
+      // Find and return the indicated sentence
+      ndxForest.argValue = loc_pdxThis.SelectSingleNode(loc_path_PsdxSent);
+      
+      // Return positively
+      return true;
+    } catch (Exception ex) {
+      // Warn user
+      objErr.DoError("XmlForestPsdxIndex/FindForest error: ", ex);
+      // Return failure
+      return false;
+    }
+  }
+  
+  // Measure distance between two constituents
+  public int NodeDist(String sConstFromId, String sConstToId, String sType) {
+    int iSrcIdx = -1;
+    int iDstIdx = -1;
+    int iDist = 0;
+    
+    try {
+      switch (sType) {
+        case "lines":
+          // Get source node and destination node indexes
+          iSrcIdx = loc_xrdRaFile.getIndexOfNode("forest", sConstFromId);
+          iDstIdx = loc_xrdRaFile.getIndexOfNode("forest", sConstToId);
+          if (iSrcIdx >=0 && iDstIdx >=0) {
+            // Return the difference
+            return (iSrcIdx - iDstIdx);
+          }
+          break;
+      }
+      // Return the distance
+      return iDist;
+    } catch (Exception ex) {
+      // Warn user
+      objErr.DoError("XmlForestPsdxIndex/NodeDist error: ", ex);
+      // Return failure
+      return 0;
+    }
   }
 
   @Override

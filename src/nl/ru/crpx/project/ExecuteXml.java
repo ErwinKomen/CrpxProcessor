@@ -546,7 +546,11 @@ public class ExecuteXml extends Execute {
           sInputFile = sInputFile.replace("*.", "*?.");
         }
         // Look for optional search parameters
-        JSONObject oQuery = new JSONObject(this.objSearchJob.getJobQuery());
+        String sJobQuery = this.objSearchJob.getJobQuery();
+        if (!sJobQuery.isEmpty() && !sJobQuery.startsWith("{")) {
+          sJobQuery = "{ \"name\": \"" + sJobQuery + "\"}";
+        }
+        JSONObject oQuery = new JSONObject(sJobQuery);
         if (oQuery.has("options")) {
           // Get the options
           JSONObject oOptions = oQuery.getJSONObject("options");
@@ -655,6 +659,7 @@ public class ExecuteXml extends Execute {
       return true;
     } catch (RuntimeException ex) {
       // Warn user
+      StackTraceElement st[] = ex.getStackTrace();
       DoError("ExecuteXml/BuildSource error: " + ex.getMessage() + "\r\n");
       bInterrupt = true;
       // Return failure

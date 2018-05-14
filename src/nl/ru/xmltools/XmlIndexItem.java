@@ -20,13 +20,19 @@ public class XmlIndexItem {
   public String id;       // Numeric or character identifier of this element
   public String lastId;   // Constituent id (optional)
   public String part;     // Optional part identifier
+  public String firstId;  // Constituent id (first one)
   public int start;       // Starting position for this tag
   public int size;        // Size of this tag in *bytes*
-  public XmlIndexItem(String sTag, String sId, String sPart, int iStart, int iSize) {
-    this.tag = sTag; this.start = iStart; this.size = iSize; this.id = sId; this.part = sPart;
+  public XmlIndexItem(String sTag, String sId, String sPart, int iStart, 
+          int iSize, String sFirstNodeId, String sLastNodeId) {
+    this.tag = sTag; this.start = iStart; this.size = iSize; this.id = sId; 
+    this.part = sPart;
+    this.firstId = sFirstNodeId;
+    this.lastId = sLastNodeId;
   }
   // ============= Specify how one item should be made available in CSV ========
   public String csv() {
-    return this.tag + "\t" + this.id + "\t" + this.part + "\t" + this.start + "\t" + this.size + "\n";
+    return this.tag + "\t" + this.id + "\t" + this.part + "\t" + this.start + "\t" + 
+            this.size + "\t" + this.firstId + "\t" + this.lastId + "\n";
   }
 }

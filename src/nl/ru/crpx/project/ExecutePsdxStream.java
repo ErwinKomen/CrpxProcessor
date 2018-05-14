@@ -564,7 +564,7 @@ public class ExecutePsdxStream extends ExecuteXml {
 
                   // Add index information to the current xml item indexer
                   int iByteLength = sIntro.getBytes("utf-8").length;
-                  XmlIndexItem oItem = new XmlIndexItem("General", "", "", arPwPos[i], iByteLength);
+                  XmlIndexItem oItem = new XmlIndexItem("General", "", "", arPwPos[i], iByteLength, "", "");
                   arIdxList[i].add(oItem); arIdxSb[i].append(oItem.csv());
                   // Adapt the position within this database file
                   arPwPos[i] += iByteLength;
@@ -632,7 +632,7 @@ public class ExecutePsdxStream extends ExecuteXml {
               
               // Adapt the index information for this file
               int iByteLength = sOneResult.getBytes("utf-8").length;
-              XmlIndexItem oItem = new XmlIndexItem("Result", String.valueOf(iResId), sFileName, arPwPos[iQCid-1], iByteLength);
+              XmlIndexItem oItem = new XmlIndexItem("Result", String.valueOf(iResId), sFileName, arPwPos[iQCid-1], iByteLength, "", "");
               arIdxList[iQCid-1].add(oItem); arIdxSb[iQCid-1].append(oItem.csv());
               arPwPos[iQCid-1] += iByteLength;
               // Adapt the result id
