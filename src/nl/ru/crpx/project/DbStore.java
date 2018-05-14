@@ -119,7 +119,8 @@ public class DbStore {
           " GENRE          CHAR(200),"+
           " AUTHOR         CHAR(200),"+
           " DATE           TEXT NOT NULL,"+
-          " SIZE           INT )";
+          " SIZE           INT," +
+          " WORDS          INT )";
   private final String loc_sqlCreateIndices = 
           "CREATE INDEX search_index ON RESULT (SEARCH); "+
           "CREATE INDEX cat_index ON RESULT (CAT); ";
@@ -509,7 +510,7 @@ public class DbStore {
                 
         // Retrieve the textlist information
         String sSql = "INSERT INTO META (METAID, TEXTID, FILE, SUBTYPE, "+
-                "TITLE, GENRE, AUTHOR, DATE, SIZE) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "TITLE, GENRE, AUTHOR, DATE, SIZE, WORDS) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         this.loc_psInsertMeta = conThis.prepareStatement(sSql);
         // Add all appropriate lines to the Meta table
         for (JSONObject oMeta : lTextlist) {
@@ -600,6 +601,7 @@ public class DbStore {
         if (oMeta.has("author")) {oInfo.put("Author", oMeta.getString("author"));}
         if (oMeta.has("date")) {oInfo.put("Date", oMeta.getString("date"));}
         if (oMeta.has("size")) {oInfo.put("Size", oMeta.getInt("size"));}
+        if (oMeta.has("words")) {oInfo.put("Words", oMeta.getInt("words"));}
       }
       
       oInfo.put("TextId", sTextId);
@@ -793,8 +795,9 @@ public class DbStore {
                 // Get the obligatory field from oMeta
                 sb.append(",").append('"').append(loc_lCsvMeta.get(i)).append('"');
               }
-              // Obligatory: Size of the file
+              // Obligatory: Size of the file and the length in words
               sb.append(",").append("\"Size\"");
+              sb.append(",").append("\"Words\"");
               // Obligatory: location and category fields
               for (i=0;i< loc_lCsvOblig.size();i++) {
                 // Get the obligatory field from oResult
@@ -854,8 +857,9 @@ public class DbStore {
                 sItem = sItem.replace("\n", "|");
                 sb.append(",").append('"').append(sItem).append('"');
               }
-              // Obligatory: Size of the file
+              // Obligatory: Size of the file and length in words
               sb.append(",").append(oMeta.getInt("Size"));
+              sb.append(",").append(oMeta.getInt("Words"));
               // Obligatory: location and category fields
               for (i=0;i< loc_lCsvOblig.size();i++) {
                 // Get the obligatory field from oResult
@@ -921,8 +925,9 @@ public class DbStore {
         sItem = StringUtil.escapeCsvCharacters(sItem);
         sb.append(",").append('"').append(sItem).append('"');
       }
-      // Obligatory: Size of the file
+      // Obligatory: Size of the file and length in words
       sb.append(",").append(oMeta.getInt("Size"));
+      sb.append(",").append(oMeta.getInt("Words"));
       // Obligatory: location and category fields
       for (i=0;i< loc_lCsvOblig.size();i++) {
         // Get the obligatory field from oResult
@@ -1020,7 +1025,8 @@ public class DbStore {
       String sGenre =  oMeta.getString("Genre");
       String sAuthor =  oMeta.getString("Author");
       String sDate =  oMeta.getString("Date");
-      int iSize = oMeta.getInt("MetaId");
+      int iSize = oMeta.getInt("Size");
+      int iWords = oMeta.getInt("Words");
 
       // Do NOT calculate values for Text, Psd and Pde -- these are not determined anyway
       
@@ -1033,6 +1039,7 @@ public class DbStore {
       this.loc_psInsertMeta.setString(7, sAuthor);
       this.loc_psInsertMeta.setString(8, sDate);
       this.loc_psInsertMeta.setInt(9, iSize);
+      this.loc_psInsertMeta.setInt(10, iWords);
       this.loc_psInsertMeta.executeUpdate();
 
       // Return positively
