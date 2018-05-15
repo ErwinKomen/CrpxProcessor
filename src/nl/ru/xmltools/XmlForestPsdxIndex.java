@@ -298,6 +298,7 @@ public class XmlForestPsdxIndex extends XmlForest {
   }
   
   // Measure distance between two constituents
+  @Override
   public int NodeDist(String sConstFromId, String sConstToId, String sType) {
     int iSrcIdx = -1;
     int iDstIdx = -1;

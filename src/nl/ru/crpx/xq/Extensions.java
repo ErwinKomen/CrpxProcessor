@@ -100,8 +100,8 @@ public class Extensions extends RuBase {
   
 // <editor-fold desc="ru:ant">
     // ------------------------------------------------------------------------------------
-    // Name:   antdist
-    // Goal:   Return the distance to the antecedent of this node
+    // Name:   ant
+    // Goal:   Return the antecedent of this node
     // History:
     // 14/may/2018 ERK Started adaptation for Java
     // ------------------------------------------------------------------------------------

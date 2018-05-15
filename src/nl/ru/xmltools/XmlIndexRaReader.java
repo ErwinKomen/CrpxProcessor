@@ -548,21 +548,33 @@ public class XmlIndexRaReader {
    * getIndexOfNode 
    *    Get the index of the first line that contains [sNodeId]
    * 
-   * @param sPattern
+   * @param sTag
+   * @param sNodeId
    * @return 
    */
   public int getIndexOfNode(String sTag, String sNodeId) {
+    int iNodeId = Integer.parseInt(sNodeId);
+    int iFirstId;
+    int iLastId;
+    
     try {
       // Walk the index
       for (int i=0;i<arIndex.size();i++) {
         XmlIndexItem oItem = arIndex.get(i);
         if (oItem.tag.equals(sTag)) {
+          iFirstId = Integer.parseInt(oItem.firstId);
+          iLastId = Integer.parseInt(oItem.lastId);
           // Check if this may contain the node
+          if (iFirstId <= iNodeId && iLastId >= iNodeId) {
+            // Got it
+            return i;
+          }
+          /*
           if (oItem.firstId.compareToIgnoreCase(sNodeId) <=0 &&
               oItem.lastId.compareToIgnoreCase(sNodeId) >= 0 ) {
             // Got it
             return i;
-          }
+          }*/
         }
       }
       // Did not find it
