@@ -567,14 +567,9 @@ public class XmlIndexRaReader {
           // Check if this may contain the node
           if (iFirstId <= iNodeId && iLastId >= iNodeId) {
             // Got it
+            //errHandle.debug("getIndexOfNode "+sNodeId+"="+i);
             return i;
           }
-          /*
-          if (oItem.firstId.compareToIgnoreCase(sNodeId) <=0 &&
-              oItem.lastId.compareToIgnoreCase(sNodeId) >= 0 ) {
-            // Got it
-            return i;
-          }*/
         }
       }
       // Did not find it
