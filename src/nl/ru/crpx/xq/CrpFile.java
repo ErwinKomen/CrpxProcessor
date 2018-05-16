@@ -41,6 +41,7 @@ public class CrpFile {
   public XmlNode ndxHeader;             // The header object of this file
   public XmlNode ndxMdi;                // Pointer to MDI node
   public XmlNode ndxRoot;               // The root element of the XmlDocument
+  public XmlNode ndxAntSent;            // The sentence in which the latest accessed antecedent is located
   public DocumentBuilder oSaxDoc;       // The document-builder used for this CRP-File combination
   public DocumentBuilderFactory oDocFac;// The DOM document-builder used for this CRP-File combination
   public XmlForest objProcType;         // My own copy of the XmlForest processor
@@ -62,6 +63,7 @@ public class CrpFile {
       this.sTextId = FileIO.getFileNameWithoutDirectory(fFile.getName().replace(oCrp.getTextExt(), ""));
       this.QCcurrentLine = -1;
       this.ndxCurrentForest = null;
+      this.ndxAntSent = null;
       this.currentPeriod = "";
       this.ndxHeader = null;
       this.ndxRoot = null;
