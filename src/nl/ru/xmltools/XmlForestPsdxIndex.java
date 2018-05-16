@@ -312,7 +312,12 @@ public class XmlForestPsdxIndex extends XmlForest {
           iDstIdx = loc_xrdRaFile.getIndexOfNode("forest", sConstToId);
           if (iSrcIdx >=0 && iDstIdx >=0) {
             // Return the difference
-            return (iSrcIdx - iDstIdx);
+            iDist = iSrcIdx - iDstIdx;
+            // ============= DEBUG ============
+            if (iDist < 0) {
+              int iStop = 1;
+            }
+            // ================================
           }
           break;
       }
