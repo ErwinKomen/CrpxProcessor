@@ -132,6 +132,7 @@ public class Extensions extends RuBase {
       XdmNode ndSax;             // Myself, if I am a proper node
       Node ndxBack = null;
       XmlNode ndxRes = null;
+      ByRef<XmlNode> ndxSent = new ByRef(null);
 
       try {
         // Validate
@@ -143,35 +144,33 @@ public class Extensions extends RuBase {
         ndSax = objSaxDoc.wrap(node);   
         // Determine which CRP this is
         CrpFile oCF = getCrpFile(objXp);
+        
         switch(oCF.crpThis.intProjType) {
           case ProjPsdx:
             String sNodeName = ndSax.getNodeName().getLocalName();
             switch (sNodeName) {
               case "eTree": // Find a child <ref> and take that one's id
-                ByRef<XmlNode> ndxNew = new ByRef(null);
-                // Get the sentence (=<forest>) in which the [sConstId] is
-                if (oCF.getSentence(ndxNew, sConstId)) {
-      // TODO: implement 
-                  
-                }
-                
-                if (oCF.objProcType.FindForest(ndxNew, sConstId)) {
-                  // This is the <forest> in which the constituent is
-                  ndxRes = ndxNew.argValue;
-                  
-                  // Get from the forest to the node
-                  ndxRes = ndxRes.SelectSingleNode("./descendant::eTree[@Id='"+sConstId+"']");
-                  
-                  // Get the string of this node
-                  sBack = ndxRes.toString();
-                  
-                  // Calculate the correct thing to return
-                  ndxBack = oCF.oDocFac.newDocumentBuilder().parse(
-                          new InputSource(new StringReader(sBack))).getDocumentElement();
-                }
-                break;
+                  // Make sure we get the SENTENCE in which this node is
+                  if (oCF.getSentence(ndxSent, sConstId)) {
+                    // The correct sentence is now in [ndxSent]: 
+                    //   retrieve the correct constituent
+                    ndxRes = ndxSent.argValue.SelectSingleNode("./descendant::eTree[@Id='"+sConstId+"']");
+
+                    /*
+                    // Get the string of this node
+                    sBack = ndxRes.toString();
+
+                    // Calculate the correct thing to return
+                    ndxBack = oCF.oDocFac.newDocumentBuilder().parse(
+                            new InputSource(new StringReader(sBack))).getDocumentElement();
+                    */
+                    
+                    ndxBack = (Node) ndxRes;
+                  }
+                  break;
             }
             break;
+                
         }
         
         // Return the result
