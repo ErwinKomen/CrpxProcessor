@@ -1397,6 +1397,11 @@ public class ExecutePsdxStream extends ExecuteXml {
       // Also keep track of the MDI and the CurrentForest
       oCrpFile.ndxMdi = ndxMdi.argValue;
       oCrpFile.ndxCurrentForest = ndxForest.argValue;
+      if (oCrpFile.lstAntSent == null) {
+        oCrpFile.lstAntSent = new ArrayList<>();
+      } else {
+        oCrpFile.lstAntSent.clear();
+      }
       
       // Extract the MetaInformation from header and/or mdi
       JSONObject oMetaInfo = getMetaInfo(oCrpFile, objProcType);
@@ -1435,6 +1440,11 @@ public class ExecutePsdxStream extends ExecuteXml {
         // strExpPsd = ""; strExpText = ""; intLastId = -1;
         // Make this forest available to the Xquery Extensions connected with *this* thread
         oCrpFile.ndxCurrentForest = ndxForest.argValue;
+        if (oCrpFile.lstAntSent == null) {
+          oCrpFile.lstAntSent = new ArrayList<>();
+        } else {
+          oCrpFile.lstAntSent.clear();
+        }
         // Make the current sentence id available too
         oCrpFile.currentSentId = sSentId;  // String.valueOf(intForestId);
         // Check for start of section if this is a database?

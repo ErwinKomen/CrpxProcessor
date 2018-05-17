@@ -123,7 +123,8 @@ public class Extensions extends RuBase {
         return null;
       }
     }
-    // Get the distance between the line of [node] and the line of [sConstId]
+    // Given current node, get the constituent with identifier [sConstId],
+    //    which may occur in a completely different forest
     public static Node get_antnode(XPathContext objXp, NodeInfo node, String sConstId) {
       int nodeKind;
       int iDist = 0;
@@ -137,6 +138,7 @@ public class Extensions extends RuBase {
         if (node == null) return null;
         nodeKind = node.getNodeKind();
         if (nodeKind != Type.ELEMENT) return null;
+        if (sConstId.isEmpty()) { return null; }
         // Get the XdmNode representation of the node
         ndSax = objSaxDoc.wrap(node);   
         // Determine which CRP this is
@@ -146,7 +148,13 @@ public class Extensions extends RuBase {
             String sNodeName = ndSax.getNodeName().getLocalName();
             switch (sNodeName) {
               case "eTree": // Find a child <ref> and take that one's id
-                ByRef<XmlNode> ndxNew = new ByRef(null);                
+                ByRef<XmlNode> ndxNew = new ByRef(null);
+                // Get the sentence (=<forest>) in which the [sConstId] is
+                if (oCF.getSentence(ndxNew, sConstId)) {
+      // TODO: implement 
+                  
+                }
+                
                 if (oCF.objProcType.FindForest(ndxNew, sConstId)) {
                   // This is the <forest> in which the constituent is
                   ndxRes = ndxNew.argValue;
@@ -277,6 +285,7 @@ public class Extensions extends RuBase {
         if (node == null) return 0;
         nodeKind = node.getNodeKind();
         if (nodeKind != Type.ELEMENT) return 0;
+        if (sConstId.isEmpty()) { return 0; }
         // Get the XdmNode representation of the node
         ndSax = objSaxDoc.wrap(node);   
         // Determine which CRP this is

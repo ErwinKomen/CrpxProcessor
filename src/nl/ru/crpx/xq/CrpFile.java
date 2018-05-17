@@ -15,6 +15,7 @@ import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.search.JobXq;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.crpx.tools.FileIO;
+import nl.ru.util.ByRef;
 import nl.ru.util.json.JSONObject;
 import nl.ru.xmltools.XmlForest;
 import nl.ru.xmltools.XmlForestFoliaIndex;
@@ -42,6 +43,7 @@ public class CrpFile {
   public XmlNode ndxMdi;                // Pointer to MDI node
   public XmlNode ndxRoot;               // The root element of the XmlDocument
   public XmlNode ndxAntSent;            // The sentence in which the latest accessed antecedent is located
+  public List<XmlNode> lstAntSent;      // List of accessed antecedents
   public DocumentBuilder oSaxDoc;       // The document-builder used for this CRP-File combination
   public DocumentBuilderFactory oDocFac;// The DOM document-builder used for this CRP-File combination
   public XmlForest objProcType;         // My own copy of the XmlForest processor
@@ -64,6 +66,7 @@ public class CrpFile {
       this.QCcurrentLine = -1;
       this.ndxCurrentForest = null;
       this.ndxAntSent = null;
+      this.lstAntSent = new ArrayList<>();  // List of antecedent sentences
       this.currentPeriod = "";
       this.ndxHeader = null;
       this.ndxRoot = null;
@@ -147,4 +150,26 @@ public class CrpFile {
     // Return nothing
     return null;
   }
+  
+  /**
+   * getSentence
+   *    Find the sentence inside which [sConstId] is
+   *    If this sentence differs from the [ndxCurrentForest], then add
+   *      an item to the [lstAntSent] stack
+   * 
+   * @param ndxSent
+   * @param sConstId
+   * @return 
+   */
+  public boolean getSentence(ByRef<XmlNode> ndxSent, String sConstId) {
+    try {
+      // TODO: implement 
+      // Return positively
+      return true;
+    } catch (Exception ex) {
+      errHandle.DoError("CrpFIle cannot get sentence", ex, CrpFile.class);
+      return false;
+    }
+  }
+  
 }
