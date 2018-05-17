@@ -923,6 +923,8 @@ public class DbStore {
         // Get the obligatory field from oMeta
         String sItem = oMeta.getString(loc_lCsvMeta.get(i));
         sItem = StringUtil.escapeCsvCharacters(sItem);
+        sItem = sItem.replace("\r\n", "");
+        sItem = sItem.replace("\n", "");
         sb.append(",").append('"').append(sItem).append('"');
       }
       // Obligatory: Size of the file and length in words
