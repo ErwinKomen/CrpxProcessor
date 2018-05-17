@@ -779,10 +779,13 @@ public class Parse {
       oCrpFile.ndxHeader = ndxHeader.argValue;
       oCrpFile.ndxMdi = ndxMdi.argValue;
       oCrpFile.ndxCurrentForest = ndxForest.argValue;
+      oCrpFile.idxCurrentForest = 1;                  // Since this is the first forest, 
       if (oCrpFile.lstAntSent == null) {
         oCrpFile.lstAntSent = new ArrayList<>();
+        oCrpFile.lstAntSentIdx = new ArrayList<>();
       } else {
         oCrpFile.lstAntSent.clear();
+        oCrpFile.lstAntSentIdx.clear();
       }
       // Get the group information
       sGroup = DoParseGroupXq(qEval, oCrpFile, ndxForest.argValue);

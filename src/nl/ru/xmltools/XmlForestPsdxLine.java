@@ -172,7 +172,12 @@ public class XmlForestPsdxLine extends XmlForest {
   public boolean OneForest(ByRef<XmlNode> ndxForest, String sSentId) {
     return false;
   }  
+  @Override
   public boolean OneForest(ByRef<XmlNode> ndxForest, String sSentId, int iLines) {
+    return false;
+  }
+  @Override
+  public boolean OneForest(ByRef<XmlNode> ndxForest, int idxLine) {
     return false;
   }
 
@@ -204,6 +209,23 @@ public class XmlForestPsdxLine extends XmlForest {
       return sBack;
     }
   }
+  
+  @Override
+  public int getIndexFromSent(XmlNode ndxForest) {
+    // TODO: implement
+    return 1;
+  }  
+  @Override
+  public int getIndexFromConst(XmlNode ndxConst) {
+    // TODO: implement
+    return 1;
+  }
+  @Override
+  public int getIndexFromConst(String sNodeId) {
+    // TODO: implement
+    return 1;
+  }  
+  
   @Override
   // ----------------------------------------------------------------------------------------------------------
   // Name :  GetForestId

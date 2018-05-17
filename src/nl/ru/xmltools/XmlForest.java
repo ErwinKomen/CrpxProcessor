@@ -187,9 +187,13 @@ public abstract class XmlForest {
   public abstract boolean FirstForest(ByRef<XmlNode> ndxForest, ByRef<XmlNode> ndxHeader, ByRef<XmlNode> ndxMdi, String strFile);
   public abstract boolean GetForestId(ByRef<XmlNode> ndxForest, ByRef<Integer> intForestId);
   public abstract String getSentenceId(ByRef<XmlNode> ndxForest);
+  public abstract int getIndexFromSent(XmlNode ndxForest);
+  public abstract int getIndexFromConst(XmlNode ndxConst);
+  public abstract int getIndexFromConst(String sNodeId);
   public abstract boolean NextForest(ByRef<XmlNode> ndxForest);
   public abstract boolean OneForest(ByRef<XmlNode> ndxForest, String sSentId);
   public abstract boolean OneForest(ByRef<XmlNode> ndxForest, String sSentId, int iLines);
+  public abstract boolean OneForest(ByRef<XmlNode> ndxForest, int idxLine);
   public abstract boolean FindForest(ByRef<XmlNode> ndxForest, String sNodeId) ;
   public abstract int NodeDist(String sConstFromId, String sConstToId, String sType);
   public abstract boolean IsEnd();

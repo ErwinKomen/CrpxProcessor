@@ -8,6 +8,7 @@ package nl.ru.crpx.xq;
 import java.io.File;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import net.sf.saxon.s9api.DocumentBuilder;
 import net.sf.saxon.s9api.Processor;
@@ -37,13 +38,14 @@ public class CrpFile {
   public File flThis;                   // File that is being treated
   public int QCcurrentLine;             // Current QC line of project being executed
   public XmlNode ndxCurrentForest;      // The sentence element we are now working on
+  public int idxCurrentForest;          // Line number of [ndxCurrentForest] in index file
   public String currentSentId;          // ID of the currently treated sentence
   public String sTextId;                // The name of the text this is
   public XmlNode ndxHeader;             // The header object of this file
   public XmlNode ndxMdi;                // Pointer to MDI node
   public XmlNode ndxRoot;               // The root element of the XmlDocument
-  public XmlNode ndxAntSent;            // The sentence in which the latest accessed antecedent is located
   public List<XmlNode> lstAntSent;      // List of accessed antecedents
+  public List<Integer> lstAntSentIdx;   // List of the indices of the accessed antecedents
   public DocumentBuilder oSaxDoc;       // The document-builder used for this CRP-File combination
   public DocumentBuilderFactory oDocFac;// The DOM document-builder used for this CRP-File combination
   public XmlForest objProcType;         // My own copy of the XmlForest processor
@@ -65,8 +67,8 @@ public class CrpFile {
       this.sTextId = FileIO.getFileNameWithoutDirectory(fFile.getName().replace(oCrp.getTextExt(), ""));
       this.QCcurrentLine = -1;
       this.ndxCurrentForest = null;
-      this.ndxAntSent = null;
-      this.lstAntSent = new ArrayList<>();  // List of antecedent sentences
+      this.lstAntSent = new ArrayList<>();    // List of antecedent sentences
+      this.lstAntSentIdx = new ArrayList<>(); // List of antecedent sentence indices
       this.currentPeriod = "";
       this.ndxHeader = null;
       this.ndxRoot = null;
@@ -162,12 +164,35 @@ public class CrpFile {
    * @return 
    */
   public boolean getSentence(ByRef<XmlNode> ndxSent, String sConstId) {
+    int idx = -1;     // line number in index file for [sConstId]
+    int iFound = -1;  // Result of looking for the index in the current list
+    
     try {
-      // TODO: implement 
+      // Find out which line in the index this would have
+      idx = this.objProcType.getIndexFromConst(sConstId);
+      
+      // Check if we have an entry with this index line
+      if (idx == this.idxCurrentForest) {
+        // The sentence equals the current one
+        ndxSent.argValue = this.ndxCurrentForest;
+      } else {
+        // Check if we already 'have' this one 
+        iFound = this.lstAntSentIdx.indexOf(idx);
+        if (iFound < 0) {
+          // It is not yet in the list: add it
+          this.lstAntSentIdx.add(idx);
+          if (this.objProcType.FindForest(ndxSent, sConstId)) {
+            this.lstAntSent.add(ndxSent.argValue);
+          }
+        } else {
+          // We have it in the list: get it from there
+          ndxSent.argValue = this.lstAntSent.get(iFound);
+        }
+      }
       // Return positively
       return true;
     } catch (Exception ex) {
-      errHandle.DoError("CrpFIle cannot get sentence", ex, CrpFile.class);
+      errHandle.DoError("CrpFile cannot get sentence", ex, CrpFile.class);
       return false;
     }
   }

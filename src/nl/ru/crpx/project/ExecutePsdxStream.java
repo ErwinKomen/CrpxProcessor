@@ -1251,6 +1251,7 @@ public class ExecutePsdxStream extends ExecuteXml {
       oCrpFile.ndxHeader = ndxHeader.argValue;
       oCrpFile.ndxMdi = ndxMdi.argValue;
       oCrpFile.ndxCurrentForest = ndxForest.argValue;
+      oCrpFile.idxCurrentForest = 1;                  // Since this is the first forest, 
       bPass = this.objParseXq.DoParseInputXq(qEval, oCrpFile, ndxForest.argValue);
       
       return (!bPass);
@@ -1397,10 +1398,13 @@ public class ExecutePsdxStream extends ExecuteXml {
       // Also keep track of the MDI and the CurrentForest
       oCrpFile.ndxMdi = ndxMdi.argValue;
       oCrpFile.ndxCurrentForest = ndxForest.argValue;
+      oCrpFile.idxCurrentForest = 1;                  // Since this is the first forest, 
       if (oCrpFile.lstAntSent == null) {
         oCrpFile.lstAntSent = new ArrayList<>();
+        oCrpFile.lstAntSentIdx = new ArrayList<>();
       } else {
         oCrpFile.lstAntSent.clear();
+        oCrpFile.lstAntSentIdx.clear();
       }
       
       // Extract the MetaInformation from header and/or mdi
@@ -1440,10 +1444,13 @@ public class ExecutePsdxStream extends ExecuteXml {
         // strExpPsd = ""; strExpText = ""; intLastId = -1;
         // Make this forest available to the Xquery Extensions connected with *this* thread
         oCrpFile.ndxCurrentForest = ndxForest.argValue;
+        oCrpFile.idxCurrentForest = objProcType.getIndexFromSent(ndxForest.argValue);
         if (oCrpFile.lstAntSent == null) {
           oCrpFile.lstAntSent = new ArrayList<>();
+          oCrpFile.lstAntSentIdx = new ArrayList<>();
         } else {
           oCrpFile.lstAntSent.clear();
+          oCrpFile.lstAntSentIdx.clear();
         }
         // Make the current sentence id available too
         oCrpFile.currentSentId = sSentId;  // String.valueOf(intForestId);

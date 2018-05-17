@@ -279,6 +279,39 @@ public class XmlForestFoliaIndex extends XmlForest {
   }
   
   @Override
+  public boolean OneForest(ByRef<XmlNode> ndxForest, int iSentIdx) {
+    String strNext;
+    
+    try {
+      
+      if (iSentIdx<0) { return false; }
+      // Read this <forest>
+      strNext = loc_xrdRaFile.getOneLine(iSentIdx);
+      // Double check what we got
+      if (strNext == null || strNext.length() == 0) {
+        ndxForest.argValue = null;
+        return true;
+      }
+      // Prepare a new document
+      loc_pdxAny = new XmlDocument(this.objSaxDoc, this.objSaxon);
+      
+      // Load the line that we found
+      loc_pdxAny.LoadXml(strNext);
+            
+      // Find and return the indicated sentence
+      ndxForest.argValue = loc_pdxAny.SelectSingleNode(loc_path_FoliaSent);
+      
+      // Return positively
+      return true;
+    } catch (Exception ex) {
+      // Warn user
+      objErr.DoError("XmlForestFoliaIndex/OneForest error: ", ex);
+      // Return failure
+      return false;
+    }
+  }
+ 
+  @Override
   public boolean FindForest(ByRef<XmlNode> ndxForest, String sNodeId) {
     // Not (yet) implemented for FoLiA
     return false;
@@ -306,6 +339,60 @@ public class XmlForestFoliaIndex extends XmlForest {
       return sBack;
     }
   }
+  
+  @Override
+  public int getIndexFromSent(XmlNode ndxForest) {
+    String sSentId = "";    // Identifier of the sentence
+    int idx = -1;
+    
+    try {
+      // Get the sentence index
+      sSentId = ndxForest.getAttributeValue(loc_xq_Folia_Id);
+      // Find the correct index line number for this sentence
+      idx = this.loc_xrdRaFile.getIndexOfLine(sSentId);
+      // Return what we found
+      return idx;
+    } catch (RuntimeException ex) {
+      // Warn user
+      objErr.DoError("XmlForest/getIndexFromSent", ex);
+      // Return failure
+      return -1;
+    }
+  }
+
+  @Override
+  public int getIndexFromConst(XmlNode ndxConst) {
+    String sConstId = "";    // Identifier of the sentence
+    
+    try {
+      // Get the sentence index
+      sConstId = ndxConst.getAttributeValue(loc_xq_Folia_Id);
+      return getIndexFromConst(sConstId);
+    } catch (RuntimeException ex) {
+      // Warn user
+      objErr.DoError("XmlForest/getIndexFromConst", ex);
+      // Return failure
+      return -1;
+    }
+  }
+  @Override
+  public int getIndexFromConst(String sNodeId) {
+    int idx = -1;
+    
+    try {
+      // Find the correct index line number for this sentence
+      idx = this.loc_xrdRaFile.getIndexOfNode("su", sNodeId);
+      // Return what we found
+      return idx;
+    } catch (RuntimeException ex) {
+      // Warn user
+      objErr.DoError("XmlForest/getIndexFromConst", ex);
+      // Return failure
+      return -1;
+    }
+  }
+  
+  
   @Override
   // ----------------------------------------------------------------------------------------------------------
   // Name :  GetForestId
