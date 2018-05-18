@@ -1445,13 +1445,14 @@ public class ExecutePsdxStream extends ExecuteXml {
         // Make this forest available to the Xquery Extensions connected with *this* thread
         oCrpFile.ndxCurrentForest = ndxForest.argValue;
         oCrpFile.idxCurrentForest = objProcType.getIndexFromSent(ndxForest.argValue);
+        /*
         if (oCrpFile.lstAntSent == null) {
           oCrpFile.lstAntSent = new ArrayList<>();
           oCrpFile.lstAntSentIdx = new ArrayList<>();
         } else {
           oCrpFile.lstAntSent.clear();
           oCrpFile.lstAntSentIdx.clear();
-        }
+        }*/
         // Make the current sentence id available too
         oCrpFile.currentSentId = sSentId;  // String.valueOf(intForestId);
         // Check for start of section if this is a database?

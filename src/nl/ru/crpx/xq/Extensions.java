@@ -28,6 +28,7 @@ import net.sf.saxon.s9api.XdmValue;
 import net.sf.saxon.trans.XPathException;
 import net.sf.saxon.type.Type;
 import net.sf.saxon.value.Value;
+import net.sf.saxon.value.AtomicValue;
 import nl.ru.crpx.project.CorpusResearchProject;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.crpx.tools.FileIO;
@@ -105,12 +106,12 @@ public class Extensions extends RuBase {
     // History:
     // 14/may/2018 ERK Started adaptation for Java
     // ------------------------------------------------------------------------------------
-    public static Node ant(XPathContext objXp, SequenceIterator sIt) {
+    public static NodeInfo ant(XPathContext objXp, SequenceIterator sIt) {
         // Get the node we are considering
         NodeInfo node = getOneNode(objXp, "ant", sIt);
         return ant(objXp, node);
     }
-    public static Node ant(XPathContext objXp, NodeInfo node) {
+    public static NodeInfo ant(XPathContext objXp, NodeInfo node) {
       try {
         // Get the constituent id of the antecedent
         String sConstId = get_antConstId(objXp, node);
@@ -125,12 +126,13 @@ public class Extensions extends RuBase {
     }
     // Given current node, get the constituent with identifier [sConstId],
     //    which may occur in a completely different forest
-    public static Node get_antnode(XPathContext objXp, NodeInfo node, String sConstId) {
+    public static NodeInfo get_antnode(XPathContext objXp, NodeInfo node, String sConstId) {
       int nodeKind;
       int iDist = 0;
       String sBack = "";
       XdmNode ndSax;             // Myself, if I am a proper node
-      Node ndxBack = null;
+      // Node ndxBack = null;
+      NodeInfo ndxBack = null;
       XmlNode ndxRes = null;
       ByRef<XmlNode> ndxSent = new ByRef(null);
 
@@ -156,16 +158,14 @@ public class Extensions extends RuBase {
                     //   retrieve the correct constituent
                     ndxRes = ndxSent.argValue.SelectSingleNode("./descendant::eTree[@Id='"+sConstId+"']");
 
-                    /*
-                    // Get the string of this node
-                    sBack = ndxRes.toString();
+                    // This method only works, because the [ndxRes] is contained
+                    ndxBack = ndxRes.getNode().getUnderlyingNode();
 
-                    // Calculate the correct thing to return
-                    ndxBack = oCF.oDocFac.newDocumentBuilder().parse(
-                            new InputSource(new StringReader(sBack))).getDocumentElement();
-                    */
-                    
-                    ndxBack = (Node) ndxRes;
+                    // NOTE: these methods do NOT work:
+                    // (1) getting the external node
+                    // ndxBack = (Node) ndxRes.getNode().getExternalNode();
+                    // (2) just getting the XdmNode
+                    // ndxBack = ndxRes.getNode();
                   }
                   break;
             }
@@ -1798,8 +1798,10 @@ public class Extensions extends RuBase {
     try {
       while (sIt.next() != null) {
         // Always try to take the first node
-        if (node == null)
+        if (node == null) {
           node = (NodeInfo) sIt.current();
+          // node = (NodeInfo) ( (AtomicValue) sIt.current()).;
+        }
         iCheck++;
       }
       // Check the number of arguments

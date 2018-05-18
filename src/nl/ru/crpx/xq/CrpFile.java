@@ -56,6 +56,7 @@ public class CrpFile {
   private Processor objSaxon;           // The processor (shared among threads)
   private ErrHandle errHandle;          // My own access to the error handler
   private JSONObject metaInfo;          // Metadata of this file
+  private int iMaxAntStack = 50;         // Maximally 50 sentences per file
   // =========== Class initializer =============================================
   public CrpFile(CorpusResearchProject oCrp, File fFile, Processor oProc, JobXq jobCaller) {
     try {
@@ -180,8 +181,15 @@ public class CrpFile {
         iFound = this.lstAntSentIdx.indexOf(idx);
         if (iFound < 0) {
           // It is not yet in the list: add it
+          // (1) Possibly make room
+          if (this.lstAntSentIdx.size() > this.iMaxAntStack) {
+            // Remove item [0]
+            this.lstAntSent.remove(0);
+            this.lstAntSentIdx.remove(0);
+          }
+          // (2) now add it
           this.lstAntSentIdx.add(idx);
-          if (this.objProcType.FindForest(ndxSent, sConstId)) {
+          if (this.objProcType.OneForest(ndxSent, idx)) {
             this.lstAntSent.add(ndxSent.argValue);
           }
         } else {
