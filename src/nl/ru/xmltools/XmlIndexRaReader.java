@@ -553,21 +553,17 @@ public class XmlIndexRaReader {
    * @return 
    */
   public int getIndexOfNode(String sTag, String sNodeId) {
-    int iNodeId = Integer.parseInt(sNodeId);
-    int iFirstId;
-    int iLastId;
+    String sSentId;  // ID of the sentence of one index
     
     try {
       // Walk the index
       for (int i=0;i<arIndex.size();i++) {
         XmlIndexItem oItem = arIndex.get(i);
         if (oItem.tag.equals(sTag)) {
-          iFirstId = Integer.parseInt(oItem.firstId);
-          iLastId = Integer.parseInt(oItem.lastId);
-          // Check if this may contain the node
-          if (iFirstId <= iNodeId && iLastId >= iNodeId) {
-            // Got it
-            //errHandle.debug("getIndexOfNode "+sNodeId+"="+i);
+          sSentId = oItem.id + ".";
+          // Check if this sentence id is contained within the <su> id
+          if (sNodeId.contains(sSentId)) {
+            // GOt it
             return i;
           }
         }

@@ -319,7 +319,30 @@ public class XmlForestFoliaIndex extends XmlForest {
   
   @Override
   public int NodeDist(String sConstFromId, String sConstToId, String sType) {
-    return 0;
+    int iSrcIdx = -1;
+    int iDstIdx = -1;
+    int iDist = 0;
+    
+    try {
+      switch (sType) {
+        case "lines":
+          // Get source node and destination node indexes
+          iSrcIdx = loc_xrdRaFile.getIndexOfNode("s", sConstFromId);
+          iDstIdx = loc_xrdRaFile.getIndexOfNode("s", sConstToId);
+          if (iSrcIdx >=0 && iDstIdx >=0) {
+            // Return the difference
+            iDist = iSrcIdx - iDstIdx;
+          }
+          break;
+      }
+      // Return the distance
+      return iDist;
+    } catch (Exception ex) {
+      // Warn user
+      objErr.DoError("XmlForestFoliaIndex/NodeDist error: ", ex);
+      // Return failure
+      return 0;
+    }
   }
 
   @Override
@@ -381,7 +404,7 @@ public class XmlForestFoliaIndex extends XmlForest {
     
     try {
       // Find the correct index line number for this sentence
-      idx = this.loc_xrdRaFile.getIndexOfNode("su", sNodeId);
+      idx = this.loc_xrdRaFile.getIndexOfNode("s", sNodeId);
       // Return what we found
       return idx;
     } catch (RuntimeException ex) {

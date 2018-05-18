@@ -72,6 +72,7 @@ public class Extensions extends RuBase {
   private static final QName loc_qnEleaf = new QName("", "", "eLeaf");
   private static final QName loc_qnPsdxConstId = new QName("", "", "Id");
   private static final QName loc_qnRef = new QName("", "", "ref");
+  private static final QName loc_qnAref = new QName("", "", "aref");
   private static final QName loc_qnLabel = new QName("", "", "Label");
   private static final QName loc_qnText = new QName("", "", "Text");
   private static final QName loc_qnT = new QName("", "", "t");
@@ -131,7 +132,7 @@ public class Extensions extends RuBase {
       int iDist = 0;
       String sBack = "";
       XdmNode ndSax;             // Myself, if I am a proper node
-      // Node ndxBack = null;
+      String sNodeName = "";
       NodeInfo ndxBack = null;
       XmlNode ndxRes = null;
       ByRef<XmlNode> ndxSent = new ByRef(null);
@@ -149,7 +150,7 @@ public class Extensions extends RuBase {
         
         switch(oCF.crpThis.intProjType) {
           case ProjPsdx:
-            String sNodeName = ndSax.getNodeName().getLocalName();
+            sNodeName = ndSax.getNodeName().getLocalName();
             switch (sNodeName) {
               case "eTree": // Find a child <ref> and take that one's id
                   // Make sure we get the SENTENCE in which this node is
@@ -170,7 +171,22 @@ public class Extensions extends RuBase {
                   break;
             }
             break;
-                
+          case ProjFolia:
+            sNodeName = ndSax.getNodeName().getLocalName();
+            switch (sNodeName) {
+              case "su": // Find a child <ref> and take that one's id
+                  // Make sure we get the SENTENCE in which this node is
+                  if (oCF.getSentence(ndxSent, sConstId)) {
+                    // The correct sentence is now in [ndxSent]: 
+                    //   retrieve the correct constituent
+                    ndxRes = ndxSent.argValue.SelectSingleNode("./descendant::su[@xml:id='"+sConstId+"']");
+
+                    // This method only works, because the [ndxRes] is contained
+                    ndxBack = ndxRes.getNode().getUnderlyingNode();
+                  }
+                break;
+            }            
+            break;
         }
         
         // Return the result
@@ -232,6 +248,7 @@ public class Extensions extends RuBase {
     public static String get_antConstId(XPathContext objXp, NodeInfo node) {
       int nodeKind;
       String sBack = "";
+      String sNodeName = "";
       XdmNode ndSax;             // Myself, if I am a proper node
       XdmNode ndFS = null;              // The FS nodes
       XdmSequenceIterator colFS = null; // Iterate through <fs>
@@ -247,7 +264,7 @@ public class Extensions extends RuBase {
         CrpFile oCF = getCrpFile(objXp);
         switch(oCF.crpThis.intProjType) {
           case ProjPsdx:
-            String sNodeName = ndSax.getNodeName().getLocalName();
+            sNodeName = ndSax.getNodeName().getLocalName();
             switch (sNodeName) {
               case "eTree": // Find a child <ref> and take that one's id
                 colFS = ndSax.axisIterator(Axis.CHILD, loc_qnRef);
@@ -261,6 +278,19 @@ public class Extensions extends RuBase {
                 break;
             }
             break;
+          case ProjFolia:
+            sNodeName = ndSax.getNodeName().getLocalName();
+            switch (sNodeName) {
+              case "su": // Find a child <aref> and take that one's id
+                colFS = ndSax.axisIterator(Axis.CHILD, loc_qnAref);
+                if (colFS.hasNext()) {
+                  // Get the <aref> node
+                  ndFS = (XdmNode) colFS.next();
+                  // Take the @id from this one
+                  sBack = ndFS.getAttributeValue(ru_qnFoliaWrefId);
+                }
+                break;
+            }            
         }
         // Return the result
         return sBack;
@@ -276,6 +306,7 @@ public class Extensions extends RuBase {
     public static int get_antdist(XPathContext objXp, NodeInfo node, String sConstId) {
       int nodeKind;
       int iDist = 0;
+      String sNodeName="";
       XdmNode ndSax;             // Myself, if I am a proper node
       XmlNode ndxRes = null;
 
@@ -291,9 +322,9 @@ public class Extensions extends RuBase {
         CrpFile oCF = getCrpFile(objXp);
         switch(oCF.crpThis.intProjType) {
           case ProjPsdx:
-            String sNodeName = ndSax.getNodeName().getLocalName();
+            sNodeName = ndSax.getNodeName().getLocalName();
             switch (sNodeName) {
-              case "eTree": // Find a child <ref> and take that one's id
+              case "eTree": 
                 // Get the current node's ID
                 String sCurrentId = ndSax.getAttributeValue(loc_qnPsdxConstId);
                 iDist = oCF.objProcType.NodeDist(sCurrentId, sConstId, "lines");
@@ -301,6 +332,16 @@ public class Extensions extends RuBase {
               default:
                 // Cannot handle any other kind
                 return 0;
+            }
+            break;
+          case ProjFolia:
+            sNodeName = ndSax.getNodeName().getLocalName();
+            switch (sNodeName) {
+              case "su": 
+                // Get the current node's ID
+                String sCurrentId = ndSax.getAttributeValue(ru_qnFoliaId);
+                iDist = oCF.objProcType.NodeDist(sCurrentId, sConstId, "lines");
+                break;
             }
             break;
         }
