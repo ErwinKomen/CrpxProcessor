@@ -56,7 +56,7 @@ public class RunTxtList extends RunAny {
       // Get the parameters from [par]
       loc_sLng = par.getString("lng");
       loc_sExt = par.getString("ext");
-      if (par.containsKey("dir")) {
+      if (par.containsKey("dir") && par.getString("dir") != null) {
         loc_sPart = par.getString("dir");
       } else {
         loc_sPart = "";
