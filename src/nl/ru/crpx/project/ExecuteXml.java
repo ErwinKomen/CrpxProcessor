@@ -325,8 +325,8 @@ public class ExecuteXml extends Execute {
         String sValue = "";
         if (iFtNum > 0) {
           // Check for the correct size of [arFs]
-          if (arFs.length >= iFtNum) {
-            sValue = "(not provided)";
+          if (arFs.length < iFtNum) {
+            sValue = "(not provided - ftNum="+iFtNum+" arFs="+arFs.length+ ")";
           } else {
             sValue = StringUtil.escapeXmlChars(arFs[iFtNum-1]);
           }
