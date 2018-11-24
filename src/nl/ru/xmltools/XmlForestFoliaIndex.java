@@ -352,7 +352,6 @@ public class XmlForestFoliaIndex extends XmlForest {
     try {
       // Check if there is a @forestId attribute
       sBack = ndxForest.argValue.getAttributeValue(loc_xq_Folia_Id);
-      // sBack = ndxForest.argValue.getAttributeValue("xml:id");
       // Return what we found
       return sBack;
     } catch (RuntimeException ex) {
@@ -433,8 +432,6 @@ public class XmlForestFoliaIndex extends XmlForest {
       intForestId.argValue = -1;
       // Check if there is a @forestId attribute
       sAttr = ndxForest.argValue.getAttributeValue(loc_xq_Folia_Id);
-      // attrThis = ndxForest.argValue.getAttributeValue(loc_xq_forestId);
-      // if (attrThis == null ) return objErr.DoError("<forest> does not have @forestId");
       if (sAttr.isEmpty()) return objErr.DoError("<forest> does not have @forestId");
       // Get the @forestId value
       intForestId.argValue = Integer.parseInt(sAttr);
@@ -496,12 +493,14 @@ public class XmlForestFoliaIndex extends XmlForest {
         if (loc_xrdRaFile.EOF) {
           // Closing should be done by the caller -- We just return empty
           ndxForest.argValue = null;
-          return true;
         }
         // Double check what we got
         if (strNext == null || strNext.length() == 0) {
-          ndxForest.argValue = null;
-          return true;
+          // CHeck if there is still stuff in the NEXT
+          if (iFollNum == 0 || loc_arFoll[0] == null ) {
+            ndxForest.argValue = null;
+            return true;
+          }
         }
         sTextId = loc_xrdRaFile.getTextId();
       } else {
@@ -512,8 +511,11 @@ public class XmlForestFoliaIndex extends XmlForest {
         if (loc_xrdFile.EOF) loc_xrdFile = null;
         // Double check what we got
         if (strNext == null || strNext.length() == 0) {
-          ndxForest.argValue = null;
-          return true;
+          // CHeck if there is still stuff in the NEXT
+          if (iFollNum == 0 || loc_arFoll[0] == null) {
+            ndxForest.argValue = null;
+            return true;
+          }
         }
         sTextId = loc_xrdFile.getTextId();
       }
@@ -557,21 +559,25 @@ public class XmlForestFoliaIndex extends XmlForest {
           loc_arFollCnt[intI - 1].Seg = loc_arFollCnt[intI].Seg;
           loc_arFollCnt[intI - 1].TxtId = loc_arFollCnt[intI].TxtId;
         }
-        // The last element becomes what we have physically read
-        loc_arFoll[iFollNum - 1] = new XmlDocument(this.objSaxDoc, this.objSaxon);
-        loc_arFoll[iFollNum - 1].LoadXml(strNext);
-        // Get working node <forest>
-        ndxWork = loc_arFoll[iFollNum - 1].SelectSingleNode(loc_path_FoliaSent);
-        // Validate
-        if (ndxWork == null) {
-          // This should not happen. Check what is the matter
-          String sWork = loc_arFoll[iFollNum - 1].getDoc();
-          logger.debug("XmlForest empty work: " + sWork);
+        if (strNext == null || strNext.isEmpty()) {
+          loc_arFoll[iFollNum - 1] = null;
         } else {
-          // Calculate the correct context
-          loc_arFollCnt[iFollNum - 1].Seg = objParse.GetSeg(ndxWork);
-          loc_arFollCnt[iFollNum - 1].Loc = ndxWork.getAttributeValue(loc_xq_Folia_Id);
-          loc_arFollCnt[iFollNum - 1].TxtId = sTextId;
+          // The last element becomes what we have physically read
+          loc_arFoll[iFollNum - 1] = new XmlDocument(this.objSaxDoc, this.objSaxon);
+          loc_arFoll[iFollNum - 1].LoadXml(strNext);
+          // Get working node <forest>
+          ndxWork = loc_arFoll[iFollNum - 1].SelectSingleNode(loc_path_FoliaSent);
+          // Validate
+          if (ndxWork == null) {
+            // This should not happen. Check what is the matter
+            String sWork = loc_arFoll[iFollNum - 1].getDoc();
+            logger.debug("XmlForest empty work: " + sWork);
+          } else {
+            // Calculate the correct context
+            loc_arFollCnt[iFollNum - 1].Seg = objParse.GetSeg(ndxWork);
+            loc_arFollCnt[iFollNum - 1].Loc = ndxWork.getAttributeValue(loc_xq_Folia_Id);
+            loc_arFollCnt[iFollNum - 1].TxtId = sTextId;
+          }
         }
       } else {
         // No following context...

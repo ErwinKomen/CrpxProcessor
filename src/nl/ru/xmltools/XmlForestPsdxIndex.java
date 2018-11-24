@@ -112,8 +112,6 @@ public class XmlForestPsdxIndex extends XmlForest {
         // Load this obligatory teiHeader 
         loc_pdxThis.LoadXml(sHeader);
         // Set the global parameter
-        // Node ndxFirst = loc_pdxThis.getDocument().getFirstChild();
-
         ndxWork = loc_pdxThis.SelectSingleNode(loc_path_PsdxHeader);
         ndxHeader.argValue =ndxWork;
       }
@@ -124,38 +122,28 @@ public class XmlForestPsdxIndex extends XmlForest {
         if (intI == 0) {
           // Get the FIRST forest
           sForest = (bUseRa) ? loc_xrdRaFile.getFirstLine() : loc_xrdFile.getFirstLine();
-          // Make sure we get the first line that is not empty and that starts a sentence
-          while (!sForest.isEmpty() && !sForest.startsWith(loc_Psdx_SentStart)) {
+          // Make sure it is not empty
+          while (!loc_xrdRaFile.is_closed() && ( sForest.isEmpty() || !sForest.startsWith(loc_Psdx_SentStart))) {
             sForest = (bUseRa) ?  loc_xrdRaFile.getNextLine() : loc_xrdFile.getNextLine();
           }
-          // Did we actually get a non-empty line?
-          if (sForest.isEmpty()) {
-            // Getting an empty line means that there is no more content available...
-            int iStopHere = 1;
+          // Double check for closure
+          if (loc_xrdRaFile.is_closed()) {
+            return false;
+          }
+          // TODO: what if this is empty??
+          loc_pdxThis.LoadXml(sForest);
+          // Get the current context
+          ndxForest.argValue = loc_pdxThis.SelectSingleNode(loc_path_PsdxSent);
+          // Validate: do we have a result?
+          if (ndxForest.argValue == null) {
+            // This should not happen. Check what is the matter
+            String sWork = loc_pdxThis.getDoc();
+            logger.debug("XmlForest empty ndxForest.argValue: " + sWork);
           } else {
-            // TODO: what if this is empty??
-            loc_pdxThis.LoadXml(sForest);
-            // Get the current context
-            ndxForest.argValue = loc_pdxThis.SelectSingleNode(loc_path_PsdxSent);
-            // Validate: do we have a result?
-            if (ndxForest.argValue == null) {
-              // This should not happen. Check what is the matter
-              String sWork = loc_pdxThis.getDoc();
-              logger.debug("XmlForest empty ndxForest.argValue: " + sWork);
-            } else {
-              loc_cntThis.Seg = objParse.GetSeg(ndxForest.argValue);
-              // loc_cntThis.Loc = ndxForest.argValue.Attributes("Location").Value;
-              // loc_cntThis.TxtId = ndxForest.argValue.Attributes("TextId").Value;
-              loc_cntThis.Loc = ndxForest.argValue.getAttributeValue(loc_xq_Location);
-              loc_cntThis.TxtId = ndxForest.argValue.getAttributeValue(loc_xq_TextId);
-              /*
-              // ===== DEBUG =======
-              if (loc_cntThis.Loc == null) {
-                boolean bStop = true;
-              }
-              // ===================
-                      */
-            }
+            loc_cntThis.Seg = objParse.GetSeg(ndxForest.argValue);
+            // Get the Location and the TxtId
+            loc_cntThis.Loc = ndxForest.argValue.getAttributeValue(loc_xq_Location);
+            loc_cntThis.TxtId = ndxForest.argValue.getAttributeValue(loc_xq_TextId);
           }
         } else {
           // Fill the following context XmlDocument
@@ -178,21 +166,11 @@ public class XmlForestPsdxIndex extends XmlForest {
             logger.debug("XmlForest empty work: " + sWork);
           } else {
             loc_arFollCnt[intI - 1].Seg = objParse.GetSeg(ndxWork);
-            // loc_arFollCnt[intI - 1].Loc = ndxWork.Attributes("Location").Value;
-            // loc_arFollCnt[intI - 1].TxtId = ndxWork.Attributes("TextId").Value;
             loc_arFollCnt[intI - 1].Loc = ndxWork.getAttributeValue(loc_xq_Location);
             loc_arFollCnt[intI - 1].TxtId = ndxWork.getAttributeValue(loc_xq_TextId);
-            // ===== DEBUG =======
-            /*
-            if (loc_arFollCnt[intI - 1].Loc  == null) {
-              boolean bStop = true;
-            } */
-            // ===================
           }
         }
       }
-      //' Construct the current context
-      //If (Not StreamMakeContext()) Then Return False
       // Return success
       return true;
     } catch (XPathExpressionException ex) {
@@ -502,6 +480,7 @@ public class XmlForestPsdxIndex extends XmlForest {
         return true;
       }
       // More validation
+      String sTextId = "";
       if (bUseRa) {
         if (loc_xrdRaFile==null) return false;
         // Try to read another piece of <forest> xml
@@ -510,19 +489,31 @@ public class XmlForestPsdxIndex extends XmlForest {
         if (loc_xrdRaFile.EOF) {
           // CLosing should be done by the caller -- we just return empty || loc_xrdRaFile = null;
           ndxForest.argValue = null;
-          return true;
         }
+        // Double check what we got
+        if (strNext == null || strNext.length() == 0) {
+          // CHeck if there is still stuff in the NEXT
+          if (iFollNum == 0 || loc_arFoll[0] == null ) {
+            ndxForest.argValue = null;
+            return true;
+          }
+        }
+        sTextId = loc_xrdRaFile.getTextId();
       } else {
         if (loc_xrdFile==null) return false;
         // Try to read another piece of <forest> xml
         if (! loc_xrdFile.EOF) strNext = loc_xrdFile.getNextLine();
         // Check for end-of-file and file closing
         if (loc_xrdFile.EOF) loc_xrdFile = null;
-      }
-      // Double check what we got
-      if (strNext == null || strNext.length() == 0) {
-        ndxForest.argValue = null;
-        return true;
+        // Double check what we got
+        if (strNext == null || strNext.length() == 0) {
+          // CHeck if there is still stuff in the NEXT
+          if (iFollNum == 0 || loc_arFoll[0] == null) {
+            ndxForest.argValue = null;
+            return true;
+          }
+        }
+        sTextId = loc_xrdFile.getTextId();
       }
       // Do we have any preceding context to take care of?
       if (iPrecNum > 0) {
@@ -564,26 +555,25 @@ public class XmlForestPsdxIndex extends XmlForest {
           loc_arFollCnt[intI - 1].Seg = loc_arFollCnt[intI].Seg;
           loc_arFollCnt[intI - 1].TxtId = loc_arFollCnt[intI].TxtId;
         }
-        // The last element becomes what we have physically read
-        loc_arFoll[iFollNum - 1] = new XmlDocument(this.objSaxDoc, this.objSaxon);
-        loc_arFoll[iFollNum - 1].LoadXml(strNext);
-        // Get working node <forest>
-        ndxWork = loc_arFoll[iFollNum - 1].SelectSingleNode(loc_path_PsdxSent);
-        // Validate
-        if (ndxWork == null) {
-          // This should not happen. Check what is the matter
-          String sWork = loc_arFoll[iFollNum - 1].getDoc();
-          logger.debug("XmlForest empty work: " + sWork);
+        if (strNext == null || strNext.isEmpty()) {
+          loc_arFoll[iFollNum - 1] = null;
         } else {
-          // Calculate the correct context
-          loc_arFollCnt[iFollNum - 1].Seg = objParse.GetSeg(ndxWork);
-          loc_arFollCnt[iFollNum - 1].Loc = ndxWork.getAttributeValue(loc_xq_Location);
-          loc_arFollCnt[iFollNum - 1].TxtId = ndxWork.getAttributeValue(loc_xq_TextId);
-          // ======== DEBUG =========
-          /*
-          if (loc_arFollCnt[iFollNum - 1].Loc == null) {
-            boolean bStop = true;
-          } */
+          // The last element becomes what we have physically read
+          loc_arFoll[iFollNum - 1] = new XmlDocument(this.objSaxDoc, this.objSaxon);
+          loc_arFoll[iFollNum - 1].LoadXml(strNext);
+          // Get working node <forest>
+          ndxWork = loc_arFoll[iFollNum - 1].SelectSingleNode(loc_path_PsdxSent);
+          // Validate
+          if (ndxWork == null) {
+            // This should not happen. Check what is the matter
+            String sWork = loc_arFoll[iFollNum - 1].getDoc();
+            logger.debug("XmlForest empty work: " + sWork);
+          } else {
+            // Calculate the correct context
+            loc_arFollCnt[iFollNum - 1].Seg = objParse.GetSeg(ndxWork);
+            loc_arFollCnt[iFollNum - 1].Loc = ndxWork.getAttributeValue(loc_xq_Location);
+            loc_arFollCnt[iFollNum - 1].TxtId = ndxWork.getAttributeValue(loc_xq_TextId);
+          }
         }
       } else {
         // No following context...
@@ -600,12 +590,7 @@ public class XmlForestPsdxIndex extends XmlForest {
           loc_cntThis.Seg = objParse.GetSeg(ndxWork);
           loc_cntThis.Loc = ndxWork.getAttributeValue(loc_xq_Location);
           loc_cntThis.TxtId = ndxWork.getAttributeValue(loc_xq_TextId);
-          // ======== DEBUG =========
-          /*
-          if (loc_cntThis.Loc == null) {
-            boolean bStop = true;
-          } */
-        }
+       }
       }
       // Double check for EOF
       if (loc_pdxThis == null) {
