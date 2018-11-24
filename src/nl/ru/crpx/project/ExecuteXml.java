@@ -323,8 +323,14 @@ public class ExecuteXml extends Execute {
         int iFtNum = lstFtInfo.get(q).getInt("FtNum");
         // Get the feature value belonging to this feature
         String sValue = "";
-        if (iFtNum > 0) 
-          sValue = StringUtil.escapeXmlChars(arFs[iFtNum-1]);
+        if (iFtNum > 0) {
+          // Check for the correct size of [arFs]
+          if (arFs.length < iFtNum) {
+            sValue = "(not provided - ftNum="+iFtNum+" arFs="+arFs.length+ ")";
+          } else {
+            sValue = StringUtil.escapeXmlChars(arFs[iFtNum-1]);
+          }
+        }
         // Keep for oResult
         JSONObject oFeat = new JSONObject();
         oFeat.put("Name", lstFtInfo.get(q).getString("Name"));
