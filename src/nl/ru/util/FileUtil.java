@@ -39,7 +39,6 @@ import static java.nio.file.FileVisitResult.CONTINUE;
 import static java.nio.file.FileVisitResult.TERMINATE;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
@@ -54,7 +53,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
-import nl.ru.crpx.cmd.CrpxProcessor;
+import nl.ru.crpx.project.CrpInfo;
 
 /**
  * Utilities for working with files
@@ -528,7 +527,7 @@ public class FileUtil {
   public static String nameNormalize(String sName) {
     String[] arUrlParts = {"/ru/corpusstudio", "/fdl-homedirs"};
     File sMac = new File("/Users/erwin/");
-    File sLinux = new File(CrpxProcessor.sEtcCorpora); // new File("/etc/project/");
+    File sLinux = new File(CrpInfo.sEtcCorpora); // new File("/etc/project/");
     Path pThis = null;
     LinkOption lThis;
     String sReplace = "/";
@@ -559,7 +558,7 @@ public class FileUtil {
         if (iRuCrpStudio >=0) {
           // Re-combine, starting from /etc/project
           // sName = "/etc/project" + sName.substring(iRuCrpStudio + arUrlParts[i].length());
-          sName = CrpxProcessor.sEtcCorpora + sName.substring(iRuCrpStudio + arUrlParts[i].length());
+          sName = CrpInfo.sEtcCorpora + sName.substring(iRuCrpStudio + arUrlParts[i].length());
           // Indicate we found it and then break out of the for loop
           bFound = true;
           break;

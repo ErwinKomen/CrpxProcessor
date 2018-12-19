@@ -9,7 +9,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import nl.ru.crpx.cmd.CrpxProcessor;
 import static nl.ru.crpx.project.CrpGlobal.Status;
 import static nl.ru.crpx.project.CrpGlobal.getCurrentTimeStamp;
 import static nl.ru.crpx.project.CrpGlobal.getJsonString;
@@ -41,8 +40,8 @@ public class Execute extends CrpGlobal {
   // protected static final ErrHandle errHandle = new ErrHandle(Execute.class);
   protected ErrHandle errHandle = new ErrHandle(Execute.class);
   // ========================= Constants =======================================
-  protected String sProjectBase = CrpxProcessor.sEtcProject + "/";  // "/etc/project/"; // Base directory where user-spaces are stored
-  protected String sCorpusBase = CrpxProcessor.sEtcCorpora + "/";   // "/etc/corpora/";  // Base directory where corpora are stored
+  protected String sProjectBase = CrpInfo.sEtcProject + "/";  // "/etc/project/"; // Base directory where user-spaces are stored
+  protected String sCorpusBase = CrpInfo.sEtcCorpora + "/";   // "/etc/corpora/";  // Base directory where corpora are stored
   // ===================== parameters for this user/execution of a CRP =========
   protected CorpusResearchProject crpThis;// The corpus research project for this execution
   protected String userId;                // ID of the user for this execution

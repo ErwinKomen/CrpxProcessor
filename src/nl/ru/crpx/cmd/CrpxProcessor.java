@@ -44,8 +44,6 @@ public class CrpxProcessor {
   public static File dirOutput = null;    // Directory where the output of this query will be put
   public static File dirQuery = null;     // Directory where the queries (temporarily) are put
   public static File flDbase = null;      // Input file for databaseproject
-  public static String sEtcProject = "/etc/project";
-  public static String sEtcCorpora = "/etc/corpora";
   // =================== instance variables ==================================
   private static JSONObject config;           // Configuration object
   private static SearchManager searchManager; // The search manager we make

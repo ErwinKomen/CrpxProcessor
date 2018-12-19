@@ -12,12 +12,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import nl.ru.crpx.cmd.CrpxProcessor;
 import nl.ru.crpx.dataobject.DataFormat;
 import nl.ru.crpx.dataobject.DataObject;
 import nl.ru.crpx.dataobject.DataObjectMapElement;
 import nl.ru.crpx.dataobject.DataObjectString;
 import nl.ru.crpx.project.CorpusResearchProject;
+import nl.ru.crpx.project.CrpInfo;
 import nl.ru.util.FileUtil;
 import nl.ru.util.Json;
 import nl.ru.util.JsonUtil;
@@ -140,7 +140,7 @@ public class SearchManager {
   
   // Cache of combinations Language-Part
   private JSONObject oLngPart;
-  private String sLngPart = CrpxProcessor.sEtcCorpora + "/lng-part.json";  // "/etc/corpora/lng-part.json";
+  private String sLngPart = CrpInfo.sEtcCorpora + "/lng-part.json";  // "/etc/corpora/lng-part.json";
 
   /**
    * 

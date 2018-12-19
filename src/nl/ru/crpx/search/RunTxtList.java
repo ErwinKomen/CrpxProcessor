@@ -14,11 +14,11 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
-import nl.ru.crpx.cmd.CrpxProcessor;
 import nl.ru.crpx.dataobject.DataObject;
 import nl.ru.crpx.dataobject.DataObjectList;
 import nl.ru.crpx.dataobject.DataObjectMapElement;
 import nl.ru.crpx.project.CorpusResearchProject;
+import nl.ru.crpx.project.CrpInfo;
 import nl.ru.crpx.tools.ErrHandle;
 import nl.ru.util.FileUtil;
 import nl.ru.util.Json;
@@ -35,7 +35,7 @@ import nl.ru.xmltools.XmlForest;
 public class RunTxtList extends RunAny {
 // <editor-fold defaultstate="collapsed" desc="Variables">
   // ========================= Constants =======================================
-  static String sCorpusBase = CrpxProcessor.sEtcCorpora + "/"; // "/etc/corpora/";  // Base directory where corpora are stored
+  static String sCorpusBase = CrpInfo.sEtcCorpora + "/"; // "/etc/corpora/";  // Base directory where corpora are stored
   // ========== Variables needed for txtlist creation job ========================
   Job parentXqJob;                          // The XQ job we are 'under'
   String loc_sLng = "";
