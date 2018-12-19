@@ -17,6 +17,10 @@
   // Specify the maximum number of "XqF" jobs allowed
   "maxparjobs": 1,
 
+  // List of important directories
+  "projectBase": "/etc/project",
+  "corpusBase": "/etc/corpora",
+
   // A list of possible Engines, with the default engine identified
   "pinfo": {
     "ProjectType": "Xquery-psdx",

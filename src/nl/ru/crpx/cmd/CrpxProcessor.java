@@ -16,6 +16,7 @@ import nl.ru.crpx.dataobject.DataFormat;
 import nl.ru.crpx.dataobject.DataObject;
 import nl.ru.crpx.dataobject.DataObjectPlain;
 import nl.ru.crpx.project.CorpusResearchProject;
+import nl.ru.crpx.project.CrpInfo;
 import nl.ru.crpx.project.PrjTypeManager;
 import nl.ru.crpx.search.SearchManager;
 import nl.ru.crpx.search.SearchParameters;
@@ -243,6 +244,9 @@ public class CrpxProcessor {
     
     // Create a new project type manager
     prjTypeManager = new PrjTypeManager(config);
+    
+    // Set the /etc/project and /etc/corpora directories
+    CrpInfo.load(config);
     
     // Show that we are ready
     logger.info("CrpxProcessor is initialized.");

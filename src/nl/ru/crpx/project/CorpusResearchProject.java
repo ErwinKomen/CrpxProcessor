@@ -377,42 +377,6 @@ public class CorpusResearchProject {
           return(errHandle.DoError("Sorry, cannot process projects of type [" + this.ProjectType + "]"));
       }
 
-      /*
-      // Perform initialisations related to this project-type using the config file
-      // Read it from the class path
-      String configFileName = "crpp-settings.json";
-      InputStream is = getClass().getClassLoader().getResourceAsStream(configFileName);
-      if (is == null) {
-        configFileName = "crpp-settings-default.json.txt";  // Internal default
-        is = getClass().getClassLoader().getResourceAsStream(configFileName);
-        if (is == null) {
-          // We cannot continue...
-          return(errHandle.DoError("Could not find " + configFileName + "!"));
-        }
-      }
-      // Create configuration object
-      JSONObject config;
-      // Process input stream with configuration
-      try {
-        try {
-          config = Json.read(is);
-        } finally {
-          is.close();
-        }
-      } catch (Exception e) {
-        return(errHandle.DoError("Error reading JSON config file: " +  e.getMessage()));
-      }
-      
-      // Create a new project-type manager on the basis of the configuration settings
-      prjTypeManager = new PrjTypeManager(config);
-
-      // Set the search manager
-      searchMan = new SearchManager(config);
-*/
-      // Load the definitions
-
-      // Close the project file
-
       // Return positively
 
       return(true);

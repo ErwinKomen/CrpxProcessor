@@ -5,11 +5,18 @@
  */
 package nl.ru.crpx.project;
 
+import nl.ru.util.json.JSONObject;
+
 /**
  *
  * @author Erwin R. Komen
  */
 public class CrpInfo {
-  public static String sEtcProject = "/etc/project";
-  public static String sEtcCorpora = "/etc/corpora";  
+  public static String sEtcProject = "/home/project";
+  public static String sEtcCorpora = "/home/corpora";  
+  
+  public static void load(JSONObject properties) {
+    sEtcProject = properties.getString("projectBase"); 
+    sEtcCorpora = properties.getString("corpusBase"); 
+  }
 }
