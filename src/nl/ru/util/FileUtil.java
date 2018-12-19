@@ -54,6 +54,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+import nl.ru.crpx.cmd.CrpxProcessor;
 
 /**
  * Utilities for working with files
@@ -527,7 +528,7 @@ public class FileUtil {
   public static String nameNormalize(String sName) {
     String[] arUrlParts = {"/ru/corpusstudio", "/fdl-homedirs"};
     File sMac = new File("/Users/erwin/");
-    File sLinux = new File("/etc/project/");
+    File sLinux = new File(CrpxProcessor.sEtcCorpora); // new File("/etc/project/");
     Path pThis = null;
     LinkOption lThis;
     String sReplace = "/";
@@ -557,7 +558,8 @@ public class FileUtil {
         // If there is a match...
         if (iRuCrpStudio >=0) {
           // Re-combine, starting from /etc/project
-          sName = "/etc/project" + sName.substring(iRuCrpStudio + arUrlParts[i].length());
+          // sName = "/etc/project" + sName.substring(iRuCrpStudio + arUrlParts[i].length());
+          sName = CrpxProcessor.sEtcCorpora + sName.substring(iRuCrpStudio + arUrlParts[i].length());
           // Indicate we found it and then break out of the for loop
           bFound = true;
           break;
