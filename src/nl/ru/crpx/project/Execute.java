@@ -227,6 +227,11 @@ public class Execute extends CrpGlobal {
     // This is an overridable method
     return true;
   }
+  @SuppressWarnings("unused")
+  public boolean InterruptQueries(Job jobCaller) {
+    // This is an overridable method
+    return true;
+  }
           
   /* ---------------------------------------------------------------------------
      Name:    ExecuteQueriesSetUp

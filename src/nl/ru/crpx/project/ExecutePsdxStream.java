@@ -343,6 +343,43 @@ public class ExecutePsdxStream extends ExecuteXml {
     }
   }
   
+  /**
+   * InterruptQueries
+   *    Clear all XqF jobs associated with [jobCaller]
+   * 
+   * @param jobCaller
+   * @return 
+   */
+  @Override
+  public boolean InterruptQueries(Job jobCaller) {
+    String sWorkQueueMethod = "workqueue";  // Options: 'traditional', 'workqueue', 'concurrent'
+    try {
+      
+      // Initialise the job array and the results array
+      arRes.clear();
+      arRunXqF.clear();
+      // Initialization depends on the workqueue method we use
+      switch (sWorkQueueMethod) {
+        case "traditional": break;
+        case "concurrent": 
+          // Shut down any previous jobs completely
+          this.workExecutor.shutdownNow();
+          break;
+        case "workqueue":
+          // Clear any jobs still in the work queue
+          this.workQueue.clear();
+          break;
+      }
+      
+      // Return positively
+      return true;
+    } catch (Exception ex) {
+      // Warn user
+      errHandle.DoError("ExecutePsdxStream/InterruptQueries error: ", ex, ExecutePsdxStream.class);
+      return false;
+    }
+  }
+  
   private int getFound(JSONObject oFoundInfo) {
     int iFound = 0;
     
