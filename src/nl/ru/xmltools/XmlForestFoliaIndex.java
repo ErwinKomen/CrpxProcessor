@@ -122,6 +122,8 @@ public class XmlForestFoliaIndex extends XmlForest {
         if (intI == 0) {
           // Get the FIRST forest
           sForest = (bUseRa) ? loc_xrdRaFile.getFirstLine() : loc_xrdFile.getFirstLine();
+          // It is possible that NULL is returned, which indicates error
+          if (sForest == null) { return false;}
           // Make sure it is not empty
           while (!loc_xrdRaFile.is_closed() && ( sForest.isEmpty() || !sForest.startsWith(loc_Folia_SentStart))) {
             sForest = (bUseRa) ?  loc_xrdRaFile.getNextLine() : loc_xrdFile.getNextLine();

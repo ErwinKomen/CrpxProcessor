@@ -308,11 +308,13 @@ public class XmlIndexRaReader {
       this.lstPartLastIdx.add(arIndex.size()-1);
       // Check if this is a zip or not
       if (loc_fThis.getAbsolutePath().endsWith(".gz")) {
+        errHandle.debug("readIndex - unpacking GZIP");
         this.loc_fRa = null;
         this.loc_sContents = FileUtil.decompressGzipString(loc_fThis.getAbsolutePath());
         this.loc_bContents = loc_sContents.getBytes("utf-8");
         this.loc_bClosed = false;
       } else {
+        errHandle.debug("readIndex - random-access reader");
         // Create a random-access reader entry (READ ONLY)
         this.loc_fRa = new RandomAccessFile(loc_fThis.getAbsolutePath(), "r");   
       }
@@ -515,7 +517,7 @@ public class XmlIndexRaReader {
     } catch (Exception ex) {
       errHandle.DoError("getLineByIndex could not read next line [" + iIndex + "] of " + loc_fThis.getAbsolutePath(), ex, XmlIndexRaReader.class);
       // Return failure
-      return "";
+      return null;
     }
   }
   
@@ -596,14 +598,19 @@ public class XmlIndexRaReader {
       }
       // Validate
       if (this.arIndex.isEmpty()) return "";
-      String sBack = getLineByIndex(iCurrentLine, oItem);      
+      String sBack = getLineByIndex(iCurrentLine, oItem);   
+      // Check for error-return
+      if (sBack == null) {
+        errHandle.debug("getNextLine receives NULL from getLineByIndex");
+        return null;
+      }
       // Return the first line
       return sBack;
     } catch (Exception ex) {
       errHandle.DoError("Could not read next line [" + iCurrentLine + "] of " + 
               loc_fThis.getAbsolutePath(), ex, XmlIndexRaReader.class);
       // Return failure
-      return "";
+      return null;
     }
   }
   public String getNextLine(String sPart) {
