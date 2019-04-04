@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
@@ -25,6 +26,7 @@ import nl.ru.util.Json;
 import nl.ru.util.json.JSONArray;
 import nl.ru.util.json.JSONObject;
 import nl.ru.xmltools.Parse;
+import nl.ru.xmltools.Parse.MetaList;
 import nl.ru.xmltools.XmlForest;
 
 /**
@@ -139,6 +141,7 @@ public class RunTxtList extends RunAny {
       if (!sExtType.isEmpty()) sExtFind = CorpusResearchProject.getTextExt(sExtType);   
       
       // We need to have a corpus research project to continue...
+      // <editor-fold defaultstate="collapsed" desc="extension type">
       CorpusResearchProject crpThis = new CorpusResearchProject(true);
       // And the one thing that needs to be set in the project is the type
       switch (sExtType) {
@@ -154,6 +157,7 @@ public class RunTxtList extends RunAny {
           errHandle.DoError("getTextList: unknown extension type ["+sExtType+"]");
           return null;
       }
+      // </editor-fold>
       // Get a Parse object
       Parse prsThis = new Parse(crpThis, this.errHandle);
       
@@ -162,17 +166,11 @@ public class RunTxtList extends RunAny {
       
       errHandle.debug("getTextList for ["+sLng+","+sPart+"] is looking in dir: " + pRoot.toString());
 
-/*      
-      Path pRoot = Paths.get(FileUtil.nameNormalize(sCorpusBase), sLng);
-      // If [part] is specified, then we need to get a sub directory
-      if (sPart != null && !sPart.isEmpty()) {
-        // Find the first sub directory containing [sPart] under [pRoot]
-        pRoot =Paths.get(FileUtil.findFileInDirectory(pRoot.toString(), sPart));
-        
-        
-      }*/
-      // Check to see if a file-list .json file already exists
+      // Get the name of the textlist we are looking for...
       String sTextListName = (sExtType.isEmpty()) ? "textlist-all" : "textlist-" + sExtType;
+      
+      // <editor-fold defaultstate="collapsed" desc="textlist JSON">
+      // Check to see if a file-list .json file already exists
       Path pJsonTextList = Paths.get(pRoot.toString(), sTextListName+".json");
       if (!Files.exists(pJsonTextList)) {
         // Create an array that will hold all
@@ -191,7 +189,7 @@ public class RunTxtList extends RunAny {
           Path pThis = stack.pop();
           
           // DEBUGGING
-          errHandle.debug("getTextList processing dir=" + pThis.toAbsolutePath().toString());
+          errHandle.debug("getTextList JSON processing dir=" + pThis.toAbsolutePath().toString());
           
           try(DirectoryStream<Path> streamSub = Files.newDirectoryStream(pThis, sSearch)) {
             // Create an object for this directory
@@ -209,11 +207,11 @@ public class RunTxtList extends RunAny {
               if (Files.isDirectory(pathSub)) {
                 stack.push(pathSub);
                 // DEBUGGING
-                errHandle.debug("getTextList pushing dir=" + pathSub.toAbsolutePath().toString());
+                errHandle.debug("getTextList JSON pushing dir=" + pathSub.toAbsolutePath().toString());
               } else {
                 String sFile = pathSub.getFileName().toString();
                 // DEBUGGING
-                errHandle.debug("getTextList treating file=" + sFile);
+                errHandle.debug("getTextList JSON treating file=" + sFile);
                 // Check if the file has an extension in the list of allowed ones
                 if (sExtType.isEmpty() || sExtFind.isEmpty()) {
                   sExt = getExtensionInList(lExtList, sFile);
@@ -296,6 +294,136 @@ public class RunTxtList extends RunAny {
         Json.write(oTotal, pJsonTextList.toFile());
         
       }
+      // </editor-fold>
+      
+      // Addition (apr/2019): create a CSV file of all the metadata in directory
+      // <editor-fold defaultstate="collapsed" desc="textlist CSV">
+      Path pCsvTextList = Paths.get(pRoot.toString(), sTextListName+".csv");
+      if (!Files.exists(pCsvTextList)) {
+        // Create a list with paths occurring within a CMDI
+        List<String> lCmdiPathList = new ArrayList<>();
+        
+        // Create a list of metadata information objects
+        List<MetaList> lCmdiListList = new ArrayList<>();
+        
+        /*
+        // Create an array that will hold all
+        JSONArray arDir = new JSONArray();
+        // Create an array for the Genre and the Subtype items
+        JSONArray arGenre = new JSONArray();
+        JSONArray arSubtype = new JSONArray();
+        */
+        int iItemId =-1; 
+        // We need to have an idea of the file extensions that are possible
+        //    (this is needed when sExtType or sExtFind is empty)
+        List<String> lExtList = CorpusResearchProject.getTextExtList();
+        // Start creating this list
+        stack.push(pRoot);
+        while (!stack.isEmpty()) {
+          // Get all the items inside "dir"
+          Path pThis = stack.pop();
+          
+          // DEBUGGING
+          errHandle.debug("getTextList CSV processing dir=" + pThis.toAbsolutePath().toString());
+          
+          try(DirectoryStream<Path> streamSub = Files.newDirectoryStream(pThis, sSearch)) {
+            
+            /*
+            // Create an object for this directory
+            JSONObject oDirContent = new JSONObject();
+            JSONArray arContent = new JSONArray();
+            
+            int iDirCount = 0;
+            oDirContent.put("count", iDirCount);
+            oDirContent.put("path", pThis.toAbsolutePath().toString());
+            oDirContent.put("list", arContent);
+            */
+            
+            // FInd the correct extension for this sub directory
+            String sExt;
+            // Walk all these items
+            for (Path pathSub : streamSub) {
+              if (Files.isDirectory(pathSub)) {
+                stack.push(pathSub);
+                // DEBUGGING
+                errHandle.debug("getTextList CSV pushing dir=" + pathSub.toAbsolutePath().toString());
+              } else {
+                String sFile = pathSub.getFileName().toString();
+                // DEBUGGING
+                errHandle.debug("getTextList CSV treating file=" + sFile);
+                // Check if the file has an extension in the list of allowed ones
+                if (sExtType.isEmpty() || sExtFind.isEmpty()) {
+                  sExt = getExtensionInList(lExtList, sFile);
+                } else {
+                  sExt = (sFile.endsWith(sExtFind)) ? sExtFind : "";
+                  // Double check for .gz
+                  if (sExt.isEmpty() && sFile.endsWith(sExtFind + ".gz")) {
+                    sExt = sExtFind + ".gz";
+                  }
+                }
+                if (!sExt.isEmpty()) {
+                  // We found a match -- get the complete path
+                  String sSubThis = pathSub.toAbsolutePath().toString();
+                  String sName = sFile.substring(0, sFile.length() - sExt.length());
+                  
+                  // Add this to the list
+                  JSONObject oFile = new JSONObject();
+                  oFile.put("name", sName);
+                  oFile.put("ext", sExt);
+                  
+                  // Get the metadata information from this file:
+                  MetaList lMeta = prsThis.getMetaList(lCmdiPathList, sSubThis, sName);
+                  
+                  //   title, genre, author, date, subtype, size
+                  JSONObject oMeta = prsThis.getMetaInfo(sSubThis);
+                  
+                  // Global text counter
+                  iTexts++;   
+                  
+                  /*
+                  // Add this item to the array
+                  arContent.put(oFile);
+                  iDirCount++;
+                  // Adapt the status object
+                  oProg.put("total", iTexts);
+                  oProg.put("dirs", iDirCount);
+                  oProg.put("last", sName);
+                  oProg.put("ext", sExt);
+                  this.setJobCount(oProg);
+                  */
+                }
+              }
+            }
+            /*
+            // CHeck if anything has been added in this directory
+            if (iDirCount > 0) {
+              // Then adapt this object
+              oDirContent.put("count", iDirCount);
+              oDirContent.put("list", arContent);
+              // Add this object to the list
+              arDir.put(oDirContent);
+            }*/
+          }
+        }
+        /*
+        // Create a json object with the contents
+        JSONObject oTotal = new JSONObject();
+        oTotal.put("paths", arDir.length());
+        oTotal.put("texts", iTexts);
+        oTotal.put("genre", arGenre);
+        oTotal.put("subtype", arSubtype);
+        oTotal.put("list", arDir);*/
+        
+        // Store this object into a file
+        // Json.write(oTotal, pCsvTextList.toFile());
+        
+        //TODO: store the CSV into a file
+        // CSV.write(XXX, pCsvTextList.toFile());
+        
+        
+      }
+      // </editor-fold>
+            
       this.jobStatus = "reading";
       // We now should have the correct file stored -- load it
       oTextList = Json.read(pJsonTextList.toFile());

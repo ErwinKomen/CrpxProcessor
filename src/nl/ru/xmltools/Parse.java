@@ -971,6 +971,105 @@ public class Parse {
   }
   
   /**
+   * getMetaList
+   *    Get the metadata information for sFileName
+   * 
+   * @param lPathList
+   * @param sFileName
+   * @param sName
+   * @return 
+   */
+  public MetaList getMetaList(List<String> lPathList, String sFileName, String sName) {
+    MetaList lMeta = new MetaList();
+    ByRef<XmlNode> ndxForest;   // Forest we are working on
+    ByRef<XmlNode> ndxHeader;   // Header of this file
+    ByRef<XmlNode> ndxMdi;      // Access to corresponding .imdi or .cmdi file
+    XmlForest objProcType;      // Access to the XmlForest object allocated to me
+    CrpFile oCrpFile;
+    JSONObject oBack = new JSONObject();
+    JSONObject oDef = null;
+    String sWords = "";
+    int idx = 0;
+    int iWords = 0;
+    
+    try {
+      // Set the name of the metalist
+      lMeta.name = sName;
+      // Read through the file
+      // Validate
+      if (this.crpThis == null || sFileName.isEmpty()) return lMeta;
+      File fThis = new File(sFileName);
+      if (!fThis.exists()) return lMeta;
+      
+      // Create a CrpFile for this project/file combination
+      oCrpFile = new CrpFile(this.crpThis, fThis, this.crpThis.getSaxProc(), null);
+      // Initialisations
+      objProcType = oCrpFile.objProcType;
+      ndxForest = new ByRef(null); 
+      ndxHeader = new ByRef(null);
+      ndxMdi = new ByRef(null);
+      // (a) Read the first sentence (psdx: <forest>) as well as the header (psdx: <teiHeader>)
+      if (!objProcType.FirstForest(ndxForest, ndxHeader, ndxMdi, fThis.getAbsolutePath())) {
+        errHandle.DoError("hasInputRestr could not process first forest of " + fThis.getName());
+        return null;
+      }
+      // Get the header information 
+      oCrpFile.ndxHeader = ndxHeader.argValue;
+      oCrpFile.ndxMdi = ndxMdi.argValue;
+      
+      // This only works for CMDI (or IMDI) files -- not for other metadata
+      if (oCrpFile.ndxMdi != null) {
+        oDef = this.arMetaInfo.getJSONObject(0).getJSONObject("def");
+        oBack.put("title", getMetaElement(oDef.getJSONArray("title"), oCrpFile.ndxMdi));
+        oBack.put("genre", getMetaElement(oDef.getJSONArray("genre"), oCrpFile.ndxMdi));
+        oBack.put("author", getMetaElement(oDef.getJSONArray("author"), oCrpFile.ndxMdi));
+        oBack.put("date", getMetaElement(oDef.getJSONArray("date"), oCrpFile.ndxMdi));
+        oBack.put("subtype", getMetaElement(oDef.getJSONArray("subtype"), oCrpFile.ndxMdi));
+        sWords = getMetaElement(oDef.getJSONArray("words"), oCrpFile.ndxMdi);
+      } 
+      // Special check: do we have a word size?
+      if (sWords.isEmpty()) {
+        // There is no word size: calculate it...
+        iWords = getWordCount(oCrpFile, ndxForest);
+      } else {
+        // See if emendments are needed
+        sWords = sWords.replaceAll("[^\\d]", "");
+        iWords = Integer.parseInt(sWords);
+      }
+      // Add the words value at the correct place
+      idx = getPathIndex(lPathList, "words");
+      lMeta.lMetaValue.add(new MetaListEl(idx, iWords));
+      
+      // Return the result
+      return lMeta;
+    } catch (Exception ex) {
+      errHandle.DoError("Parse/getMetaList problem ", ex, Parse.class);
+      return null;
+    }
+  }
+  
+  
+  private int getPathIndex(List<String> lPathList, String sPath) {
+    int idx = 0;
+    
+    try {
+      // Find the path in the list
+      idx = lPathList.indexOf(sPath);
+      if (idx < 0) {
+        // This is not yet in the list
+        lPathList.add(sPath);
+        // Set the index to this new element
+        idx = lPathList.size();
+      }
+      
+      return idx;
+    } catch (Exception ex) {
+      errHandle.DoError("Parse/getPathIndex problem ", ex, Parse.class);
+      return -1;
+    }
+  }
+  
+  /**
    * getMetaInfo
    *    Get the metadata information for [sFileName]
    * 
@@ -1160,5 +1259,26 @@ public class Parse {
   }
 // </editor-fold>  
 
+  public class MetaList {
+    String name = "";
+    List<MetaListEl> lMetaValue = new ArrayList<>();
+  }
+  
+  public class MetaListEl {
+    int index = -1;
+    String sType = "";
+    String sValue = "";
+    int iValue = 0;
+    public MetaListEl(int idx, int value) {
+      index = idx;
+      sType = "int";
+      iValue = value;
+    }
+    public MetaListEl(int idx, String value) {
+      index = idx;
+      sType = "str";
+      sValue = value;
+    }
+  }
 }
 
