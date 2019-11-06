@@ -698,6 +698,8 @@ public class SearchManager {
       if (fLngPartFile.exists()) {
         // Read the file
         this.oLngPart = Json.read(fLngPartFile);
+        // Make sure the permissions are okay
+        fLngPartFile.setWritable(true, false);
         // 
       } else {
         // There is no file yet
