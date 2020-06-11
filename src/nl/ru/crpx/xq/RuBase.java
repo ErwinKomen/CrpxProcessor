@@ -974,7 +974,7 @@ public class RuBase /* extends Job */ {
       XdmItem ndCurrent = selectXp.evaluateSingle();
       
       // Do we have any result?
-      if (ndCurrent != null && arWords[iWordIdx++].equals(ndCurrent.getStringValue()) ) {
+      if (ndCurrent != null && arWords[iWordIdx++].equalsIgnoreCase(ndCurrent.getStringValue()) ) {
         // We may have a match
         bBack = true;
         // Default value for Xq selector
@@ -999,11 +999,15 @@ public class RuBase /* extends Job */ {
             break;
           }
           // Check if the next word matches this one
+          // Note: make the comparison CASE-INDEPENDANT!!
           XdmNode ndNext = (XdmNode) ndThis;
-          if (!ndNext.getStringValue().equals(arWords[iWordIdx++])) {
+          if (!ndNext.getStringValue().equalsIgnoreCase(arWords[iWordIdx++])) {
             bBack = false;
             break;
           }
+        }
+        if (bBack) {
+            errHandle.debug("Found a match");
         }
         
       }
