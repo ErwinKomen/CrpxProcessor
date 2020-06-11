@@ -944,6 +944,7 @@ public class RuBase /* extends Job */ {
     XPathSelector selectXp; // The actual selector we are using
     String[] arWords;       // Keep the words here
     int iWordIdx = 0;       // Word index
+    int iMatches = 0;       // Total number of matches
     CorpusResearchProject crpThis;
     
     try {
@@ -973,10 +974,11 @@ public class RuBase /* extends Job */ {
       selectXp.setContextItem(ndStart);
       XdmItem ndCurrent = selectXp.evaluateSingle();
       
-      // Do we have any result?
+      // If there is something, check if this is the first word stored in [arWords]
       if (ndCurrent != null && arWords[iWordIdx++].equalsIgnoreCase(ndCurrent.getStringValue()) ) {
         // We may have a match
         bBack = true;
+        iMatches += 1;
         // Default value for Xq selector
         selectXp = null;
         // Action depends on the kind of xml project we have
@@ -1001,13 +1003,19 @@ public class RuBase /* extends Job */ {
           // Check if the next word matches this one
           // Note: make the comparison CASE-INDEPENDANT!!
           XdmNode ndNext = (XdmNode) ndThis;
-          if (!ndNext.getStringValue().equalsIgnoreCase(arWords[iWordIdx++])) {
+          if (ndNext.getStringValue().equalsIgnoreCase(arWords[iWordIdx++])) {
+            iMatches += 1;
+          } else {
             bBack = false;
             break;
           }
         }
+        // Check if we found the right number of matches
         if (bBack) {
+          bBack = (iMatches == arWords.length);
+          if (bBack) {
             errHandle.debug("Found a match");
+          }
         }
         
       }
