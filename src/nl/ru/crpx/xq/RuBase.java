@@ -905,19 +905,21 @@ public class RuBase /* extends Job */ {
           errHandle.DoError("RuWords: cannot process type " + crpThis.getProjectType(), RuBase.class);
           return -1;
       }
-      // Count the words by taking the selection
-      selectXp.setContextItem(ndStart);
-      // Go through all the items
-      for (XdmItem item : selectXp) {
-        // make sure this is a word of type 'Vern'
-        if (lSentWords.isEmpty()) {
-          // Just count
-          iBack++;
-        } else {
-          // Check if this item is in the list of REAL words
-          String sIdValue = ((XdmNode) item).getAttributeValue(ru_qnFoliaWrefId);
-          if (lSentWords.contains(sIdValue)) {
+      if (lSentWords != null) {
+        // Count the words by taking the selection
+        selectXp.setContextItem(ndStart);
+        // Go through all the items
+        for (XdmItem item : selectXp) {
+          // make sure this is a word of type 'Vern'
+          if (lSentWords.isEmpty()) {
+            // Just count
             iBack++;
+          } else {
+            // Check if this item is in the list of REAL words
+            String sIdValue = ((XdmNode) item).getAttributeValue(ru_qnFoliaWrefId);
+            if (lSentWords.contains(sIdValue)) {
+              iBack++;
+            }
           }
         }
       }

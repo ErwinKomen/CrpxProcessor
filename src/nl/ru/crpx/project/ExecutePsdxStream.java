@@ -1319,6 +1319,7 @@ public class ExecutePsdxStream extends ExecuteXml {
     boolean bDoForest = false;  // Should we process the current <forest> node?
     boolean bHasInput = false;  // Does this line have input?
     boolean bParsed = false;    // Line has been parsed
+    boolean bDebug = false;     // Additional debugging output or not
     String strForestFile;       // Name of this file
     String strSubType;          // Subtype for this file
     String strEtreeCat;         // Subcategorization attached to found result
@@ -1643,7 +1644,13 @@ public class ExecutePsdxStream extends ExecuteXml {
                     } else {
                       // Something wrong? We have an empty category
                       int iStopHere = 1;
-                      errHandle.debug("ResEmpty: " + oThisRes.getString("locw") + ": " + oThisRes.getString("msg"));
+                      if (bDebug) {
+                        if (oThisRes.has("msg")) {
+                          errHandle.debug("ResEmpty: w=" + oThisRes.getString("locw") + ": " + oThisRes.getString("msg"));
+                        } else {
+                          errHandle.debug("ResEmpty: s=" + oThisRes.getString("locs") + ", w=" + oThisRes.getString("locw"));
+                        }
+                      }
                     }
                     
                     // Get the oview line 
@@ -1762,7 +1769,11 @@ public class ExecutePsdxStream extends ExecuteXml {
         // N.B: the path to this file must contain the project's name
         String sDir = this.crpThis.getHitsDir();
         File fResultDir = new File(sDir);
-        if (!fResultDir.exists()) { fResultDir.mkdir(); }
+        if (!fResultDir.exists()) { 
+            if (!fResultDir.mkdirs()) {
+                errHandle.debug("ExecuteQueriesFile: cannot create directory "+sDir);
+            }; 
+        }
         String sLoc = sDir + "/" + fThis.getName() + ".hits";
         File fResultXqF = new File(FileUtil.nameNormalize(sLoc));
         // Write the results to a file (give number of spaces to "toString" for 'pretty-print')

@@ -994,7 +994,8 @@ public class CorpusResearchProject {
       // Calculate the directory where the .hits files are to be located for this project
       String sProjectFileName = Paths.get(this.getLocation()).getFileName().toString();
       sProjectFileName = sProjectFileName.substring(0, sProjectFileName.lastIndexOf("."));
-      String sDir = this.getDstDir() + "/"+ sProjectFileName + "/hits";
+      String sDir = Paths.get(this.getDstDir().getPath()).resolve(sProjectFileName).resolve("hits").toString(); 
+            // + "/"+ sProjectFileName + "/hits";
       // Define our hitsdir
       this.sHitsDir = sDir;
     }

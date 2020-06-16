@@ -110,7 +110,7 @@ public class XmlResultPsdxIndex extends XmlResult {
         String sAnalysis = ndxAnalysis.getNodeValue();
         String[] arAnalysis = sAnalysis.split(";");
         for (int i=0;i<arAnalysis.length;i++) {
-          lBack.add(arAnalysis[i]);
+          lBack.add(arAnalysis[i].replace(" ", "_").replace("-", "_"));
         }
       } else {
         // Read the first <Result> node 

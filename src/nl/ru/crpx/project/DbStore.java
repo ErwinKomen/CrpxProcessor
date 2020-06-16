@@ -459,7 +459,7 @@ public class DbStore {
                   List<XmlNode> lFeatValue = ndxThis.SelectNodes("./child::Feature");
                   for (int j=0;j<lFeatValue.size();j++) {
                     // Create name for feature
-                    String sFeatName = "ft_" + lFeatValue.get(j).getAttributeValue("Name");
+                    String sFeatName = "ft_" + lFeatValue.get(j).getAttributeValue("Name").replace(" ", "_").replace("-", "_");
                     // Add this in the result
                     oResult.put(sFeatName, lFeatValue.get(j).getAttributeValue("Value"));
                   }
@@ -473,7 +473,11 @@ public class DbStore {
                         new String(new char[this.loc_lFeatName.size()]).replace("\0", ", ?")+
                         ")";
                     // Prepare an insert statement
-                    this.loc_psInsertResult = conThis.prepareStatement(sSql);            
+                    try {
+                      this.loc_psInsertResult = conThis.prepareStatement(sSql);  
+                    } catch (Exception ex) {
+                      errHandle.DoError("DbStore/xmlToDbNew error: ", ex, DbStore.class);
+                    }
                   }
 
                   // Switch off feature-name extraction after the first go
@@ -676,7 +680,12 @@ public class DbStore {
       // Finish the statement
       sSqlCreateResult += ")";
       // Create a table for the Results
-      loc_stmt.executeUpdate(sSqlCreateResult);
+      try {
+        loc_stmt.executeUpdate(sSqlCreateResult);
+      } catch (Exception ex) {
+        errHandle.DoError("DbStore/createWrite error: ", ex, DbStore.class);
+        return false;
+      }
       
       
       // Commit these steps
