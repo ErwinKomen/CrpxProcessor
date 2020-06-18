@@ -77,6 +77,8 @@ public class MdiReader {
         strFileMdi = strFile.replace(".folia.xml", "");
       } else if (strFile.endsWith(".folia.xml.gz")) {
         strFileMdi = strFile.replace(".folia.xml.gz", "");
+      } else if (strFile.endsWith(".psdx.gz")) {
+        strFileMdi = strFile.replace(".psdx.gz", "");
       } else {
         strFileMdi = FileIO.getDirectory(strFile) + "/" + FileIO.getFileNameWithoutExtension(strFile);
       }
