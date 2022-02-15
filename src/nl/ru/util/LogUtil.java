@@ -22,6 +22,7 @@ import java.util.Properties;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.apache.log4j.PropertyConfigurator;
@@ -100,7 +101,7 @@ public class LogUtil {
 			ConsoleAppender consoleAppender = new ConsoleAppender();
 			//consoleAppender.setLayout(new PatternLayout("%r [%t] %p %c %x - %m%n"));
 			consoleAppender.setLayout(new PatternLayout("%8r %-35c{2} %x %-5p %m%n"));
-			consoleAppender.setTarget("System.out");
+                        consoleAppender.setTarget("System.out");
 			consoleAppender.setThreshold(level);
 			consoleAppender.activateOptions();
 			Logger.getRootLogger().addAppender(consoleAppender);
