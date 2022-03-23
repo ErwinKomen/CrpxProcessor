@@ -13,7 +13,9 @@ import java.util.List;
 import net.sf.saxon.expr.XPathContext;
 import nl.ru.crpx.xq.CrpFile;
 import nl.ru.util.json.JSONObject;
-import org.apache.log4j.Logger;
+//import org.apache.log4j.Logger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -32,7 +34,7 @@ public class ErrHandle {
     clsDefault = clsMine;
     bInterrupt = false;
     lErrStack = new ArrayList<>();
-    logger = Logger.getLogger(clsMine);
+    logger = Logger.getLogger(clsMine.getName());
   }
   // ================== Public methods for this class ==========================
   public boolean DoError(String msg, Exception ex, Class cls) {
@@ -60,11 +62,13 @@ public class ErrHandle {
       addErr(oThis);
       // DEBUGGING: also show it in the error logger
       // logger.error(msg, ex);
-      Logger.getLogger(cls).error(msg, ex);
+      //Logger.getLogger(cls).error(msg, ex);
+      Logger.getLogger(cls.getName()).log(Level.SEVERE, msg, ex);
       // Return failure
       return false;
     } catch (Exception loc_ex) {
-      Logger.getLogger(this.clsDefault).error("DoError produces error: " + loc_ex.getMessage());
+      // Logger.getLogger(this.clsDefault).error("DoError produces error: " + loc_ex.getMessage());
+      Logger.getLogger(cls.getName()).log(Level.SEVERE, "DoError produces error: " + loc_ex.getMessage());
       return false;
     }
   }
@@ -98,7 +102,8 @@ public class ErrHandle {
         addErr(oThis);
       }
       synchronized(arErr) {
-        Logger.getLogger(cls).error(arErr.toString(), ex);
+        // Logger.getLogger(cls).error(arErr.toString(), ex);
+        Logger.getLogger(cls.getName()).log(Level.SEVERE, arErr.toString(), ex);
       }
     }
     // Return failure
@@ -156,11 +161,13 @@ public class ErrHandle {
     return false;
   }
   public void debug(String msg) {
-    logger.debug(msg);
+    //logger.debug(msg);
+    logger.log(Level.INFO, msg);
     // logger.debug(msg);
   }
   public void debug(String msg, Class cls) {
-    Logger.getLogger(cls).debug(msg);
+    // Logger.getLogger(cls).debug(msg);
+    Logger.getLogger(cls.getName()).log(Level.INFO, msg);
     // logger.debug(msg);
   }
   // ========== Allow others to see that there are errors ===========

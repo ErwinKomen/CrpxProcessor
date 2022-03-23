@@ -1524,12 +1524,17 @@ public class CorpusResearchProject {
    */
   public boolean doChange(String sKey, String sValue, int iItemId) {
     boolean bChanged = false;
+    String sKeyL = sKey.toLowerCase();
     try {
       // Validate
       if (sKey.isEmpty()) return false;
+      // Fix: Language and Part may not have their own itemId set
+      if (sKeyL.equals("language") || sKeyL.equals("part")) {
+          iItemId = -1;
+      }
       // Determine the section we are in
       if (iItemId <0) {
-        switch (sKey.toLowerCase()) {
+        switch (sKeyL) {
           case "author": if (!this.getAuthor().equals(sValue)) {this.setAuthor(sValue); bChanged =true; } 
             break;
           case "comments": if (!this.getComments().equals(sValue)) {this.setComments(sValue);  bChanged =true; } 
@@ -1615,7 +1620,7 @@ public class CorpusResearchProject {
       } else {
         String[] arKey = sKey.split("[.]");
         // Validate
-        if (arKey.length != 2) return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
+        if (arKey.length != 2) return errHandle.DoError("doChange: 1 cannot handle key="+sKey, CorpusResearchProject.class);
         String sItemType = arKey[0];
         String sItemKey = arKey[1];
         int iIdx = -1;
@@ -1682,7 +1687,7 @@ public class CorpusResearchProject {
                 if (oItemQry.has(sItemKey)) {
                   if (!oItemQry.getString(sItemKey).equals(sValue)) {oItemQry.put(sItemKey, sValue); bChanged = true;} 
                 } else {
-                  return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
+                  return errHandle.DoError("doChange: 2 cannot handle key="+sKey, CorpusResearchProject.class);
                 }
                 // Process changes
                 if (bChanged) {
@@ -1718,7 +1723,7 @@ public class CorpusResearchProject {
                 if (oItemDef.has(sItemKey)) {
                   if (!oItemDef.getString(sItemKey).equals(sValue)) {oItemDef.put(sItemKey, sValue); bChanged = true;} 
                 } else {
-                  return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
+                  return errHandle.DoError("doChange: 3 cannot handle key="+sKey, CorpusResearchProject.class);
                 }
                 // Process changes
                 if (bChanged) { 
@@ -1734,7 +1739,7 @@ public class CorpusResearchProject {
                 if (oItemQc.has(sItemKey)) {
                   if (!oItemQc.getString(sItemKey).equals(sValue)) {oItemQc.put(sItemKey, sValue); bChanged = true;} 
                 } else {
-                  return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
+                  return errHandle.DoError("doChange: 4 cannot handle key="+sKey, CorpusResearchProject.class);
                 }
                 // Process changes
                 if (bChanged) {
@@ -1748,7 +1753,7 @@ public class CorpusResearchProject {
                 if (oItemDbf.has(sItemKey)) {
                   if (!oItemDbf.getString(sItemKey).equals(sValue)) {oItemDbf.put(sItemKey, sValue); bChanged = true;} 
                 } else {
-                  return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
+                  return errHandle.DoError("doChange: 5 cannot handle key="+sKey, CorpusResearchProject.class);
                 }
                 // Process changes
                 if (bChanged) {
@@ -1756,7 +1761,7 @@ public class CorpusResearchProject {
                   this.setItemValue("DbFeat", iItemId, sItemKey, sValue);
                 }
                 break;
-              default: return errHandle.DoError("doChange: cannot handle key="+sKey, CorpusResearchProject.class);
+              default: return errHandle.DoError("doChange: 6 cannot handle key="+sKey, CorpusResearchProject.class);
             }
             break;
         }
