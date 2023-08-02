@@ -86,7 +86,7 @@ public class Parse {
   // =============== local constants ===========================================
   // in .NET: String strRuDef = "declare namespace ru = 'clitype:CorpusStudio.RuXqExt.RU?asm=CorpusStudio';\r\n";
   private static final String strRuDef = "declare namespace ru = 'java:nl.ru.crpx.xq.Extensions';\r\n";
-  private static final String strTbDef = "declare namespace tb = 'http://erwinkomen.ruhosting.nl/software/tb';\r\n";
+  private static final String strTbDef = "declare namespace tb = 'http://cls.ru.nl/staff/ekomen/software/tb';\r\n";
   private static final String strFunctxDef = "declare namespace functx = 'http://www.functx.com';\r\n";
   // ========== Variables for this class =======================================
   CorpusResearchProject crpThis;    // Which CRP are we working with?

@@ -80,7 +80,7 @@ public class Execute extends CrpGlobal {
   // =============== local constants ===========================================
   // in .NET: String strRuDef = "declare namespace ru = 'clitype:CorpusStudio.RuXqExt.RU?asm=CorpusStudio';\r\n";
   // private final String strRuDef = "declare namespace ru = 'java:nl.ru.crpx.xq.Extensions';\r\n";
-  // private final String strTbDef = "declare namespace tb = 'http://erwinkomen.ruhosting.nl/software/tb';\r\n";
+  // private final String strTbDef = "declare namespace tb = 'http://cls.ru.nl/staff/ekomen/software/tb';\r\n";
   // private final String strFunctxDef = "declare namespace functx = 'http://www.functx.com';\r\n";
   // ===================== Local stuff =========================================
   private String TEMP_FILE = "CrpTemp";
