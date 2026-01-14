@@ -4,3 +4,5 @@ Minimally needed are:
 - saxon9.jar
 - saxon9-dom.jar
 
+Needed for processing by CrppServer and CrpStudio:
+- CrpxProcessor.jar
